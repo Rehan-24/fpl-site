@@ -77,7 +77,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-blue-200 via-white to-purple-100 text-[#37003c]">
       <header className="bg-gradient-to-r from-blue-300 via-blue-400 to-purple-700 text-white p-6 shadow-lg">
-        <h1 className="text-4xl font-bold text-[#37003c]">Fantasy</h1>
+        <h1 className="text-4xl font-bold text-[#37003c] text-center sm:text-left">Fantasy</h1>
         <nav className="mt-4 flex flex-wrap gap-2 justify-center sm:justify-start">
           <Link href="/">
             <button className="bg-[#32FF6A] text-[#37003c] px-4 py-2 rounded font-semibold shadow">
