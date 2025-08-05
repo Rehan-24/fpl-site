@@ -78,8 +78,10 @@ export default function Premier() {
   return (
     <main className="bg-gradient-to-b from-blue-200 min-h-screen text-[#37003c] text-center to-purple-100 via-white">
       <div className="bg-gradient-to-r from-blue-300 p-6 shadow-lg text-center text-white to-purple-700 via-blue-400">
-        <h1 className="font-bold text-4xl text-[#37003c] text-left">THE Championship League (v3)</h1>
-        <nav className="flex gap-4 mt-4 text-center">
+        <h1 className="font-bold text-4xl text-[#37003c] text-center sm:text-left">
+          THE Championship League (v3)
+        </h1>
+        <nav className="flex flex-wrap justify-center sm:justify-start gap-2 sm:gap-4 mt-4">
           <Link href="/"><button className="bg-[#32FF6A] font-semibold px-4 py-2 rounded shadow text-[#37003c] text-center">Home</button></Link>
           <Link href="/premier"><button className="bg-[#32FF6A] font-semibold px-4 py-2 rounded shadow text-[#37003c] text-center">Premier</button></Link>
           <Link href="/championship"><button className="bg-[#32FF6A] font-semibold px-4 py-2 rounded shadow text-[#37003c] text-center">Championship</button></Link>

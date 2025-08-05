@@ -4,12 +4,14 @@ export default function FACup() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-blue-200 via-white to-purple-100 text-[#37003c]">
       <div className="bg-gradient-to-r from-blue-300 via-blue-400 to-purple-700 text-white p-6 shadow-lg">
-        <h1 className="text-4xl font-bold text-[#37003c]">THE FA Cup (v2)</h1>
-        <nav className="mt-4 flex gap-4">
-          <Link href="/"><button className="bg-[#32FF6A] text-[#37003c] px-4 py-2 rounded font-semibold shadow">Home</button></Link>
-          <Link href="/premier"><button className="bg-[#32FF6A] text-[#37003c] px-4 py-2 rounded font-semibold shadow">Premier</button></Link>
-          <Link href="/championship"><button className="bg-[#32FF6A] text-[#37003c] px-4 py-2 rounded font-semibold shadow">Championship</button></Link>
-          <Link href="/facup"><button className="bg-[#32FF6A] text-[#37003c] px-4 py-2 rounded font-semibold shadow">FA Cup</button></Link>
+        <h1 className="font-bold text-4xl text-[#37003c] text-center sm:text-left">
+          THE FA Cup (v2)
+        </h1>
+        <nav className="flex flex-wrap justify-center sm:justify-start gap-2 sm:gap-4 mt-4">
+          <Link href="/"><button className="bg-[#32FF6A] font-semibold px-4 py-2 rounded shadow text-[#37003c] text-center">Home</button></Link>
+          <Link href="/premier"><button className="bg-[#32FF6A] font-semibold px-4 py-2 rounded shadow text-[#37003c] text-center">Premier</button></Link>
+          <Link href="/championship"><button className="bg-[#32FF6A] font-semibold px-4 py-2 rounded shadow text-[#37003c] text-center">Championship</button></Link>
+          <Link href="/facup"><button className="bg-[#32FF6A] font-semibold px-4 py-2 rounded shadow text-[#37003c] text-center">FA Cup</button></Link>
         </nav>
       </div>
 
