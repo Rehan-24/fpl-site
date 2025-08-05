@@ -20,9 +20,9 @@ export default function Premier() {
     }
   };
 
-  const positionLabels = {"1": "Champion $225", "2": "Champions League $105", "3": "Champions League $90", "4": "Champions League $80", "5": "Europa League $55", "6": "Europa League $45", "7": "Conference League $35", "8": "Battle of The Mid", "9": "Battle of The Mid", "10": "Battle of The Mid", "11": "Battle of The Mid", "12": "Battle of The Mid", "13": "Battle of The Mid", "14": "Battle of The Mid", "15": "Battle of The Mid", "16": "Relegation Battle", "17": "Relegation", "18": "Relegation", "19": "Relegation", "20": "Relegation"};
+  const positionLabels: Record<string, string> = {"1": "Champion $225", "2": "Champions League $105", "3": "Champions League $90", "4": "Champions League $80", "5": "Europa League $55", "6": "Europa League $45", "7": "Conference League $35", "8": "Battle of The Mid", "9": "Battle of The Mid", "10": "Battle of The Mid", "11": "Battle of The Mid", "12": "Battle of The Mid", "13": "Battle of The Mid", "14": "Battle of The Mid", "15": "Battle of The Mid", "16": "Relegation Battle", "17": "Relegation", "18": "Relegation", "19": "Relegation", "20": "Relegation"};
 
-  const getCellStyle = (key, val, row) => {
+  const getCellStyle = (key: string, val: any, row: Record<string, any>) => {
     const num = parseFloat(val?.toString().replace(/[^\d.\-]/g, '')) || 0;
 
     if (key === "Chips Used" || key === "Free Hit" || key === "Wildcard 1" || key === "Wildcard 2" || key === "Triple Captain" || key === "Bench Boost" || key === "AssMan") {
@@ -110,14 +110,14 @@ export default function Premier() {
               </tr>
             </thead>
             <tbody>
-              {data.map((row, i) => (
+              {data.map((row: Record<string, any>, i) => (
                 <tr key={i} className="border-t text-center">
                   {Object.entries(row).map(([key, val], j) => {
                     if (key === "Position") {
                       return (
                         <td key={j} className={`px-3 py-2 text-sm border-b border-gray-400 ${getCellStyle(key, val, row)}`}>
-                          <div className="font-bold text-center text-lg">{val}</div>
-                          <div className="italic text-center text-purple-700 text-xs">{positionLabels[val]}</div>
+                          <div className="font-bold text-center text-lg">{String(val)}</div>
+                          <div className="italic text-center text-purple-700 text-xs">{positionLabels[String(val)]}</div>
                         </td>
                       );
                     }
@@ -125,7 +125,7 @@ export default function Premier() {
                     if (key === "Team") {
                       return (
                         <td key={j} className={`px-3 py-2 text-sm border-b border-gray-400 ${getCellStyle(key, val, row)}`}>
-                          <div className="font-medium text-center text-left">{val}</div>
+                          <div className="font-medium text-center text-left">{String(val)}</div>
                           <div className="text-center text-gray-600 text-left text-xs">{row.Owner}</div>
                         </td>
                       );
