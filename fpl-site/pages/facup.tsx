@@ -18,7 +18,7 @@ export default function FACup() {
         <p className="text-sm">Seeding — begins January</p>
         <div className="mt-6">
           <embed
-            src="http://localhost:8000/static/facup.pdf"
+            src="hhttps://tfpl.onrender.com/static/facup.pdf"
             type="application/pdf"
             width="100%"
             height="800px"

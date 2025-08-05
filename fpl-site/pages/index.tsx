@@ -6,10 +6,10 @@ export default function Home() {
   const [champ, setChamp] = useState([]);
 
   useEffect(() => {
-    fetch('http://localhost:8000/api/standings?league=premier')
+    fetch('https://tfpl.onrender.com/api/standings?league=premier')
       .then(res => res.json())
       .then(setPremier);
-    fetch('http://localhost:8000/api/standings?league=championship')
+    fetch('https://tfpl.onrender.com/api/standings?league=championship')
       .then(res => res.json())
       .then(setChamp);
   }, []);

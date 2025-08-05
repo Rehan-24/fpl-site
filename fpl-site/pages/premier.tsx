@@ -6,13 +6,13 @@ export default function Premier() {
   const [downloadFile, setDownloadFile] = useState('');
 
   useEffect(() => {
-    fetch('http://localhost:8000/api/standings?league=premier')
+    fetch('https://tfpl.onrender.com/api/standings?league=premier')
       .then(res => res.json())
       .then(setData);
   }, []);
 
   const handleGenerate = async () => {
-    const res = await fetch(`http://localhost:8000/api/generate?league=premier`);
+    const res = await fetch(`https://tfpl.onrender.com/api/generate?league=premier`);
     const result = await res.json();
     if (result.file) {
       setDownloadFile(result.file);
@@ -88,7 +88,7 @@ export default function Premier() {
         </button>
         {downloadFile && (
           <a
-            href={`http://localhost:8000/api/download?file=${downloadFile}`}
+            href={`https://tfpl.onrender.com/api/download?file=${downloadFile}`}
             className="bg-[#32FF6A] ml-4 px-4 py-2 rounded text-[#37003c] text-center"
             download
           >
