@@ -14,7 +14,13 @@ export default function Home() {
       .then(setChamp);
   }, []);
 
-  const renderPreview = (data, topCount, bottomCount, topLabel, bottomLabel) => {
+  const renderPreview = (
+    data: Record<string, any>[],
+    topCount: number,
+    bottomCount: number,
+    topLabel: string,
+    bottomLabel: string
+  ) => { 
     if (!Array.isArray(data) || data.length === 0) return <p className="text-sm">No data available...</p>;
     const top = data.slice(0, topCount);
     const bottom = data.slice(-bottomCount);
