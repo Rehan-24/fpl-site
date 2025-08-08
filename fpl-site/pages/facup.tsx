@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import NavBar from '../components/NavBar';
 
 export default function FACup() {
   return (
@@ -7,12 +8,7 @@ export default function FACup() {
         <h1 className="font-bold text-4xl text-[#37003c] text-center sm:text-left">
           THE FA Cup (v2)
         </h1>
-        <nav className="flex flex-wrap justify-center sm:justify-start gap-2 sm:gap-4 mt-4">
-          <Link href="/"><button className="bg-[#32FF6A] font-semibold px-4 py-2 rounded shadow text-[#37003c] text-center">Home</button></Link>
-          <Link href="/premier"><button className="bg-[#32FF6A] font-semibold px-4 py-2 rounded shadow text-[#37003c] text-center">Premier</button></Link>
-          <Link href="/championship"><button className="bg-[#32FF6A] font-semibold px-4 py-2 rounded shadow text-[#37003c] text-center">Championship</button></Link>
-          <Link href="/facup"><button className="bg-[#32FF6A] font-semibold px-4 py-2 rounded shadow text-[#37003c] text-center">FA Cup</button></Link>
-        </nav>
+        <NavBar />
       </div>
 
       <section className="p-6">

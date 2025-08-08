@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import NavBar from '../components/NavBar';
+
 
 export default function Home() {
   const [premier, setPremier] = useState([]);
@@ -78,28 +80,7 @@ export default function Home() {
     <main className="min-h-screen bg-gradient-to-b from-blue-200 via-white to-purple-100 text-[#37003c]">
       <header className="bg-gradient-to-r from-blue-300 via-blue-400 to-purple-700 text-white p-6 shadow-lg">
         <h1 className="text-4xl font-bold text-[#37003c] text-center sm:text-left">Fantasy</h1>
-        <nav className="mt-4 flex flex-wrap gap-2 justify-center sm:justify-start">
-          <Link href="/">
-            <button className="bg-[#32FF6A] text-[#37003c] px-4 py-2 rounded font-semibold shadow">
-              Home
-            </button>
-          </Link>
-          <Link href="/premier">
-            <button className="bg-[#32FF6A] text-[#37003c] px-4 py-2 rounded font-semibold shadow">
-              Premier
-            </button>
-          </Link>
-          <Link href="/championship">
-            <button className="bg-[#32FF6A] text-[#37003c] px-4 py-2 rounded font-semibold shadow">
-              Championship
-            </button>
-          </Link>
-          <Link href="/facup">
-            <button className="bg-[#32FF6A] text-[#37003c] px-4 py-2 rounded font-semibold shadow">
-              FA Cup
-            </button>
-          </Link>
-        </nav>
+        <NavBar />
       </header>
 
       <section className="p-4 sm:p-6">
