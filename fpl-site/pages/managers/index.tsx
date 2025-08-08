@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import NavBar from '../../components/NavBar'
+
 
 interface Manager {
   name: string
@@ -13,6 +14,19 @@ interface Manager {
 
 export default function ManagersList() {
   const [managers, setManagers] = useState<Manager[]>([])
+
+  const [search, setSearch] = useState('')
+
+  const filtered = useMemo(() => {
+  const q = search.trim().toLowerCase()
+  if (!q) return managers
+  return managers.filter(m =>
+    [m.name, m.team, m.favorite_club].some(v =>
+      (v || '').toLowerCase().includes(q)
+    )
+  )
+}, [managers, search])
+
 
   useEffect(() => {
     fetch('https://tfpl.onrender.com/api/managers')
@@ -29,6 +43,32 @@ export default function ManagersList() {
       </header>
 
       <section className="p-6">
+        {/* Search */}
+        <div className="max-w-xl mb-4">
+          <label htmlFor="manager-search" className="sr-only">Search managers</label>
+          <div className="flex items-center gap-2">
+            <input
+              id="manager-search"
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search by manager, team, or club…"
+              className="w-full rounded-md border border-[#37003c]/20 bg-white px-3 py-2 text-[#37003c] placeholder-[#37003c]/50 shadow focus:outline-none focus:ring-2 focus:ring-[#37003c]/30"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="rounded-md bg-[#32FF6A] px-3 py-2 text-sm font-semibold text-[#37003c] shadow"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          <div className="mt-1 text-xs text-[#37003c]/70">
+            Showing {filtered.length} of {managers.length}
+          </div>
+        </div>
+
         {/* Desktop/Tablet: table */}
         <div className="hidden sm:block">
           <div className="overflow-x-auto">
@@ -43,7 +83,7 @@ export default function ManagersList() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {managers.map(m => (
+                {filtered.map(m => (
                   <tr key={m.name} className="hover:bg-purple-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -79,6 +119,13 @@ export default function ManagersList() {
                     </td>
                   </tr>
                 ))}
+                {filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-8 text-center text-sm text-[#37003c]/70">
+                      No matches for “{search}”.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -86,7 +133,7 @@ export default function ManagersList() {
 
         {/* Mobile: cards */}
                 <div className="grid md:hidden gap-3">
-          {managers.map(m => (
+          {filtered.map(m => (
             <div
               key={m.name}
               className="bg-purple-100 rounded-lg shadow p-3"
@@ -107,11 +154,9 @@ export default function ManagersList() {
                   >
                     {m.name}
                   </Link>
-                  <div className="text-xs text-gray-600">{m.team}</div>
-                  {/* Fav club */}
-                  <div className="text-xs text-gray-600">{m.favorite_club}</div>
+                  <div className="text-xs text-gray-600">{m.team} // {m.favorite_club}</div>
                   {/* Placements under fav club */}
-                  <div className="text-xs text-gray-600 mt-1">Placements: {m.placements}</div>
+                  <div className="text-xs text-gray-600">Placements: {m.placements}</div>
                 </div>
 
                 {/* Right: follow button, vertically centered */}
@@ -128,6 +173,11 @@ export default function ManagersList() {
               </div>
             </div>
           ))}
+          {filtered.length === 0 && (
+            <div className="text-sm text-center text-[#37003c]/70 py-6">
+              No matches for “{search}”.
+            </div>
+          )}
         </div>
       </section>
     </main>
