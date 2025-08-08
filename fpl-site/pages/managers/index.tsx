@@ -2,14 +2,17 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import NavBar from '../../components/NavBar'
 
+type TrophyType = 'premier' | 'fa' | 'championship';
 
 interface Manager {
-  name: string
-  team: string
-  favorite_club: string
-  placements: number
-  image_url: string
-  social_url: string
+  name: string;
+  team: string;
+  favorite_club: string;
+  placements: number;
+  image_url: string;
+  social_url: string;
+  titles: number;
+  trophies?: { type: TrophyType; count: number }[];
 }
 
 export default function ManagersList() {
@@ -34,6 +37,7 @@ export default function ManagersList() {
       .then(setManagers)
       .catch(console.error)
   }, [])
+
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-blue-200 via-white to-purple-100 text-[#37003c]">
@@ -79,6 +83,7 @@ export default function ManagersList() {
                   <th className="px-6 py-3 text-left text-sm font-semibold text-white">Manages</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-white">Favorite Club</th>
                   <th className="px-6 py-3 text-center text-sm font-semibold text-white">Placements</th>
+                  <th className="px-6 py-3 text-center text-sm font-semibold text-white">Titles</th>
                   <th className="px-6 py-3 text-center text-sm font-semibold text-white">Follow</th>
                 </tr>
               </thead>
@@ -86,18 +91,32 @@ export default function ManagersList() {
                 {filtered.map(m => (
                   <tr key={m.name} className="hover:bg-purple-50">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <img
-                          src={m.image_url}
-                          alt={m.name}
-                          className="w-10 h-10 rounded-full mr-3 border"
-                        />
+                      <div className="flex-1">
                         <Link
                           href={`/managers/${encodeURIComponent(m.name)}`}
-                          className="text-[#37003c] font-medium hover:underline"
+                          className="font-semibold text-[#37003c] hover:underline"
                         >
                           {m.name}
                         </Link>
+
+                        {/* Trophy badges */}
+                        {m.trophies && m.trophies.length > 0 && (
+                          <div className="mt-1 flex flex-wrap items-center gap-2">
+                            {m.trophies.map((t) => (
+                              <span key={t.type} className="inline-flex items-center gap-1">
+                                <img
+                                  src={`/trophies/${t.type}.png`}
+                                  alt={`${t.type} trophy`}
+                                  className="w-4 h-4"
+                                />
+                                <span className="text-[10px] font-semibold text-[#37003c]">x{t.count}</span>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="text-xs text-gray-600">{m.team} // {m.favorite_club}</div>
+                        <div className="text-xs text-gray-600">Placements: {m.placements}</div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">{m.team}</td>
@@ -117,6 +136,7 @@ export default function ManagersList() {
                         <span className="text-xs text-gray-500">—</span>
                       )}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm">{m.titles ?? 0}</td>
                   </tr>
                 ))}
                 {filtered.length === 0 && (

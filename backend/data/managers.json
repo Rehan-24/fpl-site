@@ -12,7 +12,12 @@
     "fpl_team_url": "https://fantasy.premierleague.com/entry/3577847/history",
     "favorite_club": "Real Madrid", 
     "placements": "4",
-    "social_url": "https://www.instagram.com/rekhan.24/?next=%2F"
+    "social_url": "https://www.instagram.com/rekhan.24/?next=%2F",
+    "trophies": [
+      { "type": "premier", "count": 2 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "Julian Tarazi",
@@ -27,7 +32,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "Liverpool", 
     "placements": "1",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "JD Garcia",
@@ -42,7 +52,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "Arsenal", 
     "placements": "1",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "Carter WitmerGautsch",
@@ -57,7 +72,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "Southampton", 
     "placements": "3",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "Hanson Xia",
@@ -72,7 +92,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "Brentford", 
     "placements": "2",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "Avi Kumar",
@@ -87,7 +112,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "Arsenal", 
     "placements": "2",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "James Giles",
@@ -102,7 +132,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "The Beautiful Game", 
     "placements": "",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "Joel Mathew",
@@ -117,7 +152,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "Arsenal", 
     "placements": "2",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 1 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "Michael Giles",
@@ -132,7 +172,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "The Beautiful Game", 
     "placements": "2",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "Marvin Ling",
@@ -147,7 +192,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "The Beautiful Game", 
     "placements": "1",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 1 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "Ryan Gallagher",
@@ -162,7 +212,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "Messi? Liverpool? Arsenal? Barca?", 
     "placements": "",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "Seth Gerus",
@@ -177,7 +232,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "The Beautiful Game", 
     "placements": "",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "Kamil Sacha",
@@ -192,7 +252,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "Manchester United", 
     "placements": "",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "Imran Khan",
@@ -207,7 +272,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "The Beautiful Game", 
     "placements": "",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "Chandler Ashman",
@@ -222,7 +292,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "Barcelona", 
     "placements": "",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 1 }
+  ]
   },
   {
     "name": "Derek Huddleston",
@@ -237,7 +312,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "Arsenal", 
     "placements": "",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "Will Franzoni",
@@ -252,7 +332,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "Tottenham Spurs", 
     "placements": "",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "Aaron Frank",
@@ -267,7 +352,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "The Beautiful Game", 
     "placements": "",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "William Okine",
@@ -282,7 +372,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "Chelsea", 
     "placements": "",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "Logan Roth",
@@ -297,7 +392,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "The Beautiful Game", 
     "placements": "",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "Tyler Quedens",
@@ -312,7 +412,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "The Beautiful Game", 
     "placements": "",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 1 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "Aj Pepperney",
@@ -327,7 +432,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "The Beautiful Game", 
     "placements": "",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "Tyler Neal",
@@ -342,7 +452,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "The Beautiful Game", 
     "placements": "",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "Linden Eberle",
@@ -357,7 +472,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "Manchester City", 
     "placements": "",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "Zoha Khan",
@@ -372,7 +492,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "Real Madrid", 
     "placements": "",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "AVERAGE (bot)",
@@ -387,7 +512,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "ChatGPT", 
     "placements": "",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "Brynn Miller",
@@ -402,7 +532,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "Arsenal and Beautiful Men", 
     "placements": "",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "Aroon Tcholakov",
@@ -417,7 +552,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "The Beautiful Game", 
     "placements": "",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "Alex Quedens",
@@ -432,7 +572,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "FC Cincinnati", 
     "placements": "",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "John Saunders",
@@ -447,7 +592,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "Manchester United", 
     "placements": "",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "Aiko Dzikowski",
@@ -462,7 +612,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "Cheeks FC", 
     "placements": "",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "Charlie Mullen",
@@ -477,7 +632,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "The Beautiful Game", 
     "placements": "",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "Tim Davis",
@@ -492,7 +652,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "Project Mbappe", 
     "placements": "",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "Ken Okine",
@@ -507,7 +672,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "Manchester United", 
     "placements": "",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "Ben Josiah",
@@ -522,7 +692,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "The Beautiful Game", 
     "placements": "",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "man guy",
@@ -537,7 +712,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "Casual", 
     "placements": "",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "Hunter Stemple",
@@ -552,7 +732,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "The Beautiful Game", 
     "placements": "",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "Casey Manos",
@@ -567,7 +752,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "Casual", 
     "placements": "",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "Freddie Wilhelm",
@@ -582,7 +772,12 @@
     "fpl_team_url": "TBD",
     "favorite_club": "Manchester United", 
     "placements": "",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   },
   {
     "name": "Emaly Vatne",
@@ -597,6 +792,11 @@
     "fpl_team_url": "TBD",
     "favorite_club": "The Beautiful Game", 
     "placements": "",
-    "social_url": ""
+    "social_url": "",
+    "trophies": [
+      { "type": "premier", "count": 0 },
+      { "type": "championship", "count": 0 },
+      { "type": "fa", "count": 0 }
+  ]
   }
 ]
