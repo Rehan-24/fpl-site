@@ -17,7 +17,7 @@ interface Manager {
 }
 
 const TROPHY_ICONS: Record<TrophyKey, string> = {
-  premier: '/images/trophies/premier.png',
+  premier: '/images/trophies/prem_trophy.png',
   fa: '/images/trophies/fa_cup_trophy.png',
   championship: '/images/trophies/championship_trophy.png',
 };
@@ -109,6 +109,12 @@ export default function ManagersList() {
                           alt={m.name}
                           className="w-10 h-10 rounded-full mr-3 border"
                         />
+                        <Link
+                          href={`/managers/${encodeURIComponent(m.name)}`}
+                          className="text-[#37003c] font-medium hover:underline"
+                        >
+                          {m.name}
+                        </Link>
                         </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">{m.team}</td>
