@@ -78,9 +78,21 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-blue-200 via-white to-purple-100 text-[#37003c]">
-      <header className="bg-gradient-to-r from-blue-300 via-blue-400 to-purple-700 text-white p-6 shadow-lg">
-        <h1 className="text-4xl font-bold text-[#37003c] text-center sm:text-left">Fantasy</h1>
-        <NavBar />
+       <header className="relative bg-gradient-to-r from-blue-300 via-blue-400 bg-[#5b329e] text-[#37003c] p-6 shadow-lg overflow-hidden">
+          {/* ripple vector background */}
+          <div
+              className="pointer-events-none select-none absolute inset-0"
+              style={{
+                backgroundImage: "url('/images/patterns/navbar_ripple.png')",
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'center 80%', // Adjust for better centering
+                backgroundSize: 'cover', // Ensure it covers full width while keeping aspect ratio
+                opacity: 0.12, // Lower opacity to make the ripple more subtle
+              }}
+          /> 
+          {/* Content above ripple */}
+          <h1 className="text-center sm:text-left relative z-10 text-4xl font-bold text-[#37003c]">Fantasy</h1>
+          <NavBar />
       </header>
 
       <section className="p-4 sm:p-6">

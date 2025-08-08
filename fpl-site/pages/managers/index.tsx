@@ -17,7 +17,7 @@ interface Manager {
 }
 
 // default
-const DEFAULT_AVATAR = '/images/managers/no_pp.png'
+const DEFAULT_AVATAR = '/images/managers/no_pp.jpg'
 
 const TROPHY_ICONS: Record<TrophyKey, string> = {
   premier: '/images/trophies/prem_trophy.png',
@@ -94,8 +94,21 @@ export default function ManagersList() {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-blue-200 via-white to-purple-100 text-[#37003c]">
-      <header className="bg-gradient-to-r from-blue-300 via-blue-400 to-purple-700 p-6 shadow-lg">
-        <h1 className="font-bold text-4xl text-[#37003c] text-center sm:text-left">Managers</h1>
+      <header className="relative bg-gradient-to-r from-blue-300 via-blue-400 bg-[#5b329e] text-[#37003c] p-6 shadow-lg overflow-hidden">
+        {/* ripple vector background */}
+        <div
+          className="pointer-events-none select-none absolute inset-0"
+          style={{
+            backgroundImage: "url('/images/patterns/navbar_ripple.png')",
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'center 80%', // Adjust for better centering
+            backgroundSize: 'cover', // Ensure it covers full width while keeping aspect ratio
+            opacity: 0.12, // Lower opacity to make the ripple more subtle
+          }}
+        />
+        
+        {/* Content above ripple */}
+        <h1 className="relative z-10 text-4xl font-bold text-[#37003c]">Managers</h1>
         <NavBar />
       </header>
 
@@ -153,7 +166,7 @@ export default function ManagersList() {
                       Titles <span className="opacity-70">{indicator('titles')}</span>
                     </button>
                   </th>
-                  <th className="px-6 py-3 text-center text-sm font-semibold text-white">Follow</th>
+                  <th className="px-6 py-3 text-center text-sm font-semibold text-white">Socials</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -164,7 +177,7 @@ export default function ManagersList() {
                         <img
                           src={m.image_url || DEFAULT_AVATAR}
                           alt={m.name}
-                          className="w-10 h-10 rounded-full mr-3 border"
+                          className="w-10 h-10 rounded-full mr-3"
                         />
                         <Link
                           href={`/managers/${encodeURIComponent(m.name)}`}

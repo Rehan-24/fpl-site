@@ -11,6 +11,10 @@ interface Manager {
   team: string;
   current_league?: string;
   years_playing?: number;
+  premier_years?: number;
+  championship_years?: number;
+  promotions: string | number;
+  relegations: string | number;
   best_finish?: string | null;
   titles?: number;
   titles_list?: string;
@@ -60,17 +64,30 @@ export default function ManagerBio() {
   if ((manager as any).error) return <p className="p-6 text-red-600">Manager not found</p>
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-blue-200 via-white to-purple-100 text-[#37003c]">
-      <header className="bg-gradient-to-r from-blue-300 via-blue-400 to-purple-700 text-white p-6 shadow-lg">
-        <h1 className="text-3xl font-bold text-[#37003c]">Team Bio</h1>
+    <main className="min-h-screen bg-gradient-to-b from-blue-200 to-purple-100 text-[#37003c]">
+      <header className="relative bg-gradient-to-r from-blue-300 via-blue-400 bg-[#5b329e] text-[#37003c] p-6 shadow-lg overflow-hidden">
+        {/* ripple vector background */}
+        <div
+          className="pointer-events-none select-none absolute inset-0"
+          style={{
+            backgroundImage: "url('/images/patterns/navbar_ripple.png')",
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'center 80%', // Adjust for better centering
+            backgroundSize: 'cover', // Ensure it covers full width while keeping aspect ratio
+            opacity: 0.12, // Lower opacity to make the ripple more subtle
+          }}
+        />
+        
+        {/* Content above ripple */}
+        <h1 className="relative z-10 text-3xl font-bold text-[#37003c]">Team Bio</h1>
         <NavBar />
       </header>
 
-      <section className="p-6 space-y-6">
-        <Link href="/managers" className="underline">&larr; Back to Team Bios</Link>
+      <section className="p-6 space-y-6 text-[#37003c]">
+        <Link href="/managers" className="underline">&larr; Back to Manager List</Link>
 
         {/* HERO CARD (FPL-style + ripple overlay) */}
-        <div className="relative overflow-hidden rounded-2xl shadow-xl bg-gradient-to-r from-blue-300 via-blue-400 to-green-500 text-[#37003c]">
+        <div className="mt-4 relative overflow-hidden rounded-2xl shadow-xl bg-gradient-to-r from-blue-300 via-blue-400 to-green-500 text-[#37003c]">
           {/* ripple vector from /public/images/patterns/content-card-vector.svg */}
             <div
               className="pointer-events-none select-none absolute inset-y-0 right-0 left-24 sm:left-40 md:left-48"
@@ -94,7 +111,7 @@ export default function ManagerBio() {
           <img
             src={manager.dynamic_image_url || DEFAULT_AVATAR}
             alt={manager.name}
-            className="absolute bottom-0 h-32 sm:h-40 md:h-44 object-cover select-none"
+            className="absolute bottom-0 left-7 h-32 sm:h-40 md:h-44 object-cover select-none"
             onError={(e) => {
               const img = e.currentTarget as HTMLImageElement
               if (img.src.endsWith(DEFAULT_AVATAR)) return
@@ -146,61 +163,75 @@ export default function ManagerBio() {
         </div>
 
         {/* INFO CARD (details) */}
-        <div className="rounded-xl bg-white/70 backdrop-blur shadow p-5 grid md:grid-cols-2 gap-6">
-          <div>
-            <h3 className="text-lg font-semibold mb-2">Bio</h3>
-            <p className="text-sm leading-relaxed">
-              {manager.bio || 'No bio yet.'}
-            </p>
-          </div>
-
-          <div className="grid sm:grid-cols-2 gap-4">
+        <div className="rounded-xl bg-gradient-to-r from-blue-200 via-blue-400 to-green-500 backdrop-blur shadow p-5 grid md:grid-cols-2 gap-6 text-[#37003c]">
+            {/* ripple vector from /public/images/patterns/content-card-vector.svg */}
+            <div
+              className="pointer-events-none select-none absolute inset-y-0 right-0 left-24 sm:left-40 md:left-48"
+              style={{
+                backgroundImage: "url('/images/patterns/hero-card-ripple.svg')",
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right top',
+                backgroundSize: 'cover', // try 'contain' if you want less stretch
+              }}
+            />
+            
             <div>
-              <h4 className="font-semibold mb-1">Quick stats</h4>
+              <h4 className="text-lg font-semibold mb-1">Stats</h4>
               <ul className="text-sm space-y-1">
                 <li><strong>Current League:</strong> {manager.current_league || '—'}</li>
-                <li><strong>Experience:</strong> {manager.years_playing ?? '—'}</li>
+                <li><strong>Total Experience:</strong> {manager.years_playing ?? '—'}</li>
+                <li><strong>Promotions/Relegations:</strong> {manager.promotions ?? 'N'}/{manager.relegations ?? 'A'}</li>
+                <li><strong>Premier Experience:</strong> {manager.premier_years ?? 'N/A'}</li>
+                <li><strong>Championship Experience:</strong> {manager.championship_years ?? 'N/A'}</li>
                 <li><strong>Best Finish:</strong> {manager.best_finish ?? '—'}</li>
-                <li><strong>Titles:</strong> {manager.titles ?? 0}</li>
                 {manager.titles_list && (
-                  <li><strong>Titles Won:</strong> {manager.titles_list}</li>
+                  <li><strong>Titles:</strong> {manager.titles ?? 0} - {manager.titles_list}</li>
                 )}
               </ul>
             </div>
+          
             <div>
-              <h4 className="font-semibold mb-1">Links</h4>
-              <ul className="text-sm space-y-1">
-                <li>
-                  <strong>FPL Team:</strong>{' '}
-                  {manager.fpl_team_url && manager.fpl_team_url !== 'TBD' ? (
-                    <a
-                      href={manager.fpl_team_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-700 hover:underline"
-                    >
-                      View on FPL
-                    </a>
-                  ) : (
-                    'TBD'
-                  )}
-                </li>
-                {manager.social_url && (
+              <h3 className="text-lg font-semibold mb-2">Bio</h3>
+              <p className="text-sm leading-relaxed">
+                {manager.bio || 'No bio yet.'}
+              </p>
+
+              <div className="mt-4"> {/* space between bio and links */}
+                <h4 className="font-semibold mb-1">Links</h4>
+                <ul className="text-sm space-y-1">
                   <li>
-                    <strong>Social:</strong>{' '}
-                    <a
-                      href={manager.social_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-700 hover:underline"
-                    >
-                      Profile
-                    </a>
+                    <strong>FPL Team:</strong>{' '}
+                    {manager.fpl_team_url && manager.fpl_team_url !== 'Coming Soon...' ? (
+                      <a
+                        href={manager.fpl_team_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="[#37003c] underline"
+                      >
+                        View on FPL
+                      </a>
+                    ) : (
+                      'TBD'
+                    )}
                   </li>
-                )}
-              </ul>
+                  {manager.social_url && (
+                    <li>
+                      <strong>Socials:</strong>{' '}
+                      <a
+                        href={manager.social_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#37003c] underline"
+                      >
+                        Profile
+                      </a>
+                    </li>
+                  )}
+                </ul>
+              </div>
             </div>
-          </div>
+
+
         </div>
       </section>
     </main>
