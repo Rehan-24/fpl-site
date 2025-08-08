@@ -26,22 +26,22 @@ const TROPHY_ICONS: Record<TrophyKey, string> = {
 const expandTrophies = (ts?: Trophy[]): TrophyKey[] =>
   (ts ?? []).flatMap((t) => Array.from({ length: t.count ?? 0 }, () => t.type));
 
+// ---------- sorting types/state/helpers ----------
+type SortKey = 'name' | 'team' | 'placements' | 'titles'
+type SortDir = 'asc' | 'desc'
 
+const toNum = (x: unknown) => {
+  const n = typeof x === 'number' ? x : parseFloat(String(x ?? ''))
+  return Number.isFinite(n) ? n : 0
+}
+// ------------------------------------------------------
 export default function ManagersList() {
   const [managers, setManagers] = useState<Manager[]>([])
-
   const [search, setSearch] = useState('')
 
-  const filtered = useMemo(() => {
-  const q = search.trim().toLowerCase()
-  if (!q) return managers
-  return managers.filter(m =>
-    [m.name, m.team, m.favorite_club].some(v =>
-      (v || '').toLowerCase().includes(q)
-    )
-  )
-}, [managers, search])
-
+  // NEW: sorting state
+  const [sortKey, setSortKey] = useState<SortKey>('name')
+  const [sortDir, setSortDir] = useState<SortDir>('asc')
 
   useEffect(() => {
     fetch('https://tfpl.onrender.com/api/managers')
@@ -50,6 +50,44 @@ export default function ManagersList() {
       .catch(console.error)
   }, [])
 
+  const filtered = useMemo(() => {
+    // filter
+    const q = search.trim().toLowerCase()
+    const base = !q
+      ? managers
+      : managers.filter(m =>
+          [m.name, m.team, m.favorite_club].some(v =>
+            String(v || '').toLowerCase().includes(q)
+          )
+        )
+
+    // sort
+    const sorted = [...base].sort((a, b) => {
+      if (sortKey === 'placements' || sortKey === 'titles') {
+        const av = toNum(a[sortKey])
+        const bv = toNum(b[sortKey])
+        return sortDir === 'asc' ? av - bv : bv - av
+      } else {
+        const av = String(a[sortKey] ?? '').toLowerCase()
+        const bv = String(b[sortKey] ?? '').toLowerCase()
+        return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
+      }
+    })
+    return sorted
+  }, [managers, search, sortKey, sortDir])
+
+  // NEW: sorting controls
+  const toggleSort = (key: SortKey) => {
+    if (key === sortKey) {
+      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortKey(key)
+      // default numeric columns to 'desc' (highest first), text to 'asc'
+      setSortDir(key === 'placements' || key === 'titles' ? 'desc' : 'asc')
+    }
+  }
+  const indicator = (key: SortKey) =>
+    key !== sortKey ? '↕' : sortDir === 'asc' ? '▲' : '▼'
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-blue-200 via-white to-purple-100 text-[#37003c]">
@@ -91,18 +129,34 @@ export default function ManagersList() {
             <table className="min-w-full bg-purple-100 rounded-lg shadow overflow-hidden">
               <thead>
                 <tr className="bg-[#37003c]">
-                  <th className="pl-10 pr-4 py-3 text-left text-sm font-semibold text-white">Manager</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-white">Manages</th>
+                  <th className="pl-10 pr-4 py-3 text-left text-sm font-semibold text-white">
+                    <button onClick={() => toggleSort('name')} className="flex items-center gap-1">
+                      Manager <span className="opacity-70">{indicator('name')}</span>
+                    </button>
+                  </th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-white">
+                    <button onClick={() => toggleSort('team')} className="flex items-center gap-1">
+                      Manages <span className="opacity-70">{indicator('team')}</span>
+                    </button>
+                  </th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-white">Favorite Club</th>
-                  <th className="px-6 py-3 text-center text-sm font-semibold text-white">Placements</th>
-                  <th className="px-6 py-3 text-center text-sm font-semibold text-white">Titles</th>
+                  <th className="px-6 py-3 text-center text-sm font-semibold text-white">
+                    <button onClick={() => toggleSort('placements')} className="inline-flex items-center gap-1">
+                      Placements <span className="opacity-70">{indicator('placements')}</span>
+                    </button>
+                  </th>
+                  <th className="px-6 py-3 text-center text-sm font-semibold text-white">
+                    <button onClick={() => toggleSort('titles')} className="inline-flex items-center gap-1">
+                      Titles <span className="opacity-70">{indicator('titles')}</span>
+                    </button>
+                  </th>
                   <th className="px-6 py-3 text-center text-sm font-semibold text-white">Follow</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {filtered.map(m => (
                   <tr key={m.name} className="hover:bg-purple-50">
-                    <td className="px-6 py-4 whitespace-nowrap"> 
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <img
                           src={m.image_url}
@@ -115,12 +169,12 @@ export default function ManagersList() {
                         >
                           {m.name}
                         </Link>
-                        </div>
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">{m.team}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">{m.favorite_club || '—'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm">{m.placements ?? 0}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm">{m.titles ?? 0}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm">{toNum(m.placements)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm">{toNum(m.titles)}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       {m.social_url ? (
                         <a
@@ -135,12 +189,11 @@ export default function ManagersList() {
                         <span className="text-xs text-gray-500">—</span>
                       )}
                     </td>
-
                   </tr>
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-6 py-8 text-center text-sm text-[#37003c]/70">
+                    <td colSpan={6} className="px-6 py-8 text-center text-sm text-[#37003c]/70">
                       No matches for “{search}”.
                     </td>
                   </tr>
@@ -149,6 +202,7 @@ export default function ManagersList() {
             </table>
           </div>
         </div>
+
 
         {/* Mobile: cards */}
                 <div className="grid md:hidden gap-3">
