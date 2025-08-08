@@ -95,12 +95,12 @@ export default function Premier() {
         )}
 
         <div className="mt-4 overflow-x-auto text-center">
-          <table className="bg-[#37003c] border-separate border-spacing-x-[1px] overflow-hidden rounded-md shadow-md text-center text-sm w-full">
+          <table className="bg-purple-100 border-separate border-spacing-x-[1px] overflow-hidden rounded-md shadow-md text-center text-sm w-full">
             <thead>
               <tr>
                 {data[0] && Object.keys(data[0]).map((key) => (
                   key !== "Owner" && key !== "Title Reward" && (
-                    <th key={key} className="bg-gray-100 font-semibold px-3 py-2 text-[#37003c] text-center text-xs">
+                    <th key={key} className="bg-[#37003c] font-semibold px-3 py-2 text-white text-center text-xs">
                       {key}
                     </th>
                   )

@@ -107,7 +107,7 @@ export default function Premier() {
               <tr>
                 {data[0] && Object.keys(data[0]).map((key) => (
                   key !== "Owner" && key !== "Title Reward" && (
-                    <th key={key} className="bg-gray-100 font-semibold px-3 py-2 text-[#37003c] text-center text-xs">
+                    <th key={key} className="bg-[#37003c] font-semibold px-3 py-2 text-white text-center text-xs">
                       {key}
                     </th>
                   )
