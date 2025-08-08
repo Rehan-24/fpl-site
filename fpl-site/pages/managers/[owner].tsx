@@ -24,9 +24,11 @@ export default function ManagerBio() {
   useEffect(() => {
     if (!isReady || !ownerSlug) return
     const ownerName = decodeURIComponent(ownerSlug)
-    fetch(`/api/managers?owner=${encodeURIComponent(ownerName)}`)
-      .then(res => res.json())
+    fetch(`https://tfpl.onrender.com/api/managers?owner=${encodeURIComponent(ownerName)}`)
+      .then((res) => res.json())
       .then(setManager)
+      .catch(console.error)
+
   }, [isReady, ownerSlug])
 
   if (!manager) return <p className="p-6">Loading…</p>
