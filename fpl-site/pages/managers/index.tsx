@@ -85,40 +85,45 @@ export default function ManagersList() {
         </div>
 
         {/* Mobile: cards */}
-        <div className="sm:hidden space-y-3">
+                <div className="grid md:hidden gap-3">
           {managers.map(m => (
-            <div key={m.name} className="bg-purple-100 rounded-lg shadow p-4">
-              <div className="flex items-center gap-3">
+            <div
+              key={m.name}
+              className="bg-purple-100 rounded-lg shadow p-3"
+            >
+              <div className="flex gap-3">
+                {/* Left: avatar */}
                 <img
                   src={m.image_url}
                   alt={m.name}
-                  className="w-12 h-12 rounded-full border"
+                  className="w-12 h-12 rounded-full border flex-shrink-0"
                 />
+
+                {/* Middle: info */}
                 <div className="flex-1">
                   <Link
                     href={`/managers/${encodeURIComponent(m.name)}`}
-                    className="font-semibold hover:underline"
+                    className="font-semibold text-[#37003c] hover:underline"
                   >
                     {m.name}
                   </Link>
-                  <div className="text-xs text-gray-600">{m.team}</div>
-                  <div className="text-xs text-gray-600">
-                    Fav club: {m.favorite_club || '—'}
-                  </div>
+                  <div className="text-sm text-[#37003c]">"Manages" {m.team}</div>
+                  {/* Fav club */}
+                  <div className="text-xs text-gray-600">{m.favorite_club}</div>
+                  {/* Placements under fav club */}
+                  <div className="text-xs text-[#37003c] mt-1">Placements: {m.placements}</div>
                 </div>
-                <div className="text-right">
-                  <div className="text-[10px] uppercase text-gray-500">Placements</div>
-                  <div className="text-lg font-bold">{m.placements ?? 0}</div>
-                  {m.social_url ? (
-                    <a
-                      href={m.social_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-block mt-2 bg-[#32FF6A] text-[#37003c] px-3 py-1 rounded-full text-xs font-semibold"
-                    >
-                      Follow
-                    </a>
-                  ) : null}
+
+                {/* Right: follow button, vertically centered */}
+                <div className="pl-2 flex items-center">
+                  <a
+                    href={m.social_url || '#'}
+                    target={m.social_url}
+                    rel={m.social_url}
+                    className={`bg-[#32FF6A] text-[#37003c] px-3 py-1 rounded-full text-xs font-semibold ${m.social_url ? '' : 'opacity-60 pointer-events-none'}`}
+                  >
+                    Follow
+                  </a>
                 </div>
               </div>
             </div>
