@@ -19,12 +19,6 @@ export default function FACup() {
         <h2 className="text-3xl font-bold mb-4">FA Cup</h2>
         <p className="text-sm">Seeding — begins January</p>
         <div className="mt-6">
-          <embed
-            src="hhttps://tfpl.onrender.com/static/facup.pdf"
-            type="application/pdf"
-            width="100%"
-            height="800px"
-          />
           <p className="text-sm text-gray-600 mt-2">
             Bracket failed to load? View it directly at
             <a
@@ -36,6 +30,12 @@ export default function FACup() {
               challonge.com/tfplfacup
             </a>.
           </p>
+          <embed
+            src="https://tfpl.onrender.com/static/facup.pdf"
+            type="application/pdf"
+            width="100%"
+            height="800px"
+          />
         </div>
       </section>
     </main>

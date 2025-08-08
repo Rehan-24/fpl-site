@@ -2,6 +2,7 @@ from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from managers.index import router as managers_router
 
 import pandas as pd
 import os
@@ -10,6 +11,7 @@ import subprocess
 
 app = FastAPI()
 
+# CORS Middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -17,10 +19,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Static Files for Manager Images and others
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 RESULTS_DIR = "results"
 DATA_DIR = "data"
 TEST_MODE = True  # Change to False to use real script later
 
+# Register the managers router
+app.include_router(managers_router, prefix="/api")
+
+# Route for getting standings
 @app.get("/api/standings")
 def get_standings(league: str = Query("premier")):
     if TEST_MODE:
@@ -39,6 +48,7 @@ def get_standings(league: str = Query("premier")):
     except Exception as e:
         return {"error": str(e)}
 
+# Route to generate an Excel file with standings
 @app.get("/api/generate")
 def generate_excel(league: str = Query("premier"), gw: int = Query(38)):
     try:
@@ -58,9 +68,11 @@ def generate_excel(league: str = Query("premier"), gw: int = Query(38)):
     except Exception as e:
         return {"error": str(e)}
 
+# Route to download an Excel file
 @app.get("/api/download")
 def download_excel(file: str = Query(...)):
     path = os.path.join(RESULTS_DIR, file)
     if not os.path.isfile(path):
         return JSONResponse(status_code=404, content={"error": "File not found"})
     return FileResponse(path, filename=file)
+

@@ -128,7 +128,14 @@ export default function Premier() {
                       return (
                         <td key={j} className={`px-3 py-2 text-sm border-b border-gray-400 ${getCellStyle(key, val, row)}`}>
                           <div className="font-medium text-center text-left">{String(val)}</div>
-                          <div className="text-center text-gray-600 text-left text-xs">{row.Owner}</div>
+                          <div className="text-xs text-gray-600 text-left text-xs">
+                            <Link
+                              href={`/managers/${encodeURIComponent(row.Owner)}`}
+                              className="hover:underline"
+                            >
+                              {row.Owner}
+                            </Link>
+                         </div>
                         </td>
                       );
                     }
