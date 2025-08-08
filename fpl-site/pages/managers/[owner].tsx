@@ -25,10 +25,9 @@ export default function ManagerBio() {
     if (!isReady || !ownerSlug) return
     const ownerName = decodeURIComponent(ownerSlug)
     fetch(`https://tfpl.onrender.com/api/managers?owner=${encodeURIComponent(ownerName)}`)
-      .then((res) => res.json())
+      .then(r => r.json())
       .then(setManager)
       .catch(console.error)
-
   }, [isReady, ownerSlug])
 
   if (!manager) return <p className="p-6">Loading…</p>
@@ -36,51 +35,57 @@ export default function ManagerBio() {
     return <p className="p-6 text-red-600">Manager not found</p>
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-blue-200 via-white to-purple-100 text-[#37003c]">
-      <header className="bg-gradient-to-r from-blue-300 via-blue-400 to-purple-700 text-white p-6 shadow-lg">
+    <main className="min-h-screen bg-gradient-to-b from-blue-200 via-white to-purple-100">
+      <header className="bg-gradient-to-r from-blue-300 via-blue-400 to-purple-700 p-6 shadow-lg">
         <h1 className="text-3xl font-bold text-[#37003c]">Team Bio</h1>
-        <NavBar /> 
+        <NavBar />
       </header>
 
-      <section className="p-6">
-        <Link href="/managers" className="underline">&larr; Back to Team Bios</Link>
-        <div className="mt-4 flex flex-col md:flex-row items-start md:items-center gap-6">
+      <section className="p-6 max-w-3xl mx-auto space-y-6">
+        <Link href="/managers" className="text-blue-700 hover:underline">&larr; Back to Team Bios</Link>
+
+        <div className="flex flex-col md:flex-row items-center bg-white rounded-lg shadow p-6">
           <img
             src={manager.image_url}
             alt={manager.name}
-            className="w-32 h-32 rounded-full border"
+            className="w-32 h-32 rounded-full border mr-6 mb-4 md:mb-0"
           />
-          <div>
-            <h2 className="text-3xl font-bold">{manager.name}</h2>
+
+          <div className="flex-1">
+            <h2 className="text-3xl font-bold text-[#37003c]">{manager.name}</h2>
             <p className="text-sm text-gray-600">
               {manager.team} &mdash; {manager.current_league}
             </p>
+
+            <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <strong>Years playing:</strong> {manager.years_playing}
+              </div>
+              <div>
+                <strong>Best finish:</strong> {manager.best_finish ?? 'N/A'}
+              </div>
+              <div>
+                <strong>Titles won:</strong> {manager.titles_list || 'None'}
+              </div>
+              <div>
+                <strong>FPL team:</strong>{' '}
+                {manager.fpl_team_url && manager.fpl_team_url !== 'TBD' ? (
+                  <a
+                    href={manager.fpl_team_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-700 hover:underline"
+                  >
+                    View on FPL
+                  </a>
+                ) : 'TBD'}
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="mt-6 space-y-4">
-          <p>{manager.bio}</p>
-          <ul className="list-disc pl-5 space-y-1 text-sm">
-            <li><strong>Years playing:</strong> {manager.years_playing}</li>
-            <li><strong>Best finish:</strong> {manager.best_finish ?? 'N/A'}</li>
-            <li><strong>Titles:</strong> {manager.titles}</li>
-            <li>
-            <li><strong>Titles Won:</strong> {manager.titles_list}</li>  
-              <strong>FPL Team:</strong>{' '}
-              {manager.fpl_team_url && manager.fpl_team_url !== 'TBD' ? (
-                <a
-                  href={manager.fpl_team_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-700 hover:underline"
-                >
-                  View on FPL
-                </a>
-              ) : (
-                'TBD'
-              )}
-            </li>
-          </ul>
+        <div className="bg-white rounded-lg shadow p-6 text-gray-700 leading-relaxed">
+          {manager.bio}
         </div>
       </section>
     </main>
