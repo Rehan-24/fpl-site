@@ -17,8 +17,8 @@ interface Manager {
 }
 
 const TROPHY_ICONS: Record<TrophyKey, string> = {
-  premier: '/images/trophies/prem_trophy.png',
-  fa: '/imgaes/trophies/fa_cup_trophy.png',
+  premier: '/images/trophies/premier.png',
+  fa: '/images/trophies/fa_cup_trophy.png',
   championship: '/images/trophies/championship_trophy.png',
 };
 
