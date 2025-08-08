@@ -17,10 +17,12 @@ export default function ManagersList() {
   const [managers, setManagers] = useState<Manager[]>([])
 
   useEffect(() => {
-    fetch('/api/managers')
-      .then((res) => res.json())
-      .then(setManagers)
-  }, [])
+  fetch('https://tfpl.onrender.com/api/managers')
+    .then((res) => res.json())
+    .then(setManagers)
+    .catch(console.error)
+}, [])
+
 
   return (
     <main className="min-h-screen p-6 bg-gradient-to-b from-blue-200 via-white to-purple-100 text-[#37003c]">
