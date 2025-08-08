@@ -5,6 +5,10 @@ import NavBar from '../components/NavBar';
 export default function Premier() {
   const [data, setData] = useState([]);
   const [downloadFile, setDownloadFile] = useState('');
+  const [sortConfig, setSortConfig] = useState({
+    key: 'Score',
+    direction: 'desc',
+  });
 
   useEffect(() => {
     fetch('https://tfpl.onrender.com/api/standings?league=championship')
@@ -30,6 +34,53 @@ export default function Premier() {
     "16": "Relegation Battle", "17": "Relegation", "18": "Relegation", "19": "Relegation", "20": "Relegation"
   };
 
+  const handleSort = (key: string) => {
+    if (key === 'Team') return; // Don't allow sorting on Position or Team
+      setSortConfig((prevConfig) => {
+      let direction = 'asc';
+      if (prevConfig.key === key && prevConfig.direction === 'asc') {
+        direction = 'desc';
+      }
+      return { key, direction };
+    });
+  };
+
+    // Sorting the data based on selected column and direction
+    const sortedData = [...data].sort((a, b) => {
+      const aValue = a[sortConfig.key];
+      const bValue = b[sortConfig.key];
+
+      // Check if the column is numeric
+      const isNumeric = ['Position', 'Points', 'Wins', 'Draws', 'Losses','Score', 'Score Against',
+                       'Plus/Minus', 'GW Points on Bench', 'Season Points on Bench', 'GW Transfers',
+                       'GW Transfer Hit', 'Total Transfers Made', 'Total Transfer Hit',
+                       'Highest Point Total Possible', 'Current Team Value'
+                      ].includes(sortConfig.key);
+
+      if (isNumeric) {
+        const numA = parseFloat(aValue);
+        const numB = parseFloat(bValue);
+        return sortConfig.direction === 'asc' ? numA - numB : numB - numA;
+      } else {
+        const strA = String(aValue ?? '').toLowerCase();
+        const strB = String(bValue ?? '').toLowerCase();
+        return sortConfig.direction === 'asc' ? strA.localeCompare(strB) : strB.localeCompare(strA);
+      }
+    });
+
+  // Function to get sorting icon
+  const getSortIndicator = (key: string) => {
+    if (key != 'Team'){
+      if (sortConfig.key === key) {
+        return sortConfig.direction === 'asc' ? '▲' : '▼';
+      }
+      return '↕';
+    }
+    return '';
+
+  };
+
+  // Get cell style for highlights
   const getCellStyle = (key: string, val: any, row: Record<string, any>) => {
     const num = parseFloat(val?.toString().replace(/[^\d.\-]/g, '')) || 0;
 
@@ -46,7 +97,7 @@ export default function Premier() {
       if (num === sorted[1]) return "bg-gray-300";
       if (num === sorted[2]) return "bg-orange-200";
       const asc = [...values].sort((a, b) => a - b);
-      if (num === asc[0]||num === asc[1] || num === asc[2]) return "bg-red-200";
+      if (num === asc[0] || num === asc[1] || num === asc[2]) return "bg-red-200";
     }
 
     if (key === "Score Against") {
@@ -79,18 +130,16 @@ export default function Premier() {
   return (
     <main className="bg-gradient-to-b from-blue-200 min-h-screen text-[#37003c] text-center to-purple-100 via-white">
        <header className="relative bg-gradient-to-r from-blue-300 via-blue-400 bg-[#5b329e] text-[#37003c] p-6 shadow-lg overflow-hidden">
-          {/* ripple vector background */}
           <div
               className="pointer-events-none select-none absolute inset-0"
               style={{
                 backgroundImage: "url('/images/patterns/navbar_ripple.png')",
                 backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'center 80%', // Adjust for better centering
-                backgroundSize: 'cover', // Ensure it covers full width while keeping aspect ratio
-                opacity: 0.12, // Lower opacity to make the ripple more subtle
+                backgroundPosition: 'center 80%', 
+                backgroundSize: 'cover',
+                opacity: 0.12,
               }}
           /> 
-          {/* Content above ripple */}
           <h1 className="text-center sm:text-left relative z-10 text-4xl font-bold text-[#37003c]">Fantasy Championship League (v3)</h1>
           <NavBar />
       </header>
@@ -118,14 +167,16 @@ export default function Premier() {
                 {data[0] && Object.keys(data[0]).map((key) => (
                   key !== "Owner" && key !== "Title Reward" && (
                     <th key={key} className="bg-[#37003c] font-semibold px-3 py-2 text-white text-center text-xs">
-                      {key}
+                      <button onClick={() => handleSort(key)}>
+                        {key} <span className="opacity-70">{getSortIndicator(key)}</span>
+                      </button>
                     </th>
                   )
                 ))}
               </tr>
             </thead>
             <tbody>
-              {data.map((row: Record<string, any>, i) => (
+              {sortedData.map((row: Record<string, any>, i) => (
                 <tr key={i} className="border-t text-center">
                   {Object.entries(row).map(([key, val], j) => {
                     if (key === "Position") {
