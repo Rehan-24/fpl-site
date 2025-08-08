@@ -40,8 +40,8 @@ export default function ManagersList() {
   const [search, setSearch] = useState('')
 
   // NEW: sorting state
-  const [sortKey, setSortKey] = useState<SortKey>('name')
-  const [sortDir, setSortDir] = useState<SortDir>('asc')
+  const [sortKey, setSortKey] = useState<SortKey>('titles')
+  const [sortDir, setSortDir] = useState<SortDir>('desc')
 
   useEffect(() => {
     fetch('https://tfpl.onrender.com/api/managers')

@@ -95,7 +95,7 @@ export default function Premier() {
         )}
 
         <div className="mt-4 overflow-x-auto text-center">
-          <table className="bg-purple-100 border-separate border-spacing-x-[1px] overflow-hidden rounded-md shadow-md text-center text-sm w-full">
+          <table className="bg-[#37003c] border-separate border-spacing-x-[1px] overflow-hidden rounded-md shadow-md text-center text-sm w-full">
             <thead>
               <tr>
                 {data[0] && Object.keys(data[0]).map((key) => (
