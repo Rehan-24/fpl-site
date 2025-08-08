@@ -91,7 +91,7 @@ export default function ManagersList() {
               key={m.name}
               className="bg-purple-100 rounded-lg shadow p-3"
             >
-              <div className="flex gap-3">
+              <div className="flex gap-3 items-center">
                 {/* Left: avatar */}
                 <img
                   src={m.image_url}
@@ -107,11 +107,11 @@ export default function ManagersList() {
                   >
                     {m.name}
                   </Link>
-                  <div className="text-sm text-[#37003c]">"Manages" {m.team}</div>
+                  <div className="text-xs text-gray-600">{m.team}</div>
                   {/* Fav club */}
                   <div className="text-xs text-gray-600">{m.favorite_club}</div>
                   {/* Placements under fav club */}
-                  <div className="text-xs text-[#37003c] mt-1">Placements: {m.placements}</div>
+                  <div className="text-xs text-gray-600 mt-1">Placements: {m.placements}</div>
                 </div>
 
                 {/* Right: follow button, vertically centered */}
