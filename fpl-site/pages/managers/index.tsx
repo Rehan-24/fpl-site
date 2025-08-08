@@ -2,18 +2,30 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import NavBar from '../../components/NavBar'
 
-type TrophyType = 'premier' | 'fa' | 'championship';
+type TrophyKey = 'premier' | 'fa' | 'championship';
+type Trophy = { type: TrophyKey; count: number };
 
 interface Manager {
   name: string;
   team: string;
   favorite_club: string;
-  placements: number;
+  placements: number | string;
   image_url: string;
   social_url: string;
   titles: number;
-  trophies?: { type: TrophyType; count: number }[];
+  trophies?: Trophy[];
 }
+
+const TROPHY_ICONS: Record<TrophyKey, string> = {
+  premier: '/trophies/premier_trophy.png',
+  fa: '/trophies/fa_cup_trophy.png',
+  championship: '/trophies/championship_trophy.png',
+};
+
+// repeat each trophy icon by its count
+const expandTrophies = (ts?: Trophy[]): TrophyKey[] =>
+  (ts ?? []).flatMap((t) => Array.from({ length: t.count ?? 0 }, () => t.type));
+
 
 export default function ManagersList() {
   const [managers, setManagers] = useState<Manager[]>([])
@@ -102,6 +114,7 @@ export default function ManagersList() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm">{m.team}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">{m.favorite_club || '—'}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm">{m.placements ?? 0}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm">{m.titles ?? 0}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       {m.social_url ? (
                         <a
@@ -116,7 +129,7 @@ export default function ManagersList() {
                         <span className="text-xs text-gray-500">—</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm">{m.titles ?? 0}</td>
+
                   </tr>
                 ))}
                 {filtered.length === 0 && (
@@ -147,29 +160,26 @@ export default function ManagersList() {
                 />
 
                 {/* Middle: info */}
-                <div className="flex-1">
+                <div className="flex-1"> 
+                  <div className="flex items-center flex-wrap gap-1">
                     <Link
                       href={`/managers/${encodeURIComponent(m.name)}`}
                       className="font-semibold text-[#37003c] hover:underline"
                     >
                       {m.name}
                     </Link>
-
-                    {/* Trophy badges */}
-                    {m.trophies && m.trophies.length > 0 && (
-                      <div className="mt-1 flex flex-wrap items-center gap-2">
-                        {m.trophies.map((t) => (
-                          <span key={t.type} className="inline-flex items-center gap-1">
-                            <img
-                              src={`/trophies/${t.type}.png`}
-                              alt={`${t.type} trophy`}
-                              className="w-4 h-4"
-                            />
-                            <span className="text-[10px] font-semibold text-[#37003c]">x{t.count}</span>
-                          </span>
-                        ))}
-                      </div>
-                    )}
+                    <span className="inline-flex items-center flex-wrap gap-1 ml-1 align-middle">
+                      {expandTrophies(m.trophies).map((t: TrophyKey, idx: number) => (
+                        <img
+                          key={`${t}-${idx}`}
+                          src={TROPHY_ICONS[t]}
+                          alt={`${t} trophy`}
+                          className="w-4 h-4 inline-block align-middle"
+                          loading="lazy"
+                        />
+                      ))}
+                    </span>
+                  </div>
                   <div className="text-xs text-gray-600">{m.team} // {m.favorite_club}</div>
                   {/* Placements under fav club */}
                   <div className="text-xs text-gray-600">Placements: {m.placements}</div>
