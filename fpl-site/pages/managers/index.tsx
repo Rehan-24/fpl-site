@@ -17,7 +17,7 @@ interface Manager {
 }
 
 const TROPHY_ICONS: Record<TrophyKey, string> = {
-  premier: '/trophies/premier_trophy.png',
+  premier: '/trophies/prem_trophy.png',
   fa: '/trophies/fa_cup_trophy.png',
   championship: '/trophies/championship_trophy.png',
 };
@@ -176,6 +176,11 @@ export default function ManagersList() {
                           alt={`${t} trophy`}
                           className="w-4 h-4 inline-block align-middle"
                           loading="lazy"
+                          onError={(e) => {
+                            // Helps you see it's a path problem
+                            console.warn('Missing trophy icon:', TROPHY_ICONS[t]);
+                            (e.currentTarget as HTMLImageElement).style.display = 'none';
+                          }}
                         />
                       ))}
                     </span>
