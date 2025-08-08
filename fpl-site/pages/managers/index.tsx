@@ -90,34 +90,14 @@ export default function ManagersList() {
               <tbody className="divide-y divide-gray-200">
                 {filtered.map(m => (
                   <tr key={m.name} className="hover:bg-purple-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex-1">
-                        <Link
-                          href={`/managers/${encodeURIComponent(m.name)}`}
-                          className="font-semibold text-[#37003c] hover:underline"
-                        >
-                          {m.name}
-                        </Link>
-
-                        {/* Trophy badges */}
-                        {m.trophies && m.trophies.length > 0 && (
-                          <div className="mt-1 flex flex-wrap items-center gap-2">
-                            {m.trophies.map((t) => (
-                              <span key={t.type} className="inline-flex items-center gap-1">
-                                <img
-                                  src={`/trophies/${t.type}.png`}
-                                  alt={`${t.type} trophy`}
-                                  className="w-4 h-4"
-                                />
-                                <span className="text-[10px] font-semibold text-[#37003c]">x{t.count}</span>
-                              </span>
-                            ))}
-                          </div>
-                        )}
-
-                        <div className="text-xs text-gray-600">{m.team} // {m.favorite_club}</div>
-                        <div className="text-xs text-gray-600">Placements: {m.placements}</div>
-                      </div>
+                    <td className="px-6 py-4 whitespace-nowrap"> 
+                      <div className="flex items-center">
+                        <img
+                          src={m.image_url}
+                          alt={m.name}
+                          className="w-10 h-10 rounded-full mr-3 border"
+                        />
+                        </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">{m.team}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">{m.favorite_club || '—'}</td>
@@ -168,12 +148,28 @@ export default function ManagersList() {
 
                 {/* Middle: info */}
                 <div className="flex-1">
-                  <Link
-                    href={`/managers/${encodeURIComponent(m.name)}`}
-                    className="font-semibold text-[#37003c] hover:underline"
-                  >
-                    {m.name}
-                  </Link>
+                    <Link
+                      href={`/managers/${encodeURIComponent(m.name)}`}
+                      className="font-semibold text-[#37003c] hover:underline"
+                    >
+                      {m.name}
+                    </Link>
+
+                    {/* Trophy badges */}
+                    {m.trophies && m.trophies.length > 0 && (
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        {m.trophies.map((t) => (
+                          <span key={t.type} className="inline-flex items-center gap-1">
+                            <img
+                              src={`/trophies/${t.type}.png`}
+                              alt={`${t.type} trophy`}
+                              className="w-4 h-4"
+                            />
+                            <span className="text-[10px] font-semibold text-[#37003c]">x{t.count}</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   <div className="text-xs text-gray-600">{m.team} // {m.favorite_club}</div>
                   {/* Placements under fav club */}
                   <div className="text-xs text-gray-600">Placements: {m.placements}</div>
