@@ -16,6 +16,9 @@ interface Manager {
   trophies?: Trophy[];
 }
 
+// default
+const DEFAULT_AVATAR = '/images/managers/no_pp.png'
+
 const TROPHY_ICONS: Record<TrophyKey, string> = {
   premier: '/images/trophies/prem_trophy.png',
   fa: '/images/trophies/fa_cup_trophy.png',
@@ -159,7 +162,7 @@ export default function ManagersList() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <img
-                          src={m.image_url}
+                          src={m.image_url || DEFAULT_AVATAR}
                           alt={m.name}
                           className="w-10 h-10 rounded-full mr-3 border"
                         />
@@ -214,7 +217,7 @@ export default function ManagersList() {
               <div className="flex gap-3 items-center">
                 {/* Left: avatar */}
                 <img
-                  src={m.image_url}
+                  src={m.image_url || DEFAULT_AVATAR}
                   alt={m.name}
                   className="w-12 h-12 rounded-full border flex-shrink-0"
                 />
