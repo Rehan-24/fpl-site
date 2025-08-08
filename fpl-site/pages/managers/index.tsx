@@ -17,9 +17,9 @@ interface Manager {
 }
 
 const TROPHY_ICONS: Record<TrophyKey, string> = {
-  premier: '/trophies/prem_trophy.png',
-  fa: '/trophies/fa_cup_trophy.png',
-  championship: '/trophies/championship_trophy.png',
+  premier: '/images/trophies/prem_trophy.png',
+  fa: '/imgaes/trophies/fa_cup_trophy.png',
+  championship: '/images/trophies/championship_trophy.png',
 };
 
 // repeat each trophy icon by its count
