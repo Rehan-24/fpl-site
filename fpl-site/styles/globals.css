@@ -109,7 +109,7 @@ th button span {
 
 @media (max-width: 768px) {
   .hero-image {
-    left: 9px;
+    left: 5px;
     bottom: 0px;
     height: 150px;
   }
