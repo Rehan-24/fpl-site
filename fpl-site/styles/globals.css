@@ -100,26 +100,31 @@ th button span {
 }
 
 /* hero card styling */
+/* This ensures the image is properly placed and scales properly across different screen sizes */
+.hero-image {
+  left: 40px;
+  bottom: 0px;
+  height: 175px;
+}
+
 @media (max-width: 768px) {
   .hero-image {
-    left: 10px; /* Adjust to your preference */
-    bottom: -20px; /* Adjust to your preference */
-    height: 100px; /* Adjust to your preference */
+    left: 40px;
+    bottom: 0px;
+    height: 175px;
   }
 }
 
 /* hero ripple effect */
+/* Ensure the ripple stays in the background */
 .hero-card-ripple {
   width: 100%;
   height: 100%;
   position: absolute;
   top: 0;
   left: 0;
-  z-index: -1;
+  z-index: 1;  /* Ensure the ripple stays behind other content */
 }
-
-
-
 
 body {
   background: var(--background);
