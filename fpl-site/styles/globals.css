@@ -126,6 +126,27 @@ th button span {
   z-index: 1;  /* Ensure the ripple stays behind other content */
 }
 
+/* Ensure the ripple is positioned correctly behind the NavBar */
+.navbar-ripple {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url('/images/patterns/navbar_ripple.png');
+  background-repeat: no-repeat;
+  background-position: center 80%;
+  background-size: cover;
+  opacity: 0.12;
+  z-index: 1; /* Lower z-index to keep ripple behind buttons */
+}
+
+/* Ensure NavBar buttons are above the ripple */
+.navbar-buttons {
+  position: relative;
+  z-index: 2; /* Higher z-index to keep buttons above the ripple */
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
