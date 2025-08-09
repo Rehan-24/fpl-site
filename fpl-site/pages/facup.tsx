@@ -5,7 +5,7 @@ import useGWDeadline from '@/public/hooks/useGWDeadline';
 export default function FACup() {
   
   const { gwInfo, loading, error } = useGWDeadline();
-  
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-blue-200 via-white to-purple-100 text-[#37003c]">
        <header className="relative bg-gradient-to-r from-blue-300 via-blue-400 bg-[#5b329e] text-[#37003c] p-6 shadow-lg overflow-hidden">
@@ -23,7 +23,7 @@ export default function FACup() {
         {/* Show Gameweek Deadline bar if data is available */}
         {gwInfo && !loading && !error && (
           <div className="bg-[#37003c] text-[#32FF6A] font-bold p-2 text-center">
-            <p>GW{gwInfo.gwNumber} Deadline: {gwInfo.deadline} PST</p>
+            <p>GW{gwInfo.gwNumber} Deadline: {gwInfo.deadline}</p>
           </div>
         )}
 

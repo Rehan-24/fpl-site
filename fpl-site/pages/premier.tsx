@@ -133,7 +133,7 @@ export default function Premier() {
       {/* Show Gameweek Deadline bar if data is available */}
       {gwInfo && !loading && !error && (
         <div className="bg-[#37003c] text-[#32FF6A] font-bold p-2 text-center">
-          <p>GW{gwInfo.gwNumber} Deadline: {gwInfo.deadline} PST</p>
+          <p>GW{gwInfo.gwNumber} Deadline: {gwInfo.deadline}</p>
         </div>
       )}
 
