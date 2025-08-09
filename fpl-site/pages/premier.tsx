@@ -2,8 +2,18 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import NavBar from '../components/NavBar';
 
+  
+interface Manager {
+    name: string;
+    team: string;
+        fpl_team_url?: string;
+}
+  
+
 export default function Premier() {
+
   const [data, setData] = useState([]);
+  const [managersData, setManagersData] = useState<Manager[]>([]);  // Data type for managers
   const [downloadFile, setDownloadFile] = useState('');
   const [sortConfig, setSortConfig] = useState({
     key: 'Position', // Default sort key to 'Position'
@@ -11,9 +21,15 @@ export default function Premier() {
   });
 
   useEffect(() => {
+    // Fetch standings data
     fetch('https://tfpl.onrender.com/api/standings?league=premier')
       .then(res => res.json())
       .then(setData);
+
+    // Fetch managers data
+    fetch('https://tfpl.onrender.com/api/managers')
+      .then(res => res.json())
+      .then(setManagersData);
   }, []);
 
   const handleGenerate = async () => {
@@ -195,7 +211,26 @@ export default function Premier() {
 
                   {/* Sticky "Team" column */}
                   <td className={`sticky sticky-team left-32 px-3 py-2 text-sm border-b border-gray-400 ${getCellStyle("Team", row.Team, row)}`}>
-                    <div className="font-medium text-center text-left">{row.Team}</div>
+                    <div className="font-medium text-center text-left">
+                       {
+                        managersData
+                          .filter(manager => manager.team === row.Team)  // Match team name
+                          .map(manager => (
+                            manager.fpl_team_url ? (
+                            <a
+                              href={manager.fpl_team_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="hover:underline"
+                            >
+                              {row.Team}
+                            </a>
+                            ) : (
+                              <span>{row.Team}</span>  // If no URL, just display the team name
+                            )
+                          ))
+                      }
+                    </div>
                     <div className="text-xs text-gray-600 text-left text-xs">
                       <Link href={`/managers/${encodeURIComponent(row.Owner)}`} className="hover:underline">
                         {row.Owner}
