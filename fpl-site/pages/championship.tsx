@@ -6,8 +6,8 @@ export default function Premier() {
   const [data, setData] = useState([]);
   const [downloadFile, setDownloadFile] = useState('');
   const [sortConfig, setSortConfig] = useState({
-    key: 'Score',
-    direction: 'desc',
+    key: 'Position', // Default sort key to 'Position'
+    direction: 'asc', // Default direction for Position (ascending)
   });
 
   useEffect(() => {
@@ -26,12 +26,12 @@ export default function Premier() {
   };
 
   const positionLabels: Record<string, string> =  {
-    "1": "Champion $225", "2": "Champions League $105", "3": "Champions League $90",
-    "4": "Champions League $80", "5": "Europa League $55", "6": "Europa League $45",
-    "7": "Conference League $35", "8": "Battle of The Mid", "9": "Battle of The Mid",
+    "1": "Champion $55", "2": "Promotion $45", "3": "Promotion $40",
+    "4": "Promotion $30", "5": "Upper Mid $20", "6": "Upper Mid $20",
+    "7": "Upper Mid $15", "8": "Battle of The Mid", "9": "Battle of The Mid",
     "10": "Battle of The Mid", "11": "Battle of The Mid", "12": "Battle of The Mid",
     "13": "Battle of The Mid", "14": "Battle of The Mid", "15": "Battle of The Mid",
-    "16": "Relegation Battle", "17": "Relegation", "18": "Relegation", "19": "Relegation", "20": "Relegation"
+    "16": "Battle of The Mid", "17": "Shame Battle", "18": "Shame Battle", "19": "Shame Battle", "20": "Shame"
   };
 
   const handleSort = (key: string) => {
