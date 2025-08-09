@@ -226,7 +226,7 @@ export default function ManagersList() {
                 <img
                   src={m.image_url || DEFAULT_AVATAR}
                   alt={m.name}
-                  className="w-12 h-12 rounded-full border flex-shrink-0"
+                  className="w-12 h-12 rounded-full flex-shrink-0"
                 />
 
                 {/* Middle: info */}
