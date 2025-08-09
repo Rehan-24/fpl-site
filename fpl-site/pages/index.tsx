@@ -5,8 +5,8 @@ import { useStandings } from '@/public/hooks/useStandings';
 
 
 export default function Home() {
-  const {data: premierData} = useStandings('premier');
-  const {data: championshipData} = useStandings('championship');
+  const {data: premierData, usingCachePL} = useStandings('premier');
+  const {data: championshipData, usingCacheCL} = useStandings('championship');
 
   const renderPreview = (
     data: Record<string, any>[],
@@ -84,6 +84,11 @@ export default function Home() {
 
       <section className="p-4 sm:p-6">
         <h2 className="text-2xl font-bold mb-4">League Previews</h2>
+          {(usingCachePL || usingCacheCL) && (
+            <span className="ml-3 inline-block text-[11px] bg-yellow-200 text-[#37003c] px-2 py-0.5 rounded mb-4">
+              Viewing cache, information may be outdated
+            </span>
+          )}
         <div className="grid md:grid-cols-3 gap-6">
           <div className="bg-purple-100 p-4 rounded shadow-md">
             <h3 className="text-xl font-semibold mb-2">Premier League</h3>

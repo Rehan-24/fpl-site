@@ -19,6 +19,7 @@ export default function Premier() {
       key: 'Position', // Default sort key to 'Position'
       direction: 'asc', // Default direction for Position (ascending)
     });
+
   
     const handleGenerate = async () => {
       const res = await fetch(`https://tfpl.onrender.com/api/generate?league=championship`);
@@ -159,6 +160,11 @@ export default function Premier() {
             Download Excel
           </a>
         )}
+        {usingCache && (
+          <span className="ml-3 inline-block text-[11px] bg-yellow-200 text-[#37003c] px-2 py-0.5 rounded">
+            Viewing cache, information may be outdated
+          </span>
+          )}
 
         <div className="mt-4 overflow-x-auto text-center">
           <table className="bg-purple-100 border-separate border-spacing-x-[1px] overflow-hidden rounded-md shadow-md text-center text-sm w-full">
