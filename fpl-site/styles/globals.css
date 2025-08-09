@@ -19,6 +19,39 @@
   }
 }
 
+/* Sticky columns for Position and Team */
+th.sticky, td.sticky {
+  position: sticky;
+  top: 0;
+  background-color: #efe2fd;  /* Background color for sticky columns */
+  z-index: 1;  /* Ensures the sticky elements stay above other content */
+}
+
+th.sticky {
+  background-color: #37003c; /* Dark purple */
+  color: white;
+}
+
+/* Adjust the left positioning for the sticky columns to make sure they don't overlap */
+th.sticky.left-0 {
+  left: 0;
+  z-index: 2;
+}
+
+th.sticky.left-32 {
+  left: 5rem; /* Adjust the left value to ensure no overlap with the Position column */
+  z-index: 1;
+}
+
+td.sticky.left-0 {
+  left: 0;
+}
+
+td.sticky.left-32 {
+  left: 5rem; /* Same value as the th column */
+}
+
+
 body {
   background: var(--background);
   color: var(--foreground);
