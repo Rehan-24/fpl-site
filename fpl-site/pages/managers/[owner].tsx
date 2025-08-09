@@ -126,7 +126,7 @@ export default function ManagerBio() {
               href={manager.social_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="absolute top-3 right-3 bg-[#37003c]/15 hover:bg-[#37003c]/25 text-[#37003c] text-xs font-semibold rounded-full px-4 py-1 transition"
+              className="absolute top-3 right-3 bg-[#37003c]/15 hover:bg-[#37003c]/25 text-[#37003c] text-xs font-semibold rounded-full px-4 py-1 transition z-20 pointer-events-auto"
             >
               Follow
             </a>
