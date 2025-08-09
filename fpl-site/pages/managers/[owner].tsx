@@ -129,7 +129,7 @@ export default function ManagerBio() {
           {/* text block (indented to clear image) */}
           <div className="relative p-5 sm:p-6 ml-28 sm:ml-40 md:ml-48">
             <div className="text-base sm:text-lg opacity-90">{first}</div>
-            <div className="text-3xl sm:text-4xl font-extrabold -mt-1 leading-tight">
+            <div className="text-3xl sm:text-3xl font-extrabold -mt-1 leading-tight">
               {last || first}
             </div>
 
