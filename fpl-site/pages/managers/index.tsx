@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import NavBar from '../../components/NavBar'
+import { useManagers } from '../../public/hooks/useManagers';
+
 
 type TrophyKey = 'premier' | 'fa' | 'championship';
 type Trophy = { type: TrophyKey; count: number };
@@ -39,33 +41,26 @@ const toNum = (x: unknown) => {
 }
 // ------------------------------------------------------
 export default function ManagersList() {
-  const [managers, setManagers] = useState<Manager[]>([])
+  const { data: managersData, refresh } = useManagers();
   const [search, setSearch] = useState('')
 
   // NEW: sorting state
   const [sortKey, setSortKey] = useState<SortKey>('titles')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
 
-  useEffect(() => {
-    fetch('https://tfpl.onrender.com/api/managers')
-      .then(res => res.json())
-      .then(setManagers)
-      .catch(console.error)
-  }, [])
-
   const filtered = useMemo(() => {
     // filter
     const q = search.trim().toLowerCase()
     const base = !q
-      ? managers
-      : managers.filter(m =>
+      ? managersData
+      : (managersData ?? []).filter(m =>
           [m.name, m.team, m.favorite_club].some(v =>
             String(v || '').toLowerCase().includes(q)
           )
         )
 
     // sort
-    const sorted = [...base].sort((a, b) => {
+    const sorted = [...(base ?? [])].sort((a, b) => {
       if (sortKey === 'placements' || sortKey === 'titles') {
         const av = toNum(a[sortKey])
         const bv = toNum(b[sortKey])
@@ -77,7 +72,7 @@ export default function ManagersList() {
       }
     })
     return sorted
-  }, [managers, search, sortKey, sortDir])
+  }, [managersData, search, sortKey, sortDir])
 
   // NEW: sorting controls
   const toggleSort = (key: SortKey) => {
@@ -91,6 +86,13 @@ export default function ManagersList() {
   }
   const indicator = (key: SortKey) =>
     key !== sortKey ? '↕' : sortDir === 'asc' ? '▲' : '▼'
+
+  // Load manager data if it's not cached or needs refreshing
+  useEffect(() => {
+    if (!managersData) {
+      refresh();  // If no data is available, refresh and cache
+    }
+  }, [managersData, refresh]);
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-blue-200 via-white to-purple-100 text-[#37003c]">
@@ -129,7 +131,7 @@ export default function ManagersList() {
             )}
           </div>
           <div className="mt-1 text-xs text-[#37003c]/70">
-            Showing {filtered.length} of {managers.length}
+            Showing {filtered.length} of {(managersData ?? []).length}
           </div>
         </div>
 

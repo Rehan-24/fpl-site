@@ -1,36 +1,24 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import NavBar from '../components/NavBar';
+import { useStandings } from '../public/hooks/useStandings';
+import { useManagers } from '../public/hooks/useManagers';
 
-  
 interface Manager {
-    name: string;
-    team: string;
-        fpl_team_url?: string;
+  name: string;
+  team: string;
+  fpl_team_url?: string;
 }
-  
 
 export default function Premier() {
+  const { data, refresh: refreshStandings, loading: loadingStandings, usingCache } = useStandings('premier');
+  const { data: managersData, refresh: refreshManagers, loading: loadingManagers, usingCache: usingCacheManagers } = useManagers();
 
-  const [data, setData] = useState([]);
-  const [managersData, setManagersData] = useState<Manager[]>([]);  // Data type for managers
   const [downloadFile, setDownloadFile] = useState('');
   const [sortConfig, setSortConfig] = useState({
     key: 'Position', // Default sort key to 'Position'
     direction: 'asc', // Default direction for Position (ascending)
   });
-
-  useEffect(() => {
-    // Fetch standings data
-    fetch('https://tfpl.onrender.com/api/standings?league=premier')
-      .then(res => res.json())
-      .then(setData);
-
-    // Fetch managers data
-    fetch('https://tfpl.onrender.com/api/managers')
-      .then(res => res.json())
-      .then(setManagersData);
-  }, []);
 
   const handleGenerate = async () => {
     const res = await fetch(`https://tfpl.onrender.com/api/generate?league=premier`);
@@ -41,7 +29,7 @@ export default function Premier() {
     }
   };
 
-  const positionLabels: Record<string, string> =  {
+  const positionLabels: Record<string, string> = {
     "1": "Champion $225", "2": "Champions League $105", "3": "Champions League $90",
     "4": "Champions League $80", "5": "Europa League $55", "6": "Europa League $45",
     "7": "Conference League $35", "8": "Battle of The Mid", "9": "Battle of The Mid",
@@ -61,15 +49,14 @@ export default function Premier() {
     });
   };
 
-  const sortedData = [...data].sort((a, b) => {
+  const sortedData = [...(data || [])].sort((a, b) => {
     const aValue = a[sortConfig.key];
     const bValue = b[sortConfig.key];
-    // Check if the column is numeric
-    const isNumeric = ['Position', 'Points', 'Wins', 'Draws', 'Losses','Score', 'Score Against',
-                       'Plus/Minus', 'GW Points on Bench', 'Season Points on Bench', 'GW Transfers',
-                       'GW Transfer Hit', 'Total Transfers Made', 'Total Transfer Hit',
-                       'Highest Point Total Possible', 'Current Team Value'
-                      ].includes(sortConfig.key);
+    const isNumeric = ['Position', 'Points', 'Wins', 'Draws', 'Losses', 'Score', 'Score Against',
+      'Plus/Minus', 'GW Points on Bench', 'Season Points on Bench', 'GW Transfers',
+      'GW Transfer Hit', 'Total Transfers Made', 'Total Transfer Hit',
+      'Highest Point Total Possible', 'Current Team Value'
+    ].includes(sortConfig.key);
 
     if (isNumeric) {
       const numA = parseFloat(aValue);
@@ -82,9 +69,8 @@ export default function Premier() {
     }
   });
 
-  // Function to get sorting icon
   const getSortIndicator = (key: string) => {
-    if (key != 'Team'){
+    if (key !== 'Team') {
       if (sortConfig.key === key) {
         return sortConfig.direction === 'asc' ? '▲' : '▼';
       }
@@ -93,18 +79,15 @@ export default function Premier() {
     return '';
   };
 
-  // Get cell style for highlights
   const getCellStyle = (key: string, val: any, row: Record<string, any>) => {
     const num = parseFloat(val?.toString().replace(/[^\d.\-]/g, '')) || 0;
-
     if (key === "Chips Used" || key === "Free Hit" || key === "Wildcard 1" || key === "Wildcard 2" || key === "Triple Captain" || key === "Bench Boost" || key === "AssMan") {
       if (val.includes("GW")) return "bg-red-200";
       if (val.includes("Expired")) return "bg-orange-200";
       if (val.includes("Available")) return "bg-green-200";
     }
-
-    if (key === "Score" || key == "Plus/Minus"|| key == "Current Team Value") {
-      const values = data.map(r => parseFloat(r[key])).filter(n => !isNaN(n));
+    if (key === "Score" || key == "Plus/Minus" || key == "Current Team Value") {
+      const values = (data || []).map(r => parseFloat(r[key])).filter(n => !isNaN(n));
       const sorted = [...values].sort((a, b) => b - a);
       if (num === sorted[0]) return "bg-yellow-200";
       if (num === sorted[1]) return "bg-gray-300";
@@ -112,9 +95,8 @@ export default function Premier() {
       const asc = [...values].sort((a, b) => a - b);
       if (num === asc[0] || num === asc[1] || num === asc[2]) return "bg-red-200";
     }
-
     if (key === "Score Against") {
-      const values = data.map(r => parseFloat(r[key])).filter(n => !isNaN(n));
+      const values = (data || []).map(r => parseFloat(r[key])).filter(n => !isNaN(n));
       const sorted = [...values].sort((a, b) => b - a);
       if (num === sorted[0] || num === sorted[1] || num === sorted[2]) return "bg-red-200";
       const asc = [...values].sort((a, b) => a - b);
@@ -122,17 +104,15 @@ export default function Premier() {
       if (num === asc[1]) return "bg-gray-300";
       if (num === asc[2]) return "bg-orange-200";
     }
-
     const topHighlight = ["GW Points on Bench", "Season Points on Bench", "GW Transfers", "Total Transfers Made"];
     if (topHighlight.includes(key)) {
-      const values = data.map(r => parseFloat(r[key])).filter(n => !isNaN(n));
+      const values = (data || []).map(r => parseFloat(r[key])).filter(n => !isNaN(n));
       const sorted = [...values].sort((a, b) => b - a);
       if (num === sorted[0] || num === sorted[1] || num === sorted[2]) return "bg-purple-200";
     }
-
     const redHighlight = ["GW Transfer Hit", "Total Transfer Hit"];
     if (redHighlight.includes(key)) {
-      const values = data.map(r => parseFloat(r[key])).filter(n => !isNaN(n));
+      const values = (data || []).map(r => parseFloat(r[key])).filter(n => !isNaN(n));
       const nonZero = values.filter(n => n > 0);
       if (nonZero.length === 0) return "";
       const sorted = [...nonZero].sort((a, b) => b - a);
@@ -143,15 +123,11 @@ export default function Premier() {
   return (
     <main className="bg-gradient-to-b from-blue-200 min-h-screen text-[#37003c] text-center to-purple-100 via-white">
       <header className="relative bg-gradient-to-r from-blue-300 via-blue-400 bg-[#5b329e] text-[#37003c] p-6 shadow-lg overflow-hidden">
-              {/* ripple vector background */}
-              <div className="navbar-ripple pointer-events-none select-none absolute inset-0"></div>
-                    
-              {/* Content above ripple */}
-              <h1 className="text-center sm:text-left relative z-10 text-4xl font-bold text-[#37003c]">Fantasy Premier League (v5)</h1>
-                    
-              <div className="navbar-buttons relative z-20">
-                <NavBar />
-              </div>
+        <div className="navbar-ripple pointer-events-none select-none absolute inset-0"></div>
+        <h1 className="text-center sm:text-left relative z-10 text-4xl font-bold text-[#37003c]">Fantasy Premier League (v5)</h1>
+        <div className="navbar-buttons relative z-20">
+          <NavBar />
+        </div>
       </header>
 
       <section className="p-6 text-left">
@@ -174,22 +150,19 @@ export default function Premier() {
           <table className="bg-purple-100 border-separate border-spacing-x-[1px] overflow-hidden rounded-md shadow-md text-center text-sm w-full">
             <thead>
               <tr>
-                {/* Sticky "Position" column */}
                 <th className="sticky sticky-position left-0 bg-[#37003c] font-semibold px-3 py-2 text-white text-center text-xs">
                   <button onClick={() => handleSort("Position")}>
                     Position <span className="opacity-70">{getSortIndicator("Position")}</span>
                   </button>
                 </th>
 
-                {/* Sticky "Team" column */}
                 <th className="sticky sticky-team left-32 bg-[#37003c] font-semibold px-3 py-2 text-white text-center text-xs">
                   <button onClick={() => handleSort("Team")}>
                     Team <span className="opacity-70">{getSortIndicator("Team")}</span>
                   </button>
                 </th>
 
-                {/* Other columns */}
-                {data[0] && Object.keys(data[0]).map((key) => (
+                {(data ?? [])[0] && Object.keys((data ?? [])[0]).map((key) => (
                   key !== "Owner" && key !== "Title Reward" && key !== "Position" && key !== "Team" && (
                     <th key={key} className="bg-[#37003c] font-semibold px-3 py-2 text-white text-center text-xs">
                       <button onClick={() => handleSort(key)}>
@@ -203,30 +176,27 @@ export default function Premier() {
             <tbody>
               {sortedData.map((row: Record<string, any>, i) => (
                 <tr key={i} className="border-t text-center">
-                  {/* Sticky "Position" column */}
                   <td className={`sticky sticky-position left-0 px-3 py-2 text-sm border-b border-gray-400 ${getCellStyle("Position", row.Position, row)}`}>
                     <div className="font-bold text-center text-lg">{row.Position}</div>
                     <div className="italic text-center text-purple-700 text-xs">{positionLabels[String(row.Position)]}</div>
                   </td>
 
-                  {/* Sticky "Team" column */}
                   <td className={`sticky sticky-team left-32 px-3 py-2 text-sm border-b border-gray-400 ${getCellStyle("Team", row.Team, row)}`}>
                     <div className="font-medium text-center text-left">
-                       {
-                        managersData
-                          .filter(manager => manager.team === row.Team)  // Match team name
+                      {
+                        managersData?.filter(manager => manager.team === row.Team)
                           .map(manager => (
                             manager.fpl_team_url ? (
-                            <a
-                              href={manager.fpl_team_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="hover:underline"
-                            >
-                              {row.Team}
-                            </a>
+                              <a
+                                href={manager.fpl_team_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="hover:underline"
+                              >
+                                {row.Team}
+                              </a>
                             ) : (
-                              <span>{row.Team}</span>  // If no URL, just display the team name
+                              <span>{row.Team}</span>
                             )
                           ))
                       }
@@ -238,7 +208,6 @@ export default function Premier() {
                     </div>
                   </td>
 
-                  {/* Other cells */}
                   {Object.entries(row).map(([key, val], j) => {
                     if (key === "Position" || key === "Team" || key === "Owner" || key === "Title Reward") return null;
                     return (

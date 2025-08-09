@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import NavBar from '../components/NavBar';
+import { useStandings } from '../public/hooks/useStandings';
+import { useManagers } from '../public/hooks/useManagers';
 
 interface Manager {
     name: string;
@@ -9,34 +11,23 @@ interface Manager {
 }
 
 export default function Premier() {
-  const [data, setData] = useState([]);
-  const [managersData, setManagersData] = useState<Manager[]>([]);  // Data type for managers
-  const [downloadFile, setDownloadFile] = useState('');
-  const [sortConfig, setSortConfig] = useState({
-    key: 'Position', // Default sort key to 'Position'
-    direction: 'asc', // Default direction for Position (ascending)
-  });
-
-  useEffect(() => {
-    // Fetch standings data
-    fetch('https://tfpl.onrender.com/api/standings?league=championship')
-      .then(res => res.json())
-      .then(setData);
-
-    // Fetch managers data
-    fetch('https://tfpl.onrender.com/api/managers')
-      .then(res => res.json())
-      .then(setManagersData);
-  }, []);
-
-  const handleGenerate = async () => {
-    const res = await fetch('https://tfpl.onrender.com/api/standings?league=championship');
-    const result = await res.json();
-    if (result.file) {
-      setDownloadFile(result.file);
-      alert('Excel generated! You can now download it.');
-    }
-  };
+    const { data, refresh: refreshStandings, loading: loadingStandings, usingCache } = useStandings('championship');
+    const { data: managersData, refresh: refreshManagers, loading: loadingManagers, usingCache: usingCacheManagers } = useManagers();
+  
+    const [downloadFile, setDownloadFile] = useState('');
+    const [sortConfig, setSortConfig] = useState({
+      key: 'Position', // Default sort key to 'Position'
+      direction: 'asc', // Default direction for Position (ascending)
+    });
+  
+    const handleGenerate = async () => {
+      const res = await fetch(`https://tfpl.onrender.com/api/generate?league=championship`);
+      const result = await res.json();
+      if (result.file) {
+        setDownloadFile(result.file);
+        alert('Excel generated! You can now download it.');
+      }
+    };
 
   const positionLabels: Record<string, string> =  {
     "1": "Champion $55", "2": "Promotion $45", "3": "Promotion $40",
@@ -59,7 +50,7 @@ export default function Premier() {
   };
 
     // Sorting the data based on selected column and direction
-    const sortedData = [...data].sort((a, b) => {
+    const sortedData = [...(data ?? [])].sort((a, b) => {
       const aValue = a[sortConfig.key];
       const bValue = b[sortConfig.key];
 
@@ -103,7 +94,7 @@ export default function Premier() {
     }
 
     if (key === "Score" || key == "Plus/Minus"|| key == "Current Team Value") {
-      const values = data.map(r => parseFloat(r[key])).filter(n => !isNaN(n));
+      const values = (data ?? []).map(r => parseFloat(r[key])).filter(n => !isNaN(n));
       const sorted = [...values].sort((a, b) => b - a);
       if (num === sorted[0]) return "bg-yellow-200";
       if (num === sorted[1]) return "bg-gray-300";
@@ -113,7 +104,7 @@ export default function Premier() {
     }
 
     if (key === "Score Against") {
-      const values = data.map(r => parseFloat(r[key])).filter(n => !isNaN(n));
+      const values = (data ?? []).map(r => parseFloat(r[key])).filter(n => !isNaN(n));
       const sorted = [...values].sort((a, b) => b - a);
       if (num === sorted[0] || num === sorted[1] || num === sorted[2]) return "bg-red-200";
       const asc = [...values].sort((a, b) => a - b);
@@ -124,14 +115,14 @@ export default function Premier() {
 
     const topHighlight = ["GW Points on Bench", "Season Points on Bench", "GW Transfers", "Total Transfers Made"];
     if (topHighlight.includes(key)) {
-      const values = data.map(r => parseFloat(r[key])).filter(n => !isNaN(n));
+      const values = (data ?? []).map(r => parseFloat(r[key])).filter(n => !isNaN(n));
       const sorted = [...values].sort((a, b) => b - a);
       if (num === sorted[0] || num === sorted[1] || num === sorted[2]) return "bg-purple-200";
     }
 
     const redHighlight = ["GW Transfer Hit", "Total Transfer Hit"];
     if (redHighlight.includes(key)) {
-      const values = data.map(r => parseFloat(r[key])).filter(n => !isNaN(n));
+      const values = (data ?? []).map(r => parseFloat(r[key])).filter(n => !isNaN(n));
       const nonZero = values.filter(n => n > 0);
       if (nonZero.length === 0) return "";
       const sorted = [...nonZero].sort((a, b) => b - a);
@@ -188,7 +179,7 @@ export default function Premier() {
                 </th>
 
                 {/* Other columns */}
-                {data[0] && Object.keys(data[0]).map((key) => (
+                {(data ?? [])[0] && Object.keys((data ?? [])[0]).map((key) => (
                   key !== "Owner" && key !== "Title Reward" && key !== "Position" && key !== "Team" && (
                     <th key={key} className="bg-[#37003c] font-semibold px-3 py-2 text-white text-center text-xs">
                       <button onClick={() => handleSort(key)}>
@@ -212,7 +203,7 @@ export default function Premier() {
                   <td className={`sticky left-32 px-3 py-2 text-sm border-b border-gray-400 ${getCellStyle("Team", row.Team, row)}`}>
                     <div className="font-medium text-center text-left">
                       {
-                        managersData
+                        (managersData ?? [])
                           .filter(manager => manager.team === row.Team)  // Match team name
                           .map(manager => (
                             manager.fpl_team_url ? (

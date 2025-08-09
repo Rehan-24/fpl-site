@@ -1,20 +1,12 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import NavBar from '../components/NavBar';
+import { useStandings } from '@/public/hooks/useStandings';
 
 
 export default function Home() {
-  const [premier, setPremier] = useState([]);
-  const [champ, setChamp] = useState([]);
-
-  useEffect(() => {
-    fetch('https://tfpl.onrender.com/api/standings?league=premier')
-      .then(res => res.json())
-      .then(setPremier);
-    fetch('https://tfpl.onrender.com/api/standings?league=championship')
-      .then(res => res.json())
-      .then(setChamp);
-  }, []);
+  const {data: premierData} = useStandings('premier');
+  const {data: championshipData} = useStandings('championship');
 
   const renderPreview = (
     data: Record<string, any>[],
@@ -95,11 +87,11 @@ export default function Home() {
         <div className="grid md:grid-cols-3 gap-6">
           <div className="bg-purple-100 p-4 rounded shadow-md">
             <h3 className="text-xl font-semibold mb-2">Premier League</h3>
-            {renderPreview(premier, 6, 4, 'Title Chase', 'Relegation Battle')}
+            {renderPreview((premierData ?? []), 6, 4, 'Title Chase', 'Relegation Battle')}
           </div>
           <div className="bg-purple-100 p-4 rounded shadow-md">
             <h3 className="text-xl font-semibold mb-2">Championship</h3>
-            {renderPreview(champ, 4, 4, 'Promotion Hopes', 'Shameful Behavior')}
+            {renderPreview((championshipData ?? []), 4, 4, 'Promotion Hopes', 'Shameful Behavior')}
           </div>
           <div className="bg-purple-100 p-4 rounded shadow-md">
             <h3 className="text-xl font-semibold mb-2">FA Cup</h3>
