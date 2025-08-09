@@ -134,7 +134,7 @@ export default function ManagerBio() {
                   {last || first}
                 </div>
               ) :                 
-                <div className="text-xl sm:text-xl font-extrabold -mt-1 leading-tight">
+                <div className="text-2xl sm:text-2xl font-extrabold -mt-1 leading-tight">
                   {last || first}
                 </div>}
 
