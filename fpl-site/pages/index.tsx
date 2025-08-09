@@ -2,11 +2,13 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import NavBar from '../components/NavBar';
 import { useStandings } from '@/public/hooks/useStandings';
+import useGWDeadline from '@/public/hooks/useGWDeadline';
 
 
 export default function Home() {
   const {data: premierData, usingCache} = useStandings('premier');
   const {data: championshipData} = useStandings('championship');
+  const { gwInfo, loading, error } = useGWDeadline();
 
   const renderPreview = (
     data: Record<string, any>[],
@@ -82,6 +84,27 @@ export default function Home() {
                </div>
         </header>
 
+        {/* Show Gameweek Deadline bar if data is available */}
+        {gwInfo && !loading && !error && (
+          <div className="bg-[#37003c] text-[#32FF6A] font-bold p-2 text-center">
+            <p>GW{gwInfo.gwNumber} Deadline: {gwInfo.deadline} PST</p>
+          </div>
+        )}
+
+        {/* Show loading state */}
+        {loading && (
+          <div className="bg-[#37003c] text-[#32FF6A] font-bold p-2 text-center">
+            <p>Loading Gameweek Info...</p>
+          </div>
+        )}
+
+        {/* Show error state */}
+        {error && (
+          <div className="bg-[#37003c] text-[#32FF6A] font-bold p-2 text-center">
+            <p>{error}</p>
+          </div>
+        )}  
+
       <section className="p-4 sm:p-6">
         <h2 className="text-2xl font-bold mb-4">League Previews</h2>
           {(usingCache) && (
@@ -89,6 +112,7 @@ export default function Home() {
               Viewing cache, information may be outdated
             </span>
           )}
+
         <div className="grid md:grid-cols-3 gap-6">
           <div className="bg-purple-100 p-4 rounded shadow-md">
             <h3 className="text-xl font-semibold mb-2">Premier League</h3>

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import NavBar from '../components/NavBar';
 import { useStandings } from '../public/hooks/useStandings';
 import { useManagers } from '../public/hooks/useManagers';
+import useGWDeadline from '@/public/hooks/useGWDeadline';
 
 interface Manager {
   name: string;
@@ -13,7 +14,7 @@ interface Manager {
 export default function Premier() {
   const { data, refresh: refreshStandings, loading: loadingStandings, usingCache } = useStandings('premier');
   const { data: managersData, refresh: refreshManagers, loading: loadingManagers, usingCache: usingCacheManagers } = useManagers();
-
+  const { gwInfo, loading, error } = useGWDeadline();
   const [downloadFile, setDownloadFile] = useState('');
   const [sortConfig, setSortConfig] = useState({
     key: 'Position', // Default sort key to 'Position'
@@ -129,6 +130,26 @@ export default function Premier() {
           <NavBar />
         </div>
       </header>
+      {/* Show Gameweek Deadline bar if data is available */}
+      {gwInfo && !loading && !error && (
+        <div className="bg-[#37003c] text-[#32FF6A] font-bold p-2 text-center">
+          <p>GW{gwInfo.gwNumber} Deadline: {gwInfo.deadline} PST</p>
+        </div>
+      )}
+
+      {/* Show loading state */}
+      {loading && (
+        <div className="bg-[#37003c] text-[#32FF6A] font-bold p-2 text-center">
+          <p>Loading Gameweek Info...</p>
+        </div>
+      )}
+
+      {/* Show error state */}
+      {error && (
+        <div className="bg-[#37003c] text-[#32FF6A] font-bold p-2 text-center">
+          <p>{error}</p>
+        </div>
+      )}
 
       <section className="p-6 text-left">
         <h2 className="font-bold mb-4 text-3xl text-left">Premier League Table</h2>

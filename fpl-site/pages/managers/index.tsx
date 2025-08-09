@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import NavBar from '../../components/NavBar'
 import { useManagers } from '../../public/hooks/useManagers';
+import useGWDeadline from '@/public/hooks/useGWDeadline';
 
 
 type TrophyKey = 'premier' | 'fa' | 'championship';
@@ -31,6 +32,8 @@ const TROPHY_ICONS: Record<TrophyKey, string> = {
 const expandTrophies = (ts?: Trophy[]): TrophyKey[] =>
   (ts ?? []).flatMap((t) => Array.from({ length: t.count ?? 0 }, () => t.type));
 
+
+
 // ---------- sorting types/state/helpers ----------
 type SortKey = 'name' | 'team' | 'placements' | 'titles'
 type SortDir = 'asc' | 'desc'
@@ -43,6 +46,7 @@ const toNum = (x: unknown) => {
 export default function ManagersList() {
   const { data: managersData, refresh } = useManagers();
   const [search, setSearch] = useState('')
+  const { gwInfo, loading, error } = useGWDeadline();
 
   // NEW: sorting state
   const [sortKey, setSortKey] = useState<SortKey>('titles')
@@ -107,6 +111,27 @@ export default function ManagersList() {
           <NavBar />
         </div>
       </header>
+
+        {/* Show Gameweek Deadline bar if data is available */}
+        {gwInfo && !loading && !error && (
+          <div className="bg-[#37003c] text-[#32FF6A] font-bold p-2 text-center">
+            <p>GW{gwInfo.gwNumber} Deadline: {gwInfo.deadline} PST</p>
+          </div>
+        )}
+
+        {/* Show loading state */}
+        {loading && (
+          <div className="bg-[#37003c] text-[#32FF6A] font-bold p-2 text-center">
+            <p>Loading Gameweek Info...</p>
+          </div>
+        )}
+
+        {/* Show error state */}
+        {error && (
+          <div className="bg-[#37003c] text-[#32FF6A] font-bold p-2 text-center">
+            <p>{error}</p>
+          </div>
+        )}  
 
       <section className="p-6">
         {/* Search */}

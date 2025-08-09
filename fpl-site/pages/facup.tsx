@@ -1,7 +1,11 @@
 import Link from 'next/link';
 import NavBar from '../components/NavBar';
+import useGWDeadline from '@/public/hooks/useGWDeadline';
 
 export default function FACup() {
+  
+  const { gwInfo, loading, error } = useGWDeadline();
+  
   return (
     <main className="min-h-screen bg-gradient-to-b from-blue-200 via-white to-purple-100 text-[#37003c]">
        <header className="relative bg-gradient-to-r from-blue-300 via-blue-400 bg-[#5b329e] text-[#37003c] p-6 shadow-lg overflow-hidden">
@@ -15,6 +19,27 @@ export default function FACup() {
                  <NavBar />
                </div>
         </header>
+
+        {/* Show Gameweek Deadline bar if data is available */}
+        {gwInfo && !loading && !error && (
+          <div className="bg-[#37003c] text-[#32FF6A] font-bold p-2 text-center">
+            <p>GW{gwInfo.gwNumber} Deadline: {gwInfo.deadline} PST</p>
+          </div>
+        )}
+
+        {/* Show loading state */}
+        {loading && (
+          <div className="bg-[#37003c] text-[#32FF6A] font-bold p-2 text-center">
+            <p>Loading Gameweek Info...</p>
+          </div>
+        )}
+
+        {/* Show error state */}
+        {error && (
+          <div className="bg-[#37003c] text-[#32FF6A] font-bold p-2 text-center">
+            <p>{error}</p>
+          </div>
+        )}
 
       <section className="p-6">
         <h2 className="text-3xl font-bold mb-4">FA Cup</h2>
