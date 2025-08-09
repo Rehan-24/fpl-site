@@ -90,12 +90,12 @@ export default function ManagerBio() {
         <div className="mt-4 relative overflow-hidden rounded-2xl shadow-xl bg-gradient-to-r from-blue-300 via-blue-400 to-green-500 text-[#37003c]">
           {/* ripple vector from /public/images/patterns/content-card-vector.svg */}
             <div
-              className="pointer-events-none select-none absolute inset-y-0 right-0 left-24 sm:left-40 md:left-48"
+              className="hero-card-ripple pointer-events-none select-none absolute inset-0"
               style={{
                 backgroundImage: "url('/images/patterns/hero-card-ripple.svg')",
                 backgroundRepeat: 'no-repeat',
                 backgroundPosition: 'right top',
-                backgroundSize: 'cover', // try 'contain' if you want less stretch
+                backgroundSize: 'cover',
               }}
             />
           {/* subtle highlight blobs (kept) */}
@@ -111,11 +111,11 @@ export default function ManagerBio() {
           <img
             src={manager.dynamic_image_url || DEFAULT_AVATAR}
             alt={manager.name}
-            className="absolute bottom-0 left-7 h-32 sm:h-40 md:h-44 object-cover select-none"
+            className="hero-image absolute left-7 bottom-0 sm:h-40 h-32 object-cover select-none"
             onError={(e) => {
-              const img = e.currentTarget as HTMLImageElement
-              if (img.src.endsWith(DEFAULT_AVATAR)) return
-              img.src = DEFAULT_AVATAR
+              const img = e.currentTarget as HTMLImageElement;
+              if (img.src.endsWith(DEFAULT_AVATAR)) return;
+              img.src = DEFAULT_AVATAR;
             }}
           />
 
