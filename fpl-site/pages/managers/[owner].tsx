@@ -79,7 +79,7 @@ export default function ManagerBio() {
         />
         
         {/* Content above ripple */}
-        <h1 className="relative z-10 text-3xl font-bold text-[#37003c]">Team Bio</h1>
+        <h1 className="text-center sm:text-left relative z-10 text-3xl font-bold text-[#37003c]">Team Bio</h1>
         <NavBar />
       </header>
 

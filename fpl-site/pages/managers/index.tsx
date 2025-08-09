@@ -108,7 +108,7 @@ export default function ManagersList() {
         />
         
         {/* Content above ripple */}
-        <h1 className="relative z-10 text-4xl font-bold text-[#37003c]">Managers</h1>
+        <h1 className="text-center sm:text-left relative z-10 text-4xl font-bold text-[#37003c]">Managers</h1>
         <NavBar />
       </header>
 
