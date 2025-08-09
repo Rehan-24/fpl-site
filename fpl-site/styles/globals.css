@@ -51,6 +51,49 @@ td.sticky.left-32 {
   left: 5rem; /* Same value as the th column */
 }
 
+/* Ensure proper overflow handling */
+.table-container {
+  position: relative;
+  overflow-x: auto;
+}
+
+/* Sticky columns (Position and Team) */
+.sticky-column {
+  position: sticky;
+  z-index: 1;
+  background-color: #fff; /* Set default background */
+}
+
+/* Sticky "Position" column (custom color for column cells) */
+.sticky-position {
+  left: 0;
+  z-index: 3;
+  background-color: #f2e9fd; /* Different color for the Position column */
+}
+
+/* Sticky "Team" column (custom color for column cells) */
+.sticky-team {
+  left: 82px; /* Adjust based on column width */
+  z-index: 2;
+  background-color: #f2e9fd; /* Same color for Team column */
+}
+
+/* Sticky headers (Position and Team) */
+.sticky-header-position {
+  position: sticky;
+  top: 0;
+  background-color: #37003c; /* Header background color for Position */
+  left:0;
+}
+
+/* Sticky "Team" header */
+.sticky-header-team {
+  position: sticky;
+  top: 0;
+  left: 82px; /* Align with Team column */
+  background-color: #37003c; /* Header background color for Team */
+}
+
 
 body {
   background: var(--background);
