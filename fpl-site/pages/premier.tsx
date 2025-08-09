@@ -162,15 +162,15 @@ export default function Premier() {
           <table className="bg-purple-100 border-separate border-spacing-x-[1px] overflow-hidden rounded-md shadow-md text-center text-sm w-full">
             <thead>
               <tr>
-                {/* Sticky "Position" header */}
-                <th className="sticky-header-position bg-[#37003c] font-semibold px-3 py-2 text-white text-center text-xs">
+                {/* Sticky "Position" column */}
+                <th className="sticky sticky-position left-0 bg-[#37003c] font-semibold px-3 py-2 text-white text-center text-xs">
                   <button onClick={() => handleSort("Position")}>
                     Position <span className="opacity-70">{getSortIndicator("Position")}</span>
                   </button>
                 </th>
 
-                {/* Sticky "Team" header */}
-                <th className="sticky-header-team bg-[#37003c] font-semibold px-3 py-2 text-white text-center text-xs">
+                {/* Sticky "Team" column */}
+                <th className="sticky sticky-team left-32 bg-[#37003c] font-semibold px-3 py-2 text-white text-center text-xs">
                   <button onClick={() => handleSort("Team")}>
                     Team <span className="opacity-70">{getSortIndicator("Team")}</span>
                   </button>
@@ -192,13 +192,13 @@ export default function Premier() {
               {sortedData.map((row: Record<string, any>, i) => (
                 <tr key={i} className="border-t text-center">
                   {/* Sticky "Position" column */}
-                  <td className={`sticky-column sticky-position px-3 py-2 text-sm border-b border-gray-400 ${getCellStyle("Position", row.Position, row)}`}>
+                  <td className={`sticky sticky-position left-0 px-3 py-2 text-sm border-b border-gray-400 ${getCellStyle("Position", row.Position, row)}`}>
                     <div className="font-bold text-center text-lg">{row.Position}</div>
                     <div className="italic text-center text-purple-700 text-xs">{positionLabels[String(row.Position)]}</div>
                   </td>
 
                   {/* Sticky "Team" column */}
-                  <td className={`sticky-column sticky-team px-3 py-2 text-sm border-b border-gray-400 ${getCellStyle("Team", row.Team, row)}`}>
+                  <td className={`sticky sticky-team left-32 px-3 py-2 text-sm border-b border-gray-400 ${getCellStyle("Team", row.Team, row)}`}>
                     <div className="font-medium text-center text-left">{row.Team}</div>
                     <div className="text-xs text-gray-600 text-left text-xs">
                       <Link href={`/managers/${encodeURIComponent(row.Owner)}`} className="hover:underline">

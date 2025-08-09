@@ -94,6 +94,11 @@ td.sticky.left-32 {
   background-color: #37003c; /* Header background color for Team */
 }
 
+/* Sorting arrow styling */
+th button span {
+  z-index: 1; /* Ensure sorting arrows are behind sticky columns */
+}
+
 
 body {
   background: var(--background);
