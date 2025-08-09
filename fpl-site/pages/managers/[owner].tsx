@@ -157,7 +157,7 @@ export default function ManagerBio() {
               <span>•</span>
               <span>{manager.favorite_club || 'Favorite club: —'}</span>
               <span>•</span>
-              <span>{manager.placements ?? 0} Placements </span>
+              <span>{manager.placements || 0} Placement(s) </span>
             </div>
           </div>
         </div>
