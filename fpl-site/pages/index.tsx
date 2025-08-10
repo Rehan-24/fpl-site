@@ -41,7 +41,7 @@ export default function Home() {
     return (
       <>
         <Head>
-          <title>Your Site Name</title>
+          <title>The Fantasy Premier League</title>
           <meta property="og:title" content="THE Fantasy Premier League" />
           <meta property="og:description" content="Quick Overview of Each League" />
           <meta property="og:image" content="https://logos-world.net/wp-content/uploads/2023/08/Premier-League-New-Logo.png" />
@@ -49,6 +49,7 @@ export default function Home() {
           <meta property="og:type" content="website" />
           <meta property="og:site_name" content="THE Fantasy Premier League" />
         </Head>
+
         <div className="text-xs uppercase font-bold text-gray-500 mb-2">
           {topLabel}
         </div>
@@ -97,7 +98,7 @@ export default function Home() {
         {/* Show Gameweek Deadline bar if data is available */}
         {gwInfo && !loading && !error && (
           <div className="bg-[#37003c] text-[#32FF6A] font-bold p-2 text-center">
-            <p>GW{gwInfo.gwNumber} Deadline: {gwInfo.deadline}</p>
+            <p>GW{gwInfo.gwNumber} Deadline: {gwInfo.deadline}  PST</p>
           </div>
         )}
 

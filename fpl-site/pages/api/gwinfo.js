@@ -18,6 +18,7 @@ export default async function handler(req, res) {
           hour: 'numeric',
           minute: 'numeric',
           hour12: true,
+          timeZone: 'America/Los_Angeles',
           
         }),
       });
