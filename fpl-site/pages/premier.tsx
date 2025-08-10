@@ -128,7 +128,7 @@ export default function Premier() {
           <title>The Fantasy Premier League Table</title>
           <meta property="og:title" content="Premier League Table" />
           <meta property="og:description" content="Premier League Table" />
-          <meta property="og:image" content="https://thefootballcastle.com/wp-content/uploads/2021/12/FANTASY-PREMIER-LEAGUE-HEADER-1.jpg" />
+          <meta property="og:image" content="https://gmkoutsi.com/wp-content/uploads/2023/08/fantasy-premier-league.webp" />
           <meta property="og:url" content="https://tfpl.vercel.app/premier" />
           <meta property="og:type" content="website" />
           <meta property="og:site_name" content="THE Fantasy Premier League" />
