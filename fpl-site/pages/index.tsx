@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import NavBar from '../components/NavBar';
 import { useStandings } from '@/public/hooks/useStandings';
 import useGWDeadline from '@/public/hooks/useGWDeadline';
+import Head from 'next/head';
 
 
 export default function Home() {
@@ -39,6 +40,15 @@ export default function Home() {
 
     return (
       <>
+        <Head>
+          <title>Your Site Name</title>
+          <meta property="og:title" content="THE Fantasy Premier League" />
+          <meta property="og:description" content="Quick Overview of Each League" />
+          <meta property="og:image" content="https://logos-world.net/wp-content/uploads/2023/08/Premier-League-New-Logo.png" />
+          <meta property="og:url" content="https://tfpl.vercel.app/" />
+          <meta property="og:type" content="website" />
+          <meta property="og:site_name" content="THE Fantasy Premier League" />
+        </Head>
         <div className="text-xs uppercase font-bold text-gray-500 mb-2">
           {topLabel}
         </div>
