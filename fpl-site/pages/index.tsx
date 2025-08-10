@@ -44,7 +44,7 @@ export default function Home() {
           <title>The Fantasy Premier League Home</title>
           <meta property="og:title" content="THE Fantasy Premier League" />
           <meta property="og:description" content="Quick Overview of Each League" />
-          <meta property="og:image" content="https://logos-world.net/wp-content/uploads/2023/08/Premier-League-New-Logo.png" />
+          <meta property="og:image" content="https://thefootballcastle.com/wp-content/uploads/2021/12/FANTASY-PREMIER-LEAGUE-HEADER-1.jpg" />
           <meta property="og:url" content="https://tfpl.vercel.app/" />
           <meta property="og:type" content="website" />
           <meta property="og:site_name" content="THE Fantasy Premier League" />
