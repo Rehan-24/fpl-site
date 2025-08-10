@@ -69,8 +69,8 @@ export default function ManagerBio() {
       <Head>
         <title>{manager.name} - tFPL Bio</title>
         <meta property="og:title" content={`${manager.name} - tFPL Bio`} />
-        <meta property="og:description" content={`https://tfpl.vercel.app/images/managers/${manager.bio}` || 'Zidane Threepeat is Underrated'} />
-        <meta property="og:image" content={`https://tfpl.vercel.app/images/managers/${manager.image_url}` || 'https://static0.footballfancastimages.com/wordpress/wp-content/uploads/2025/01/fantasy-premier-league-assistant-managers-potter-slot-nuno-espirito-santo.jpg'} />
+        <meta property="og:description" content={manager.bio || 'Zidane Threepeat is Underrated'} />
+        <meta property="og:image" content={`https://tfpl.vercel.app/${manager.image_url}` || 'https://static0.footballfancastimages.com/wordpress/wp-content/uploads/2025/01/fantasy-premier-league-assistant-managers-potter-slot-nuno-espirito-santo.jpg'} />
         <meta property="og:url" content={`https://tfpl.vercel.app/managers/${manager.name}`} />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="THE Fantasy Premier League" />
