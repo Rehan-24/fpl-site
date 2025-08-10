@@ -142,7 +142,7 @@ export default function Championship() {
           <meta property="og:image" content="https://4.bp.blogspot.com/-ilHxPtWB8FA/VkS9BiuUpAI/AAAAAAAAxAM/QNQtiFimLyE/s1600/English-Football-League%2B%25281%2529.jpg" />
           <meta property="og:url" content="https://tfpl.vercel.app/championship" />
           <meta property="og:type" content="website" />
-          <meta property="og:site_name" content="Championship League Table" />
+          <meta property="og:site_name" content="THE Fantasy Premier League" />
         </Head>
        
        <header className="relative bg-gradient-to-r from-blue-300 via-blue-400 bg-[#5b329e] text-[#37003c] p-6 shadow-lg overflow-hidden">

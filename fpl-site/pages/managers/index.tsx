@@ -3,6 +3,7 @@ import Link from 'next/link'
 import NavBar from '../../components/NavBar'
 import { useManagers } from '../../public/hooks/useManagers';
 import useGWDeadline from '@/public/hooks/useGWDeadline';
+import Head from 'next/head';
 
 
 type TrophyKey = 'premier' | 'fa' | 'championship';
@@ -100,6 +101,16 @@ export default function ManagersList() {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-blue-200 via-white to-purple-100 text-[#37003c]">
+        <Head>
+          <title>tFPL Managers</title>
+          <meta property="og:title" content="tFPL Managers" />
+          <meta property="og:description" content="List of All Managers" />
+          <meta property="og:image" content="https://talksport.com/wp-content/uploads/sites/5/2025/01/MM-OP-PREM-BLOG-20.jpg?strip=all&w=960" />
+          <meta property="og:url" content="https://tfpl.vercel.app/managers" />
+          <meta property="og:type" content="website" />
+          <meta property="og:site_name" content="THE Fantasy Premier League" />
+        </Head>
+      
       <header className="relative bg-gradient-to-r from-blue-300 via-blue-400 bg-[#5b329e] text-[#37003c] p-6 shadow-lg overflow-hidden">
         {/* ripple vector background */}
         <div className="navbar-ripple pointer-events-none select-none absolute inset-0"></div>

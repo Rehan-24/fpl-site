@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import NavBar from '../../components/NavBar'
+import Head from 'next/head';
 
 type TrophyKey = 'premier' | 'fa' | 'championship'
 type Trophy = { type: TrophyKey; count: number }
@@ -65,6 +66,16 @@ export default function ManagerBio() {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-blue-200 to-purple-100 text-[#37003c]">
+      <Head>
+        <title>{manager.name} - tFPL Bio</title>
+        <meta property="og:title" content={`${manager.name} - tFPL Bio`} />
+        <meta property="og:description" content={manager.bio || 'Hala Madrid y Nada Mas'} />
+        <meta property="og:image" content={manager.image_url || 'https://i.pinimg.com/736x/c0/27/be/c027bec07c2dc08b9df60921dfd539bd.jpg'} />
+        <meta property="og:url" content={`https://tfpl.vercel.app/managers/${manager.name}`} />
+        <meta property="og:type" content="profile" />
+        <meta property="og:site_name" content="THE Fantasy Premier League" />
+      </Head>
+      
       <header className="relative bg-gradient-to-r from-blue-300 via-blue-400 bg-[#5b329e] text-[#37003c] p-6 shadow-lg overflow-hidden">
         {/* ripple vector background */}
         <div className="navbar-ripple pointer-events-none select-none absolute inset-0"></div>

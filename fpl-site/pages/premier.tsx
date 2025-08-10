@@ -131,7 +131,7 @@ export default function Premier() {
           <meta property="og:image" content="https://logos-world.net/wp-content/uploads/2023/08/Premier-League-New-Logo.png" />
           <meta property="og:url" content="https://tfpl.vercel.app/premier" />
           <meta property="og:type" content="website" />
-          <meta property="og:site_name" content="Premier League Table" />
+          <meta property="og:site_name" content="THE Fantasy Premier League" />
         </Head>
       <header className="relative bg-gradient-to-r from-blue-300 via-blue-400 bg-[#5b329e] text-[#37003c] p-6 shadow-lg overflow-hidden">
         <div className="navbar-ripple pointer-events-none select-none absolute inset-0"></div>
