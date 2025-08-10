@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import NavBar from '../components/NavBar';
 import useGWDeadline from '@/public/hooks/useGWDeadline';
+import Head from 'next/head';
 
 export default function FACup() {
   
@@ -8,6 +9,16 @@ export default function FACup() {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-blue-200 via-white to-purple-100 text-[#37003c]">
+        <Head>
+          <title>FA Cup - The Fantasy Premier League</title>
+          <meta property="og:title" content="THE Fantasy FA Cup" />
+          <meta property="og:description" content="FA Cup Bracket" />
+          <meta property="og:image" content="https://static.vecteezy.com/system/resources/previews/025/409/495/large_2x/emirates-fa-cup-logo-with-name-white-symbol-abstract-design-illustration-with-red-background-free-vector.jpg" />
+          <meta property="og:url" content="https://tfpl.vercel.app/facup" />
+          <meta property="og:type" content="website" />
+          <meta property="og:site_name" content="THE Fantasy Premier League" />
+        </Head>
+       
        <header className="relative bg-gradient-to-r from-blue-300 via-blue-400 bg-[#5b329e] text-[#37003c] p-6 shadow-lg overflow-hidden">
                {/* ripple vector background */}
                <div className="navbar-ripple pointer-events-none select-none absolute inset-0"></div>
