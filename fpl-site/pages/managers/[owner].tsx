@@ -72,7 +72,7 @@ export default function ManagerBio() {
         <meta property="og:description" content={manager.bio || 'Hala Madrid y Nada Mas'} />
         <meta property="og:image" content={manager.image_url || 'https://i.pinimg.com/736x/c0/27/be/c027bec07c2dc08b9df60921dfd539bd.jpg'} />
         <meta property="og:url" content={`https://tfpl.vercel.app/managers/${manager.name}`} />
-        <meta property="og:type" content="profile" />
+        <meta property="og:type" content="website" />
         <meta property="og:site_name" content="THE Fantasy Premier League" />
       </Head>
       

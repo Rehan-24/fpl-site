@@ -41,7 +41,7 @@ export default function Home() {
     return (
       <>
         <Head>
-          <title>The Fantasy Premier League</title>
+          <title>The Fantasy Premier League Home</title>
           <meta property="og:title" content="THE Fantasy Premier League" />
           <meta property="og:description" content="Quick Overview of Each League" />
           <meta property="og:image" content="https://logos-world.net/wp-content/uploads/2023/08/Premier-League-New-Logo.png" />
