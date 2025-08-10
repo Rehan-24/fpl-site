@@ -4,6 +4,7 @@ import NavBar from '../components/NavBar';
 import { useStandings } from '../public/hooks/useStandings';
 import { useManagers } from '../public/hooks/useManagers';
 import useGWDeadline from '@/public/hooks/useGWDeadline';
+import Head from 'next/head';
 
 interface Manager {
     name: string;
@@ -134,6 +135,16 @@ export default function Championship() {
 
   return (
     <main className="bg-gradient-to-b from-blue-200 min-h-screen text-[#37003c] text-center to-purple-100 via-white">
+        <Head>
+          <title>The Fantasy Championship League Table</title>
+          <meta property="og:title" content="Championship League Table" />
+          <meta property="og:description" content="Championship League Table" />
+          <meta property="og:image" content="https://4.bp.blogspot.com/-ilHxPtWB8FA/VkS9BiuUpAI/AAAAAAAAxAM/QNQtiFimLyE/s1600/English-Football-League%2B%25281%2529.jpg" />
+          <meta property="og:url" content="https://tfpl.vercel.app/championship" />
+          <meta property="og:type" content="website" />
+          <meta property="og:site_name" content="Championship League Table" />
+        </Head>
+       
        <header className="relative bg-gradient-to-r from-blue-300 via-blue-400 bg-[#5b329e] text-[#37003c] p-6 shadow-lg overflow-hidden">
                {/* ripple vector background */}
                <div className="navbar-ripple pointer-events-none select-none absolute inset-0"></div>

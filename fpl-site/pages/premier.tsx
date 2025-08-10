@@ -4,6 +4,7 @@ import NavBar from '../components/NavBar';
 import { useStandings } from '../public/hooks/useStandings';
 import { useManagers } from '../public/hooks/useManagers';
 import useGWDeadline from '@/public/hooks/useGWDeadline';
+import Head from 'next/head';
 
 interface Manager {
   name: string;
@@ -123,6 +124,15 @@ export default function Premier() {
 
   return (
     <main className="bg-gradient-to-b from-blue-200 min-h-screen text-[#37003c] text-center to-purple-100 via-white">
+      <Head>
+          <title>The Fantasy Premier League Table</title>
+          <meta property="og:title" content="Premier League Table" />
+          <meta property="og:description" content="Premier League Table" />
+          <meta property="og:image" content="https://logos-world.net/wp-content/uploads/2023/08/Premier-League-New-Logo.png" />
+          <meta property="og:url" content="https://tfpl.vercel.app/premier" />
+          <meta property="og:type" content="website" />
+          <meta property="og:site_name" content="Premier League Table" />
+        </Head>
       <header className="relative bg-gradient-to-r from-blue-300 via-blue-400 bg-[#5b329e] text-[#37003c] p-6 shadow-lg overflow-hidden">
         <div className="navbar-ripple pointer-events-none select-none absolute inset-0"></div>
         <h1 className="text-center sm:text-left relative z-10 text-4xl font-bold text-[#37003c]">Fantasy Premier League (v5)</h1>
