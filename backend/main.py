@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from managers.index import router as managers_router
+from news.index import router as news_router
 
 import pandas as pd
 import os
@@ -10,6 +11,7 @@ import json
 import subprocess
 
 app = FastAPI()
+
 
 # CORS Middleware
 app.add_middleware(
@@ -28,6 +30,9 @@ TEST_MODE = True  # Change to False to use real script later
 
 # Register the managers router
 app.include_router(managers_router, prefix="/api")
+
+app.include_router(managers_router, prefix="/api")
+app.include_router(news_router, prefix="/api")
 
 # Route for getting standings
 @app.get("/api/standings")
