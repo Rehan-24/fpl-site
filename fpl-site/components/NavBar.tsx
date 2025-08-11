@@ -8,6 +8,8 @@ export default function NavBar() {
       <Link href="/championship"><button className="bg-[#32FF6A] px-4 py-2 rounded shadow text-[#37003c] font-semibold">Championship</button></Link>
       <Link href="/facup"><button className="bg-[#32FF6A] px-4 py-2 rounded shadow text-[#37003c] font-semibold">FA Cup</button></Link>
       <Link href="/managers"><button className="bg-[#32FF6A] px-4 py-2 rounded shadow text-[#37003c] font-semibold">Managers</button></Link>
+      <Link href="/news"><button className="bg-[#32FF6A] px-4 py-2 rounded shadow text-[#37003c] font-semibold">News</button></Link>
+      <Link href="/links"><button className="bg-[#32FF6A] px-4 py-2 rounded shadow text-[#37003c] font-semibold">Links</button></Link>
     </nav>
   )
 }
