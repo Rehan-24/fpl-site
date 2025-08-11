@@ -2,19 +2,46 @@
   {
     "id": "welcome-2025",
     "title": "Welcome to the 2025/26 Season!",
-    "date": "2025-08-10",
-    "image_url": "/images/news/welcome.jpg",
-    "excerpt": "A warm welcome to our new managers and a quick rundown of what's new.",
-    "content": "<p>Full HTML content here…</p>",
-    "tags": ["announcement", "season"]
+    "date": "2025-07-15",
+    "image_url": "/images/news/fpl-welcome-25.jpg",
+    "excerpt": "FPL is now allowing managers to start making their teams!",
+    "content": "<p>We're live! The official FPL site is now up and running! The GW 1 Deadline is 8/15 @1030 AM PST! Remember, you are allowed to change your team as much as you'd like, right up until the deadline. You have to create your team before you can join the link.</p>",
+    "tags": ["Announcement"]
   },
   {
-    "id": "rule-tweaks",
-    "title": "Rule Tweaks: Transfer Hits & Tie-Breakers",
-    "date": "2025-08-09",
-    "image_url": "/images/news/rules.jpg",
-    "excerpt": "We’ve clarified how transfer hits are recorded and tie-breaker order.",
-    "content": "<p>Details of changes…</p>",
-    "tags": ["rules", "h2h"]
+    "id": "defcon-2025/26",
+    "title": "Rule Tweaks: Defensive Contribution (DEFCON) Points",
+    "date": "2025-07-18",
+    "image_url": "/images/news/fpl-defcon.jpg",
+    "excerpt": "The FPL Towers have found a way to better reward defensive players for their contributions in a game!",
+    "content": "<p>This season sees defenders and midfielders and attackers all receive different ways to use defensive contributions to earn points.</p><p>Please refer to: https://www.premierleague.com/en/news/4361991/whats-new-in-202526-fantasy-defensive-contributions for more!</p>",
+    "tags": ["Official FPL Rules", "Scoring"]
+  },
+  {
+    "id": "rule-tweaks-2025/26",
+    "title": "Rule Tweaks: Chips",
+    "date": "2025-07-18",
+    "image_url": "/images/news/fpl-double-chips.jpg",
+    "excerpt": "The FPL Towers have given us the chance to use our TC, BB, and FH twice this year!",
+    "content": "<p>Please refer to: https://www.premierleague.com/en/news/4362027/whats-new-in-202526-fantasy-two-sets-of-chips for more!</p>",
+    "tags": ["Official FPL Rules"]
+  },
+  {
+    "id": "afcon-transfers-2025/26",
+    "title": "Rule Tweaks: Additional AFCON Transfers",
+    "date": "2025-07-18",
+    "image_url": "/images/news/fpl-afcon-transfers.png",
+    "excerpt": "The FPL Towers will give managers additional transfers in GW16 when AFCON starts.",
+    "content": "<p>Please refer to: https://www.premierleague.com/en/news/4362102/whats-new-in-202526-fantasy-extra-transfers-for-afcon for more!</p>",
+    "tags": ["Official FPL Rules"]
+  },
+  {
+    "id": "additional-scoring-tweaks-2025/26",
+    "title": "Rule Tweaks: Additional Scoring Changes",
+    "date": "2025-07-19",
+    "image_url": "/images/news/fpl-scoring-tweaks.jpg",
+    "excerpt": "The FPL Towers have adjusted the definition of an assist and have tweaked the Bonus Point System (BPS).",
+    "content": "<p>Please refer to: https://www.premierleague.com/en/news/4362187/whats-new-in-202526-fantasy-changes-to-assists-rules and https://www.premierleague.com/en/news/4362127/whats-new-in-202526-fantasy-changes-to-bonus-points-system for more!</p>",
+    "tags": ["Official FPL Rules", "Scoring"]
   }
 ]
