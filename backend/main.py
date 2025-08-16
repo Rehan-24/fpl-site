@@ -11,7 +11,7 @@ import json
 import subprocess
 import time
 from typing import Optional
-import hashlib, re
+import hashlib, re, requests, datetime
 import pandas as pd
 
 app = FastAPI()
@@ -76,43 +76,117 @@ def run_management_script(league: str, gw: Optional[int] = None) -> None:
     subprocess.run(cmd, check=True, cwd=os.path.join(BASE_DIR, "src"))
 
 
-def excel_to_latest_json(league: str) -> dict:
+def excel_to_latest_json(league: str, preferred_sheet: Optional[str] = None) -> dict:
     xlsx = excel_path_for_league(league)
     if not os.path.exists(xlsx):
         raise FileNotFoundError(f"Excel not found: {xlsx}")
 
     xls = pd.ExcelFile(xlsx)
-    sheet_name = None
 
-    # Prefer the highest-numbered GW sheet
-    gw_sheets = []
-    for name in xls.sheet_names:
-        m = re.fullmatch(r"GW(\d+)", str(name).strip())
-        if m:
-            gw_sheets.append((int(m.group(1)), name))
-    if gw_sheets:
-        sheet_name = sorted(gw_sheets, key=lambda t: t[0])[-1][1]
+    # If a preferred sheet is provided and exists, use it first
+    if preferred_sheet and preferred_sheet in xls.sheet_names:
+        sheet_name = preferred_sheet
     else:
-        # fall back to last sheet if no GW sheets
-        sheet_name = xls.sheet_names[-1] if xls.sheet_names else None
+        # choose the highest-numbered GW sheet
+        gw_sheets = []
+        for name in xls.sheet_names:
+            m = re.fullmatch(r"GW(\d+)", str(name).strip())
+            if m:
+                gw_sheets.append((int(m.group(1)), name))
+        sheet_name = sorted(gw_sheets, key=lambda t: t[0])[-1][1] if gw_sheets else xls.sheet_names[-1]
 
-    if not sheet_name:
-        raise RuntimeError("No usable sheets found in Excel output")
+    # Your sheet is written starting at row 2 (header row index 1); drop Unnamed cols
+    df = pd.read_excel(xlsx, sheet_name=sheet_name, header=1, engine="openpyxl")
+    df = df.loc[:, ~df.columns.astype(str).str.startswith("Unnamed")]
 
-    df = pd.read_excel(xlsx, sheet_name=sheet_name)
+    # Sort like the sheet, then add Position
+    df_sorted = df.sort_values(by=["Points", "Score"], ascending=[False, False]).reset_index(drop=True)
+    df_sorted.insert(0, "Position", range(1, len(df_sorted) + 1))
 
-    data = {
-        "league": league,
-        "sheet": sheet_name,
-        "rows": df.to_dict(orient="records"),
-        "generated_at": time.time(),
-    }
+    def _to_native(v):
+        try:
+            s = str(v)
+            if s.strip() == "":
+                return ""
+            if s.replace(".", "", 1).replace("-", "", 1).isdigit():
+                return float(s) if "." in s else int(s)
+            return v
+        except Exception:
+            return v
+
+    rows = [{k: _to_native(v) for k, v in rec.items()} for rec in df_sorted.to_dict(orient="records")]
+
+    out_path = latest_json_path_for_league(league)
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "league": league,
+            "sheet": sheet_name,
+            "generated_at": time.time(),
+            "rows": rows
+        }, f, ensure_ascii=False)
+
+    return {"league": league, "sheet": sheet_name, "rows": rows}
+
 
     out_path = latest_json_path_for_league(league)
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False)
 
     return data
+
+def fetch_current_gw() -> int:
+    
+    # Ask FPL for the current GW. Prefer `is_current`, then `is_next`,
+    # else fallback to the highest event whose deadline has passed.
+    
+    r = requests.get("https://fantasy.premierleague.com/api/bootstrap-static/", timeout=10)
+    r.raise_for_status()
+    j = r.json()
+    events = j.get("events", [])
+    # 1) is_current
+    for e in events:
+        if e.get("is_current"):
+            return int(e["id"])
+    # 2) is_next
+    for e in events:
+        if e.get("is_next"):
+            return int(e["id"])
+    # 3) fallback by deadline time
+    now = datetime.datetime.utcnow()
+    past = []
+    for e in events:
+        dt = e.get("deadline_time")
+        if not dt:
+            continue
+        try:
+            # deadline_time is ISO8601 in UTC, e.g. "2025-08-15T17:30:00Z"
+            # strip 'Z' if present
+            if dt.endswith("Z"):
+                dt = dt[:-1]
+            dtu = datetime.datetime.fromisoformat(dt)
+            if dtu <= now:
+                past.append((int(e["id"]), dtu))
+        except Exception:
+            continue
+    if past:
+        return sorted(past, key=lambda t: t[0])[-1][0]
+    # worst case
+    return 1
+
+def resolve_gw_param(gw_param: Optional[str]) -> int:
+    """
+    Accepts None / "auto" / "current" / "" to mean current GW.
+    Accepts a numeric string like "1" -> 1.
+    """
+    if gw_param is None:
+        return fetch_current_gw()
+    s = str(gw_param).strip().lower()
+    if s in {"", "auto", "current"}:
+        return fetch_current_gw()
+    if not s.isdigit():
+        raise HTTPException(status_code=400, detail="gw must be an integer, 'auto', or 'current'")
+    return int(s)
+
 
 # --- API: Standings (serve prebuilt JSON) ---
 @app.get("/api/standings")
@@ -177,20 +251,30 @@ def download_excel(file: str = Query(...)):
 @app.post("/api/admin/rebuild")
 def admin_rebuild(
     league: str = Query("premier"),
-    gw: Optional[int] = Query(None),
+    gw: Optional[str] = Query(None),  # accept "auto", "current", or a number as string
     _: None = Depends(require_admin),
 ):
     try:
-        # 1) Run script to refresh Excel
-        run_management_script(league, gw)
+        # Resolve GW
+        resolved_gw: Optional[int]
+        if gw is None or str(gw).lower() in {"auto", "current", ""}:
+            resolved_gw = fetch_current_gw()
+        else:
+            # numeric string -> int
+            if not str(gw).isdigit():
+                raise HTTPException(status_code=400, detail="gw must be an integer, 'auto', or 'current'")
+            resolved_gw = int(gw)
 
-        # 2) Convert Excel -> latest JSON
-        data = excel_to_latest_json(league)
+        # 1) Run script for that GW
+        run_management_script(league, resolved_gw)
+
+        # 2) Convert the specific GW sheet to JSON (so UI matches the run)
+        data = excel_to_latest_json(league, preferred_sheet=f"GW{resolved_gw}")
 
         return {
             "status": "ok",
             "league": league,
-            "gw": gw,
+            "gw": resolved_gw,
             "json_path": f"/backend/results/latest/{league}.json",
             "rows": len(data.get("rows", [])),
         }
@@ -198,25 +282,52 @@ def admin_rebuild(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+
 @app.post("/api/admin/rebuild-all")
 def admin_rebuild_all(
     leagues: str = Query("premier,championship"),
-    gw: Optional[int] = Query(None),
+    gw: Optional[str] = Query(None),  # accepts None/"auto"/"current"/""
     _: None = Depends(require_admin),
 ):
     """
-    leagues: comma-separated list, e.g. "premier,championship"
+    Rebuild multiple leagues for a specific GW or the current GW.
+    - leagues: comma-separated list, e.g. "premier,championship"
+    - gw: int as string OR 'auto'/'current'/'' (defaults to current GW)
     """
+    try:
+        resolved_gw = resolve_gw_param(gw)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"invalid gw: {e}")
+
     leagues_list = [l.strip() for l in leagues.split(",") if l.strip()]
+    if not leagues_list:
+        raise HTTPException(status_code=400, detail="no leagues provided")
+
     results = {}
     for lg in leagues_list:
         try:
-            run_management_script(lg, gw)
-            data = excel_to_latest_json(lg)
-            results[lg] = {"status": "ok", "rows": len(data.get("rows", []))}
+            # 1) Run the script for that GW
+            run_management_script(lg, resolved_gw)
+
+            # 2) Convert specifically the GW sheet we just built (e.g., "GW7")
+            data = excel_to_latest_json(lg, preferred_sheet=f"GW{resolved_gw}")
+
+            results[lg] = {
+                "status": "ok",
+                "gw": resolved_gw,
+                "rows": len(data.get("rows", [])),
+            }
         except Exception as e:
-            results[lg] = {"status": "error", "error": str(e)}
-    return results
+            results[lg] = {"status": "error", "gw": resolved_gw, "error": str(e)}
+
+    return {
+        "status": "ok",
+        "gw": resolved_gw,
+        "results": results,
+    }
+
 
 @app.get("/api/health")
 def health():
