@@ -13,6 +13,22 @@ import time
 from typing import Optional
 import hashlib, re, requests, datetime
 import pandas as pd
+import math
+import pandas as pd
+
+def _to_json_safe(v):
+    # Treat pandas/float NaN/inf as None; stringify other weirds
+    try:
+        if v is None:
+            return None
+        # pandas-friendly check
+        if isinstance(v, float) and (math.isnan(v) or math.isinf(v)):
+            return None
+        if pd.isna(v):  # catches numpy/pandas NaN
+            return None
+        return v
+    except Exception:
+        return None
 
 app = FastAPI()
 
@@ -102,6 +118,20 @@ def excel_to_latest_json(league: str, preferred_sheet: Optional[str] = None) -> 
     # Sort like the sheet, then add Position
     df_sorted = df.sort_values(by=["Points", "Score"], ascending=[False, False]).reset_index(drop=True)
     df_sorted.insert(0, "Position", range(1, len(df_sorted) + 1))
+    
+    rows = []
+    for rec in df_sorted.to_dict(orient="records"):
+        rows.append({k: _to_json_safe(v) for k, v in rec.items()})
+
+    out_path = latest_json_path_for_league(league)
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "league": league,
+            "sheet": sheet_name,
+            "generated_at": time.time(),
+            "rows": rows
+        }, f, ensure_ascii=False)
+
 
     def _to_native(v):
         try:
@@ -187,6 +217,20 @@ def resolve_gw_param(gw_param: Optional[str]) -> int:
         raise HTTPException(status_code=400, detail="gw must be an integer, 'auto', or 'current'")
     return int(s)
 
+def _sanitize(obj):
+    if isinstance(obj, dict):
+        return {k: _sanitize(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_sanitize(x) for x in obj]
+    if isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+    try:
+        if pd.isna(obj):
+            return None
+    except Exception:
+        pass
+    return obj
 
 # --- API: Standings (serve prebuilt JSON) ---
 @app.get("/api/standings")
@@ -197,12 +241,9 @@ def get_standings(request: Request, league: str = Query("premier")):
 
     mtime = os.path.getmtime(path)
     last_modified_http = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime(mtime))
-
-    # cheap etag = md5(file mtime + size)
     stat = os.stat(path)
     etag = f'W/"{hashlib.md5(f"{stat.st_mtime_ns}-{stat.st_size}".encode()).hexdigest()}"'
 
-    # Conditional headers
     inm = request.headers.get("If-None-Match")
     ims = request.headers.get("If-Modified-Since")
     if inm == etag or (ims and ims == last_modified_http):
@@ -211,16 +252,14 @@ def get_standings(request: Request, league: str = Query("premier")):
     with open(path, "r", encoding="utf-8") as f:
         payload = json.load(f)
 
-    resp = JSONResponse({
-        "updated_at": mtime,
-        "league": league,
-        "data": payload
-    })
-    # cache headers (frontends can recheck; CDNs can hold briefly)
+    payload = _sanitize(payload)  # <-- sanitize here
+
+    resp = JSONResponse({"updated_at": mtime, "league": league, "data": payload})
     resp.headers["ETag"] = etag
     resp.headers["Last-Modified"] = last_modified_http
     resp.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=120"
     return resp
+
 
 
 # --- API: Generate Excel on demand (legacy) ---
