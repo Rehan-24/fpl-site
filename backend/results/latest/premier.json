@@ -1,0 +1,9 @@
+{
+  "league": "premier",
+  "sheet": "latest",
+  "generated_at": 1723400000,
+  "rows": [
+    { "Position": 1, "Team": "Example FC", "Owner": "Alice", "Points": 3, "Score": 65, "Score Against": 40, "Plus/Minus": 25, "GW Transfers": 1, "GW Transfer Hit": 0, "Total Transfers Made": 1, "Total Transfer Hit": 0, "GW Points on Bench": 10, "Season Points on Bench": 10, "Highest Point Total Possible": 75, "Current Team Value": 100.5, "Free Hit": "Available", "Wildcard 1": "Available", "Wildcard 2": "Available", "Triple Captain": "Available", "Bench Boost": "Available", "AssMan": "Available" },
+    { "Position": 2, "Team": "Sample United", "Owner": "Bob", "Points": 1, "Score": 55, "Score Against": 55, "Plus/Minus": 0,  "GW Transfers": 0, "GW Transfer Hit": 0, "Total Transfers Made": 0, "Total Transfer Hit": 0, "GW Points on Bench": 5,  "Season Points on Bench": 5,  "Highest Point Total Possible": 60, "Current Team Value": 99.8, "Free Hit": "Available", "Wildcard 1": "Available", "Wildcard 2": "Available", "Triple Captain": "Available", "Bench Boost": "Available", "AssMan": "Available" }
+  ]
+}

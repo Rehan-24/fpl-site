@@ -3,3 +3,7 @@ uvicorn
 pandas
 python-multipart
 markdown
+requests
+pandas
+openpyxl
+numpy
