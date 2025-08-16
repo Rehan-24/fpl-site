@@ -218,8 +218,6 @@ def admin_rebuild_all(
             results[lg] = {"status": "error", "error": str(e)}
     return results
 
-
-# --- API: Health/meta ---
 @app.get("/api/health")
 def health():
     payload = {}
@@ -229,4 +227,7 @@ def health():
             "exists": os.path.exists(p),
             "updated_at": os.path.getmtime(p) if os.path.exists(p) else None,
         }
+    # NEW: show if admin key is present (length only)
+    payload["admin_key_set"] = bool(ADMIN_KEY)
+    payload["admin_key_len"] = len(ADMIN_KEY or "")
     return payload
