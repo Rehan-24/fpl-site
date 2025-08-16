@@ -161,7 +161,8 @@ class FileInteractor():
         #     data_list = self.create_fdr_data_list(datum)
         #    fdr_df.loc[len(fdr_df), :] = data_list
 
-        if overwrite_results:
+        # Ensure results file exists on first run OR overwrite explicitly
+        if overwrite_results or not os.path.exists(results_filepath):
             shutil.copyfile(template_filepath, results_filepath)
 
         # Copy the Template to a new sheet for the gameweek
