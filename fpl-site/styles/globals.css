@@ -66,6 +66,7 @@ td.sticky.left-32 {
 
 /* Sticky "Position" column (custom color for column cells) */
 .sticky-position {
+  position: sticky;
   left: 0;
   z-index: 3;
   background-color: #f2e9fd; /* Different color for the Position column */
@@ -73,6 +74,7 @@ td.sticky.left-32 {
 
 /* Sticky "Team" column (custom color for column cells) */
 .sticky-team {
+  position: sticky;
   left: 82px; /* Adjust based on column width */
   z-index: 2;
   background-color: #f2e9fd; /* Same color for Team column */
