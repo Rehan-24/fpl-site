@@ -151,7 +151,8 @@ export default function Premier() {
     }
 
     if (key === "Score" || key == "Plus/Minus"|| key == "Current Team Value") {
-      const values = (data ?? []).map(r => parseFloat(r[key])).filter(n => !isNaN(n));
+      const values = rows.map((r: Row) => parseFloat(r[key])).filter((n) => !isNaN(n));
+
       const sorted = [...values].sort((a, b) => b - a);
       if (num === sorted[0]) return "bg-yellow-200";
       if (num === sorted[1]) return "bg-gray-300";
@@ -161,7 +162,8 @@ export default function Premier() {
     }
 
     if (key === "Score Against") {
-      const values = (data ?? []).map(r => parseFloat(r[key])).filter(n => !isNaN(n));
+      const values = rows.map((r: Row) => parseFloat(r[key])).filter((n) => !isNaN(n));
+
       const sorted = [...values].sort((a, b) => b - a);
       if (num === sorted[0] || num === sorted[1] || num === sorted[2]) return "bg-red-200";
       const asc = [...values].sort((a, b) => a - b);
@@ -172,14 +174,16 @@ export default function Premier() {
 
     const topHighlight = ["GW Points on Bench", "Season Points on Bench", "GW Transfers", "Total Transfers Made"];
     if (topHighlight.includes(key)) {
-      const values = (data ?? []).map(r => parseFloat(r[key])).filter(n => !isNaN(n));
+      const values = rows.map((r: Row) => parseFloat(r[key])).filter((n) => !isNaN(n));
+
       const sorted = [...values].sort((a, b) => b - a);
       if (num === sorted[0] || num === sorted[1] || num === sorted[2]) return "bg-purple-200";
     }
 
     const redHighlight = ["GW Transfer Hit", "Total Transfer Hit"];
     if (redHighlight.includes(key)) {
-      const values = (data ?? []).map(r => parseFloat(r[key])).filter(n => !isNaN(n));
+      const values = rows.map((r: Row) => parseFloat(r[key])).filter((n) => !isNaN(n));
+
       const nonZero = values.filter(n => n > 0);
       if (nonZero.length === 0) return "";
       const sorted = [...nonZero].sort((a, b) => b - a);
