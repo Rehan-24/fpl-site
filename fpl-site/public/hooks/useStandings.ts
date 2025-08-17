@@ -1,3 +1,4 @@
+// /public/hooks/useStandings.ts
 import { useEffect, useRef, useState } from "react";
 
 type Row = Record<string, any>;
@@ -21,10 +22,9 @@ export function useStandings(defaultLeague?: string, opts?: UseStandingsOpts) {
   const url = `${BASE}/api/standings?league=${encodeURIComponent(league)}`;
 
   const normalizeRows = (j: any): Row[] => {
-    // Accept { data: { rows: [...] } }  or { data: [...] }  or  [...]
-    if (Array.isArray(j?.data?.rows)) return j.data.rows as Row[];
-    if (Array.isArray(j?.data)) return j.data as Row[];
-    if (Array.isArray(j)) return j as Row[];
+    if (Array.isArray(j?.data?.rows)) return j.data.rows;
+    if (Array.isArray(j?.data)) return j.data;
+    if (Array.isArray(j)) return j;
     return [];
   };
 
@@ -32,6 +32,7 @@ export function useStandings(defaultLeague?: string, opts?: UseStandingsOpts) {
     if (abortRef.current) abortRef.current.abort();
     const ac = new AbortController();
     abortRef.current = ac;
+
     try {
       setLoading(true);
       const headers: Record<string, string> = {};
