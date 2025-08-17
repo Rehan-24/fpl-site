@@ -16,7 +16,7 @@ export function useStandings(defaultLeague?: string, opts?: UseStandingsOpts) {
   const lastModifiedRef = useRef<string | null>(null);
   const timerRef = useRef<any>(null);
 
-  const BASE = (process.env.NEXT_PUBLIC_BACKEND_BASE || "").replace(/\/$/, "");
+  const BASE = (process.env.NEXT_PUBLIC_BACKEND_BASE || "https://tfpl.onrender.com").replace(/\/$/, "");
   const url = `${BASE}/api/standings?league=${encodeURIComponent(league)}`;
 
   const normalizeRows = (j: any): Row[] => {

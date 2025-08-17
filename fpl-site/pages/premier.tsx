@@ -34,10 +34,14 @@ export default function Premier() {
 
   // Normalize data shape
   const rows: Row[] = useMemo(() => {
-    if (Array.isArray((data as any)?.rows)) return (data as any).rows as Row[];
-    if (Array.isArray(data)) return data as Row[];
-    return [];
+    const base = Array.isArray((data as any)?.rows) ? (data as any).rows
+                : Array.isArray(data) ? data : [];
+    // add Position if missing
+    return base.map((r: any, i: number) =>
+      r?.Position == null ? { Position: i + 1, ...r } : r
+    );
   }, [data]);
+
 
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" }>({
     key: "Position",
