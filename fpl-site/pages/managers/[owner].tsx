@@ -3,6 +3,10 @@ import { useRouter } from 'next/router'
 import Link from 'next/link'
 import NavBar from '../../components/NavBar'
 import Head from 'next/head';
+import FixtureFDRCard from '../../components/manager/FixtureFDRCard'
+import SeasonStatsCard from '../../components/manager/SeasonStatsCard'
+import MatchupTrackerCard from '../../components/manager/MatchupTrackerCard'
+
 
 type TrophyKey = 'premier' | 'fa' | 'championship'
 type Trophy = { type: TrophyKey; count: number }
@@ -245,6 +249,12 @@ export default function ManagerBio() {
 
 
         </div>
+        <div className="space-y-4 mt-6">
+          <FixtureFDRCard ownerName={manager?.name || ''} />
+          <SeasonStatsCard ownerName={manager?.name || ''} />
+          <MatchupTrackerCard ownerName={manager?.name || ''} />
+        </div>
+
       </section>
     </main>
   )
