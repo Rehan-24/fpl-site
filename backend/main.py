@@ -366,6 +366,21 @@ def admin_rebuild_all(
         "gw": resolved_gw,
         "results": results,
     }
+    
+# PUBLIC rebuild: no API key, optional gw; omitting gw lets script choose "current"
+@app.post("/api/rebuild")
+def public_rebuild(league: str = Query("premier"), gw: Optional[int] = Query(None)):
+    try:
+        run_management_script(league, gw if gw is not None else None)
+        data = excel_to_latest_json(league)
+        return {
+            "status": "ok",
+            "league": league,
+            "gw": gw,  # None means "current" chosen by script
+            "rows": len(data.get("rows", [])),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/health")
