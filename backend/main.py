@@ -15,6 +15,14 @@ import hashlib, re, requests, datetime
 import pandas as pd
 import math
 import pandas as pd
+import traceback, logging
+logger = logging.getLogger("uvicorn.error")
+
+def _fail(stage: str, err: Exception):
+    # log full traceback to Render logs and return a concise message to the client
+    logger.error("Rebuild failed at %s: %s\n%s", stage, err, traceback.format_exc())
+    raise HTTPException(status_code=500, detail=f"{stage} failed: {type(err).__name__}: {err}")
+
 
 def _to_json_safe(v):
     # Treat pandas/float NaN/inf as None; stringify other weirds
@@ -98,53 +106,56 @@ def excel_to_latest_json(league: str, preferred_sheet: Optional[str] = None) -> 
         raise FileNotFoundError(f"Excel not found: {xlsx}")
 
     xls = pd.ExcelFile(xlsx)
+    sheets = list(xls.sheet_names)
 
-    # If a preferred sheet is provided and exists, use it first
-    if preferred_sheet and preferred_sheet in xls.sheet_names:
+    # pick sheet
+    sheet_name = None
+    if preferred_sheet and preferred_sheet in sheets:
         sheet_name = preferred_sheet
     else:
-        # choose the highest-numbered GW sheet
         gw_sheets = []
-        for name in xls.sheet_names:
+        for name in sheets:
             m = re.fullmatch(r"GW(\d+)", str(name).strip())
             if m:
                 gw_sheets.append((int(m.group(1)), name))
-        sheet_name = sorted(gw_sheets, key=lambda t: t[0])[-1][1] if gw_sheets else xls.sheet_names[-1]
+        if gw_sheets:
+            sheet_name = sorted(gw_sheets, key=lambda t: t[0])[-1][1]
+        else:
+            sheet_name = sheets[0]  # last resort
 
-    # Your sheet is written starting at row 2 (header row index 1); drop Unnamed cols
-    df = pd.read_excel(xlsx, sheet_name=sheet_name, header=1, engine="openpyxl")
+    # read with header row at index 1 first; fall back to 0
+    try:
+        df = pd.read_excel(xlsx, sheet_name=sheet_name, header=1, engine="openpyxl")
+    except Exception:
+        df = pd.read_excel(xlsx, sheet_name=sheet_name, header=0, engine="openpyxl")
+
+    # drop "Unnamed" columns produced by merged cells
     df = df.loc[:, ~df.columns.astype(str).str.startswith("Unnamed")]
 
-    # Sort like the sheet, then add Position
-    df_sorted = df.sort_values(by=["Points", "Score"], ascending=[False, False]).reset_index(drop=True)
-    df_sorted.insert(0, "Position", range(1, len(df_sorted) + 1))
-    
-    rows = []
-    for rec in df_sorted.to_dict(orient="records"):
-        rows.append({k: _to_json_safe(v) for k, v in rec.items()})
+    # sort like your table then add Position
+    try:
+        df_sorted = df.sort_values(by=["Points", "Score"], ascending=[False, False]).reset_index(drop=True)
+    except Exception:
+        # if those columns are missing, just keep as-is
+        df_sorted = df.reset_index(drop=True)
 
-    out_path = latest_json_path_for_league(league)
-    with open(out_path, "w", encoding="utf-8") as f:
-        json.dump({
-            "league": league,
-            "sheet": sheet_name,
-            "generated_at": time.time(),
-            "rows": rows
-        }, f, ensure_ascii=False)
+    if "Position" not in df_sorted.columns:
+        df_sorted.insert(0, "Position", range(1, len(df_sorted) + 1))
 
-
-    def _to_native(v):
+    # coerce to JSON-safe scalars
+    def _jsonify(v):
         try:
-            s = str(v)
-            if s.strip() == "":
-                return ""
-            if s.replace(".", "", 1).replace("-", "", 1).isdigit():
-                return float(s) if "." in s else int(s)
+            if v is None:
+                return None
+            if isinstance(v, float) and (math.isnan(v) or math.isinf(v)):
+                return None
+            if pd.isna(v):
+                return None
             return v
         except Exception:
-            return v
+            return None
 
-    rows = [{k: _to_native(v) for k, v in rec.items()} for rec in df_sorted.to_dict(orient="records")]
+    rows = [{k: _jsonify(v) for k, v in rec.items()} for rec in df_sorted.to_dict(orient="records")]
 
     out_path = latest_json_path_for_league(league)
     with open(out_path, "w", encoding="utf-8") as f:
@@ -156,13 +167,6 @@ def excel_to_latest_json(league: str, preferred_sheet: Optional[str] = None) -> 
         }, f, ensure_ascii=False)
 
     return {"league": league, "sheet": sheet_name, "rows": rows}
-
-
-    out_path = latest_json_path_for_league(league)
-    with open(out_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False)
-
-    return data
 
 def fetch_current_gw() -> int:
     
@@ -369,34 +373,32 @@ def admin_rebuild_all(
     
 # PUBLIC rebuild: no API key, optional gw; omitting gw lets script choose "current"
 @app.post("/api/rebuild")
-def public_rebuild(league: str = Query("premier"), gw: Optional[int] = Query(None)):
+def public_rebuild(league: str = Query("premier"), gw: Optional[str] = Query(None)):
+    # 1) resolve GW
     try:
-        # Resolve GW
-        resolved_gw: Optional[int]
-        if gw is None or str(gw).lower() in {"auto", "current", ""}:
-            resolved_gw = fetch_current_gw()
-        else:
-            # numeric string -> int
-            if not str(gw).isdigit():
-                raise HTTPException(status_code=400, detail="gw must be an integer, 'auto', or 'current'")
-            resolved_gw = int(gw)
-
-        # 1) Run script for that GW
-        run_management_script(league, resolved_gw)
-
-        # 2) Convert the specific GW sheet to JSON (so UI matches the run)
-        data = excel_to_latest_json(league, preferred_sheet=f"GW{resolved_gw}")
-
-        return {
-            "status": "ok",
-            "league": league,
-            "gw": resolved_gw,
-            "json_path": f"/backend/results/latest/{league}.json",
-            "rows": len(data.get("rows", [])),
-        }
+        resolved_gw = resolve_gw_param(gw)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _fail("resolve_gw", e)
 
+    # 2) run legacy script
+    try:
+        run_management_script(league, resolved_gw)
+    except Exception as e:
+        _fail("script", e)
+
+    # 3) convert Excel → JSON (prefer the GW sheet we just built)
+    try:
+        data = excel_to_latest_json(league, preferred_sheet=f"GW{resolved_gw}")
+    except Exception as e:
+        _fail("excel_to_json", e)
+
+    return {
+        "status": "ok",
+        "league": league,
+        "gw": resolved_gw,
+        "json_path": f"/backend/results/latest/{league}.json",
+        "rows": len(data.get("rows", [])),
+    }
 
 @app.get("/api/health")
 def health():
