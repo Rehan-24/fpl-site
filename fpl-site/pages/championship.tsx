@@ -248,7 +248,7 @@ export default function Championship() {
   
         // 2) Public fallback (no key). This expects your backend to expose a public route
         // that resolves current GW internally, e.g. POST /api/rebuild?league=premier
-        const publicUrl = `${BACKEND_BASE}/api/rebuild?league=premier`;
+        const publicUrl = `${BACKEND_BASE}/api/rebuild?league=championship`;
         const r2 = await fetch(publicUrl, { method: "POST" });
   
       } catch (e: any) {
@@ -281,7 +281,7 @@ export default function Championship() {
       <header className="relative bg-gradient-to-r from-blue-300 via-blue-400 to-[#5b329e] text-[#37003c] p-6 shadow-lg overflow-hidden">
         <div className="navbar-ripple pointer-events-none select-none absolute inset-0"></div>
         <h1 className="text-center sm:text-left relative z-10 text-4xl font-bold text-[#37003c]">
-          Fantasy Championship League (v5)
+          Fantasy Championship League (v3)
         </h1>
         <div className="navbar-buttons relative z-20">
           <NavBar />
@@ -309,7 +309,7 @@ export default function Championship() {
 
       <section className="p-6">
         <div className="flex items-center gap-3 mb-4">
-          <h2 className="font-bold text-3xl">Premier League Table</h2>
+          <h2 className="font-bold text-3xl">Championship League Table</h2>
         </div>
         <button
             onClick={handleGenerate}
