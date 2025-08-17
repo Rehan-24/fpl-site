@@ -1,6 +1,4 @@
-// /public/hooks/useStandings.ts
 import { useEffect, useRef, useState } from "react";
-
 type Row = Record<string, any>;
 type UseStandingsOpts = { pollMs?: number; league?: "premier" | "championship" };
 
@@ -32,7 +30,6 @@ export function useStandings(defaultLeague?: string, opts?: UseStandingsOpts) {
     if (abortRef.current) abortRef.current.abort();
     const ac = new AbortController();
     abortRef.current = ac;
-
     try {
       setLoading(true);
       const headers: Record<string, string> = {};
@@ -40,10 +37,7 @@ export function useStandings(defaultLeague?: string, opts?: UseStandingsOpts) {
       if (lastModifiedRef.current) headers["If-Modified-Since"] = lastModifiedRef.current;
 
       const r = await fetch(url, { headers, signal: ac.signal });
-      if (r.status === 304) {
-        setLoading(false);
-        return;
-      }
+      if (r.status === 304) { setLoading(false); return; }
 
       etagRef.current = r.headers.get("ETag");
       lastModifiedRef.current = r.headers.get("Last-Modified");
@@ -52,11 +46,8 @@ export function useStandings(defaultLeague?: string, opts?: UseStandingsOpts) {
       setRows(normalizeRows(j));
       setUpdatedAt(typeof j?.updated_at === "number" ? j.updated_at : Date.now());
       setUsingCache(false);
-    } catch {
-      setUsingCache(true);
-    } finally {
-      setLoading(false);
-    }
+    } catch { setUsingCache(true); }
+    finally { setLoading(false); }
   };
 
   useEffect(() => {
@@ -71,6 +62,5 @@ export function useStandings(defaultLeague?: string, opts?: UseStandingsOpts) {
   }, [url, pollMs]);
 
   const refresh = () => fetchOnce();
-
   return { data: rows, updatedAt, loading, usingCache, refresh };
 }
