@@ -2,10 +2,10 @@ from fastapi import FastAPI, Query, Header, HTTPException, Depends, Request, Res
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-
 from managers.index import router as managers_router
 from news.index import router as news_router
-
+from fastapi import BackgroundTasks
+import threading, traceback
 import os
 import json
 import subprocess
@@ -17,6 +17,9 @@ import math
 import pandas as pd
 import traceback, logging
 logger = logging.getLogger("uvicorn.error")
+
+# Prevent overlapping cron runs
+_CRON_LOCK = threading.Lock()
 
 def _fail(stage: str, err: Exception):
     # log full traceback to Render logs and return a concise message to the client
@@ -241,6 +244,66 @@ def _sanitize(obj):
     except Exception:
         pass
     return obj
+
+def _rebuild_worker(leagues_list: list[str], gw_mode: str):
+    """
+    Background job:
+      - gw_mode: "current" (resolve dynamically) or a number as string ("1", "7", ...)
+    """
+    try:
+        # Resolve GW once for all leagues if "current", else use provided numeric
+        try:
+            resolved_gw = resolve_gw_param(gw_mode)
+        except Exception:
+            # Fallback just in case
+            resolved_gw = fetch_current_gw()
+
+        for lg in leagues_list:
+            try:
+                # 1) Run the legacy script for this league/GW
+                run_management_script(lg, resolved_gw)
+                # 2) Convert specifically that GW sheet -> latest JSON
+                excel_to_latest_json(lg, preferred_sheet=f"GW{resolved_gw}")
+            except Exception as e:
+                # Log but keep going with other leagues
+                print(f"[cron] rebuild error for {lg}: {e}\n{traceback.format_exc()}")
+        print(f"[cron] rebuild finished for {leagues_list} gw={resolved_gw}")
+    finally:
+        # Always release the lock
+        if _CRON_LOCK.locked():
+            _CRON_LOCK.release()
+
+
+@app.post("/api/cron/trigger-rebuild")
+def cron_trigger_rebuild(
+    background: BackgroundTasks,
+    token: str = Query(""),
+    leagues: str = Query("premier,championship"),
+    gw: str = Query("current"),
+):
+    """
+    Lightweight endpoint for external schedulers (cron-job.org, etc.).
+    Returns immediately with {"status":"started"} while the rebuild happens in background.
+      - token: must match env CRON_TOKEN
+      - leagues: comma-separated (default: "premier,championship")
+      - gw: "current" (default) or an integer as a string, e.g. "1"
+    """
+    # Auth
+    if token != os.environ.get("CRON_TOKEN", ""):
+        raise HTTPException(status_code=403, detail="forbidden")
+
+    # No overlap: if a run is in progress, just acknowledge and exit quickly
+    if _CRON_LOCK.locked():
+        return {"status": "already-running"}
+
+    # Acquire and schedule background work
+    _CRON_LOCK.acquire()
+    leagues_list = [l.strip() for l in leagues.split(",") if l.strip()]
+    background.add_task(_rebuild_worker, leagues_list, gw)
+
+    # Return immediately (cron-job.org has a 30s timeout)
+    return {"status": "started", "leagues": leagues_list, "gw": gw}
+
 
 # --- API: Standings (serve prebuilt JSON) ---
 @app.get("/api/standings")
