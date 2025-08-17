@@ -134,6 +134,7 @@ def excel_to_latest_json(league: str, preferred_sheet: Optional[str] = None) -> 
     
     # dump the stuff we don't need
     df = df.iloc[:20]
+    df = df.drop(columns=["Reward*", "Title"], errors="ignore")
 
 
     # sort like your table then add Position
