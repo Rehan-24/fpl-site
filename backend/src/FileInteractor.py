@@ -10,7 +10,6 @@ import shutil
 import openpyxl
 import os, time, json
 
-
 # Class
 class FileInteractor():
     def __init__(self, file_prefix: str, data: dict[int, dict]):
