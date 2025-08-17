@@ -131,6 +131,9 @@ def excel_to_latest_json(league: str, preferred_sheet: Optional[str] = None) -> 
 
     # drop "Unnamed" columns produced by merged cells
     df = df.loc[:, ~df.columns.astype(str).str.startswith("Unnamed")]
+    
+    # dump the stuff we don't need
+    df = df[df["Position"].notnull()]
 
     # sort like your table then add Position
     try:
@@ -141,9 +144,7 @@ def excel_to_latest_json(league: str, preferred_sheet: Optional[str] = None) -> 
 
     if "Position" not in df_sorted.columns:
         df_sorted.insert(0, "Position", range(1, len(df_sorted) + 1))
-    
-    # dump everything we scraped
-    df = df[df["Position"].notnull()]
+
 
     # coerce to JSON-safe scalars
     def _jsonify(v):
