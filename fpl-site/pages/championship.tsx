@@ -14,18 +14,31 @@ interface Manager {
   fpl_team_url?: string;
 }
 
+const BACKEND_BASE =
+  (process.env.NEXT_PUBLIC_BACKEND_BASE || "https://tfpl.onrender.com").replace(
+    /\/$/,
+    ""
+  );
+// Optional admin key — if present we’ll try the admin endpoint first.
+const ADMIN_KEY = process.env.NEXT_PUBLIC_ADMIN_KEY || "";
+
 export default function Championship() {
+  
+  const { gwInfo, loading, error } = useGWDeadline();
+  const nearDeadline = !!gwInfo; // tighten polling near the deadline if you want
+  const pollMs = nearDeadline ? 2 * 60 * 1000 : 10 * 60 * 1000;
+
   const {
     data,
+    updatedAt,
     refresh: refreshStandings,
     loading: loadingStandings,
     usingCache,
-  } = useStandings("championship");
+  } = useStandings("championship", { pollMs });
 
   const { data: managersData, loading: loadingManagers, usingCache: usingCacheManagers } =
     useManagers();
 
-  const { gwInfo, loading, error } = useGWDeadline();
 
   // Normalize data
   const rows: Row[] = useMemo(() => {
@@ -211,17 +224,39 @@ export default function Championship() {
     return "";
   };
 
-  // Admin-triggered rebuild via server-side proxy
-  const handleGenerate = async () => {
-    try {
-      const res = await fetch(`/api/rebuild?league=championship`, { method: "POST" });
-      const j = await res.json();
-      alert(j.status ? "Update started" : j.error ?? "Failed");
-      setTimeout(() => refreshStandings(), 2000);
-    } catch (e: any) {
-      alert(e?.message || "Request failed");
-    }
-  };
+    // --- Rebuild button: current GW, public-friendly ---
+    const [rebuilding, setRebuilding] = useState(false);
+    const handleGenerate = async () => {
+      if (rebuilding) return;
+      setRebuilding(true);
+      try {
+        // 1) Try admin endpoint (accepts gw=current and updates the exact sheet)
+        if (ADMIN_KEY) {
+          const adminUrl = `${BACKEND_BASE}/api/admin/rebuild?league=championship&gw=current`;
+          const r = await fetch(adminUrl, {
+            method: "POST",
+            headers: { "X-Api-Key": ADMIN_KEY },
+          });
+          if (r.ok) {
+            const j = await r.json();
+            alert(`Update started for GW${j?.gw ?? "?"}`);
+            await refreshStandings();
+            return;
+          }
+          // fall through on 403/500
+        }
+  
+        // 2) Public fallback (no key). This expects your backend to expose a public route
+        // that resolves current GW internally, e.g. POST /api/rebuild?league=premier
+        const publicUrl = `${BACKEND_BASE}/api/rebuild?league=premier`;
+        const r2 = await fetch(publicUrl, { method: "POST" });
+  
+      } catch (e: any) {
+        alert(e?.message || "Request failed");
+      } finally {
+        setRebuilding(false);
+      }
+    };
 
   const first = rows[0] || {};
   const displayKeys = Object.keys(first).filter(
@@ -274,19 +309,28 @@ export default function Championship() {
 
       <section className="p-6">
         <div className="flex items-center gap-3 mb-4">
-          <h2 className="font-bold text-3xl">Championship Table</h2>
-          <button
-            onClick={handleGenerate}
-            className="bg-[#32FF6A] px-4 py-2 rounded text-[#37003c]"
-          >
-            Generate/Update Table
-          </button>
-          {usingCache && (
-            <span className="inline-block text-[11px] bg-yellow-200 text-[#37003c] px-2 py-0.5 rounded">
-              Viewing cache
-            </span>
-          )}
+          <h2 className="font-bold text-3xl">Premier League Table</h2>
         </div>
+        <button
+            onClick={handleGenerate}
+            disabled={rebuilding}
+            className={` mb-4 px-4 py-2 rounded text-[#37003c] ${
+              rebuilding ? "bg-gray-300 cursor-not-allowed" : "bg-[#32FF6A]"
+            }`}
+            title="Rebuild standings from the latest gameweek"
+          >
+            {rebuilding ? "Updating…" : "Generate/Update Table"}
+        </button>
+        {updatedAt && (
+          <span className=" mb-4 px-4 py-2 text-xs text-gray-600">
+            Last updated: {new Date(updatedAt * 1000).toLocaleString()}
+          </span>
+        )}
+        {usingCache && (
+          <span className="inline-block text-[11px] bg-yellow-200 text-[#37003c] px-2 py-0.5 rounded">
+            Viewing cache
+          </span>
+        )}
 
         {rows.length === 0 ? (
           <div className="mt-4 text-sm text-gray-600">No standings available yet.</div>

@@ -15,15 +15,21 @@ interface Manager {
   fpl_team_url?: string;
 }
 
-export default function Premier() {
-  const { data: managersData, loading: loadingManagers, usingCache: usingCacheManagers } =
-    useManagers();
+const BACKEND_BASE =
+  (process.env.NEXT_PUBLIC_BACKEND_BASE || "https://tfpl.onrender.com").replace(
+    /\/$/,
+    ""
+  );
+// Optional admin key — if present we’ll try the admin endpoint first.
+const ADMIN_KEY = process.env.NEXT_PUBLIC_ADMIN_KEY || "";
 
+export default function Premier() {
+  const { data: managersData } = useManagers();
   const { gwInfo, loading, error } = useGWDeadline();
 
-  const nearDeadline = !!gwInfo; // or add your own time-window logic
+  const nearDeadline = !!gwInfo; // tighten polling near the deadline if you want
   const pollMs = nearDeadline ? 2 * 60 * 1000 : 10 * 60 * 1000;
-  
+
   const {
     data,
     updatedAt,
@@ -32,18 +38,22 @@ export default function Premier() {
     usingCache,
   } = useStandings("premier", { pollMs });
 
-  // Normalize data shape
+  // Normalize rows and add Position if missing for safety
   const rows: Row[] = useMemo(() => {
-    const base = Array.isArray((data as any)?.rows) ? (data as any).rows
-                : Array.isArray(data) ? data : [];
-    // add Position if missing
+    const base = Array.isArray((data as any)?.rows)
+      ? (data as any).rows
+      : Array.isArray(data)
+      ? (data as any)
+      : [];
     return base.map((r: any, i: number) =>
       r?.Position == null ? { Position: i + 1, ...r } : r
     );
   }, [data]);
 
-
-  const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" }>({
+  const [sortConfig, setSortConfig] = useState<{
+    key: string;
+    direction: "asc" | "desc";
+  }>({
     key: "Position",
     direction: "asc",
   });
@@ -146,16 +156,26 @@ export default function Premier() {
 
   // Cell highlights (unchanged logic)
   const getCellStyle = (key: string, val: any, row: Row) => {
-        const num = parseFloat(val?.toString().replace(/[^\d.\-]/g, '')) || 0;
+    const num = parseFloat(val?.toString().replace(/[^\d.\-]/g, "")) || 0;
 
-    if (key === "Chips Used" || key === "Free Hit" || key === "Wildcard 1" || key === "Wildcard 2" || key === "Triple Captain" || key === "Bench Boost" || key === "AssMan") {
-      if (val.includes("GW")) return "bg-red-200";
-      if (val.includes("Expired")) return "bg-orange-200";
-      if (val.includes("Available")) return "bg-green-200";
+    if (
+      key === "Chips Used" ||
+      key === "Free Hit" ||
+      key === "Wildcard 1" ||
+      key === "Wildcard 2" ||
+      key === "Triple Captain" ||
+      key === "Bench Boost" ||
+      key === "AssMan"
+    ) {
+      if (String(val).includes("GW")) return "bg-red-200";
+      if (String(val).includes("Expired")) return "bg-orange-200";
+      if (String(val).includes("Available")) return "bg-green-200";
     }
 
-    if (key === "Score" || key == "Plus/Minus"|| key == "Current Team Value") {
-      const values = rows.map((r: Row) => parseFloat(r[key])).filter((n) => !isNaN(n));
+    if (key === "Score" || key == "Plus/Minus" || key == "Current Team Value") {
+      const values = rows
+        .map((r: Row) => parseFloat(r[key]))
+        .filter((n) => !isNaN(n));
 
       const sorted = [...values].sort((a, b) => b - a);
       if (num === sorted[0]) return "bg-yellow-200";
@@ -166,7 +186,9 @@ export default function Premier() {
     }
 
     if (key === "Score Against") {
-      const values = rows.map((r: Row) => parseFloat(r[key])).filter((n) => !isNaN(n));
+      const values = rows
+        .map((r: Row) => parseFloat(r[key]))
+        .filter((n) => !isNaN(n));
 
       const sorted = [...values].sort((a, b) => b - a);
       if (num === sorted[0] || num === sorted[1] || num === sorted[2]) return "bg-red-200";
@@ -176,9 +198,16 @@ export default function Premier() {
       if (num === asc[2]) return "bg-orange-200";
     }
 
-    const topHighlight = ["GW Points on Bench", "Season Points on Bench", "GW Transfers", "Total Transfers Made"];
+    const topHighlight = [
+      "GW Points on Bench",
+      "Season Points on Bench",
+      "GW Transfers",
+      "Total Transfers Made",
+    ];
     if (topHighlight.includes(key)) {
-      const values = rows.map((r: Row) => parseFloat(r[key])).filter((n) => !isNaN(n));
+      const values = rows
+        .map((r: Row) => parseFloat(r[key]))
+        .filter((n) => !isNaN(n));
 
       const sorted = [...values].sort((a, b) => b - a);
       if (num === sorted[0] || num === sorted[1] || num === sorted[2]) return "bg-purple-200";
@@ -186,23 +215,53 @@ export default function Premier() {
 
     const redHighlight = ["GW Transfer Hit", "Total Transfer Hit"];
     if (redHighlight.includes(key)) {
-      const values = rows.map((r: Row) => parseFloat(r[key])).filter((n) => !isNaN(n));
+      const values = rows
+        .map((r: Row) => parseFloat(r[key]))
+        .filter((n) => !isNaN(n));
 
-      const nonZero = values.filter(n => n > 0);
+      const nonZero = values.filter((n) => n > 0);
       if (nonZero.length === 0) return "";
       const sorted = [...nonZero].sort((a, b) => b - a);
-      if (num > 0 && (num === sorted[0] || num === sorted[1] || num === sorted[2])) return "bg-red-200";
+      if (num > 0 && (num === sorted[0] || num === sorted[1] || num === sorted[2]))
+        return "bg-red-200";
     }
   };
 
+  // --- Rebuild button: current GW, public-friendly ---
+  const [rebuilding, setRebuilding] = useState(false);
   const handleGenerate = async () => {
+    if (rebuilding) return;
+    setRebuilding(true);
     try {
-      const res = await fetch(`/api/rebuild?league=premier`, { method: "POST" });
-      const j = await res.json();
-      alert(j.status ? "Update started" : j.error ?? "Failed");
-      setTimeout(() => refreshStandings(), 2000);
+      // 1) Try admin endpoint (accepts gw=current and updates the exact sheet)
+      if (ADMIN_KEY) {
+        const adminUrl = `${BACKEND_BASE}/api/admin/rebuild?league=premier&gw=current`;
+        const r = await fetch(adminUrl, {
+          method: "POST",
+          headers: { "X-Api-Key": ADMIN_KEY },
+        });
+        if (r.ok) {
+          const j = await r.json();
+          alert(`Update started for GW${j?.gw ?? "?"}`);
+          await refreshStandings();
+          return;
+        }
+        // fall through on 403/500
+      }
+
+      // 2) Public fallback (no key). This expects your backend to expose a public route
+      // that resolves current GW internally, e.g. POST /api/rebuild?league=premier
+      const publicUrl = `${BACKEND_BASE}/api/rebuild?league=premier`;
+      const r2 = await fetch(`${BACKEND_BASE}/api/rebuild?league=premier`, { method: "POST" });
+      const body = await r2.json().catch(() => ({}));
+      if (!r2.ok) throw new Error(body?.detail || `HTTP ${r2.status}`);
+      alert(body?.status ? "Update started" : "Update triggered");
+      await refreshStandings();
+
     } catch (e: any) {
       alert(e?.message || "Request failed");
+    } finally {
+      setRebuilding(false);
     }
   };
 
@@ -231,21 +290,27 @@ export default function Premier() {
       <section className="p-6">
         <div className="flex items-center gap-3 mb-4">
           <h2 className="font-bold text-3xl">Premier League Table</h2>
-          <button onClick={handleGenerate} className="bg-[#32FF6A] px-4 py-2 rounded text-[#37003c]">
-            Generate/Update Table
-          </button>
-          {updatedAt && (
-            <span className="text-xs text-gray-600">
-              Last updated: {new Date(updatedAt * 1000).toLocaleString()}
-            </span>
-          )}
-          {usingCache && (
-            <span className="inline-block text-[11px] bg-yellow-200 text-[#37003c] px-2 py-0.5 rounded">
-              Viewing cache
-            </span>
-          )}
         </div>
-        
+        <button
+            onClick={handleGenerate}
+            disabled={rebuilding}
+            className={` mb-4 px-4 py-2 rounded text-[#37003c] ${
+              rebuilding ? "bg-gray-300 cursor-not-allowed" : "bg-[#32FF6A]"
+            }`}
+            title="Rebuild standings from the latest gameweek"
+          >
+            {rebuilding ? "Updating…" : "Generate/Update Table"}
+        </button>
+        {updatedAt && (
+          <span className=" mb-4 px-4 py-2 text-xs text-gray-600">
+            Last updated: {new Date(updatedAt * 1000).toLocaleString()}
+          </span>
+        )}
+        {usingCache && (
+          <span className="inline-block text-[11px] bg-yellow-200 text-[#37003c] px-2 py-0.5 rounded">
+            Viewing cache
+          </span>
+        )}
 
         <div className="overflow-x-auto">
           <table className="bg-purple-100 border-separate border-spacing-x-[1px] rounded-md shadow-md text-sm w-full">
@@ -284,7 +349,14 @@ export default function Premier() {
                     >
                       <div className="font-bold">{row.Position}</div>
                       <div className="italic text-xs text-purple-700">
-                        {positionLabels[String(row.Position)]}
+                        {
+                          positionLabels[
+                            (Number.isFinite(Number(row.Position))
+                              ? String(Math.trunc(Number(row.Position)))
+                              : String(row.Position ?? "")
+                            ).trim()
+                          ] ?? ""
+                        }
                       </div>
                     </td>
                     <td
