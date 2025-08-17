@@ -323,3 +323,16 @@ def fixtures_next(owner: str):
     # return next 3 by gw ascending
     upcoming.sort(key=lambda x: (x["gw"] or 99))
     return {"fixtures": upcoming[:3] if len(upcoming)>3 else upcoming}
+
+@router.post("/admin/ingest")
+def admin_ingest():
+    """Trigger ingestion of H2H matches for both leagues and rebuild history + recent_form.
+    Call this from a cron or manually after the GW deadline."""
+    try:
+        import subprocess, sys, os
+        script = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "scripts", "ingest_h2h.py"))
+        subprocess.check_call([sys.executable, script])
+        return {"ok": True}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
