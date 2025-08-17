@@ -371,12 +371,27 @@ def admin_rebuild_all(
 @app.post("/api/rebuild")
 def public_rebuild(league: str = Query("premier"), gw: Optional[int] = Query(None)):
     try:
-        run_management_script(league, gw if gw is not None else None)
-        data = excel_to_latest_json(league)
+        # Resolve GW
+        resolved_gw: Optional[int]
+        if gw is None or str(gw).lower() in {"auto", "current", ""}:
+            resolved_gw = fetch_current_gw()
+        else:
+            # numeric string -> int
+            if not str(gw).isdigit():
+                raise HTTPException(status_code=400, detail="gw must be an integer, 'auto', or 'current'")
+            resolved_gw = int(gw)
+
+        # 1) Run script for that GW
+        run_management_script(league, resolved_gw)
+
+        # 2) Convert the specific GW sheet to JSON (so UI matches the run)
+        data = excel_to_latest_json(league, preferred_sheet=f"GW{resolved_gw}")
+
         return {
             "status": "ok",
             "league": league,
-            "gw": gw,  # None means "current" chosen by script
+            "gw": resolved_gw,
+            "json_path": f"/backend/results/latest/{league}.json",
             "rows": len(data.get("rows", [])),
         }
     except Exception as e:
