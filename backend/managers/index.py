@@ -223,26 +223,69 @@ def load_history():
 
 @router.get("/owner/{owner}/matchups")
 def matchups_all_time(owner: str):
+    """
+    Aggregate ALL-TIME W-L-D vs each opponent using the owner's FPL entry ID
+    (parsed from managers.json -> fpl_team_url). Falls back to name match only
+    if entry ID is missing.
+    """
+    mgr = get_manager_by_owner(owner)
+    if not mgr:
+        raise HTTPException(status_code=404, detail="Owner not found")
+
+    my_entry_id = parse_entry_id_from_url(mgr.get("fpl_team_url", "") or "")
     owner_lower = owner.strip().lower()
-    hist = load_history()  # list of dicts: {event, date, entry_1, entry_2, points_1, points_2, team_1, team_2, owner_1, owner_2}
-    vs = {}
+
+    hist = load_history() or []  # normalized rows from ingest
+    vs: dict[str, dict] = {}
+
     for m in hist:
-        if str(m.get("owner_1","")).strip().lower() == owner_lower or str(m.get("owner_2","")).strip().lower() == owner_lower:
-            me_is_1 = str(m.get("owner_1","")).strip().lower() == owner_lower
-            my_pts = m.get("points_1") if me_is_1 else m.get("points_2")
-            op_pts = m.get("points_2") if me_is_1 else m.get("points_1")
-            opp = m.get("owner_2") if me_is_1 else m.get("owner_1")
-            opp_team = m.get("team_2") if me_is_1 else m.get("team_1")
-            key = (opp or "").strip().lower()
-            if not key:
-                continue
-            bucket = vs.setdefault(key, {"opponentTeamId": key, "opponentTeam": opp_team or opp or "Unknown", "w":0,"l":0,"d":0})
-            if my_pts is None or op_pts is None:
-                continue
-            if my_pts > op_pts: bucket["w"] += 1
-            elif my_pts < op_pts: bucket["l"] += 1
-            else: bucket["d"] += 1
-    return {"scope":"all_time", "vs": list(vs.values())}
+        a_id = (m.get("entry_1_entry") or "") and str(m.get("entry_1_entry"))
+        b_id = (m.get("entry_2_entry") or "") and str(m.get("entry_2_entry"))
+        a_pts = m.get("entry_1_points")
+        b_pts = m.get("entry_2_points")
+        a_name = (m.get("entry_1_player_name") or "").strip()
+        b_name = (m.get("entry_2_player_name") or "").strip()
+        a_team = (m.get("entry_1_name") or a_name or "Unknown").strip()
+        b_team = (m.get("entry_2_name") or b_name or "Unknown").strip()
+
+        # Prefer entry-id matching
+        me_is_a = bool(my_entry_id and a_id and a_id == my_entry_id)
+        me_is_b = bool(my_entry_id and b_id and b_id == my_entry_id)
+
+        # Fallback to name match if no entry id available
+        if not (me_is_a or me_is_b):
+            me_is_a = (not my_entry_id) and (a_name.lower() == owner_lower)
+            me_is_b = (not my_entry_id) and (b_name.lower() == owner_lower)
+
+        if not (me_is_a or me_is_b):
+            continue
+
+        my_pts = a_pts if me_is_a else b_pts
+        op_pts = b_pts if me_is_a else a_pts
+
+        opp_id   = b_id if me_is_a else a_id
+        opp_team = b_team if me_is_a else a_team
+        opp_name = b_name if me_is_a else a_name
+        key = opp_id or opp_name.lower() or opp_team
+
+        bucket = vs.setdefault(key, {
+            "opponentTeamId": opp_id or key,
+            "opponentTeam": opp_team or opp_name or "Unknown",
+            "w": 0, "l": 0, "d": 0
+        })
+
+        # Skip unfinished rows that have no scores
+        if my_pts is None or op_pts is None:
+            continue
+
+        if my_pts > op_pts: bucket["w"] += 1
+        elif my_pts < op_pts: bucket["l"] += 1
+        else: bucket["d"] += 1
+
+    def score(r): return r["w"] - r["l"] + 0.25 * r["d"]
+    out = sorted(vs.values(), key=score, reverse=True)
+    return {"scope": "all_time", "vs": out}
+
 
 # ===== API: fixtures (next 3) with FDR using fallback from ranks until >=5 games =====
 @router.get("/owner/{owner}/fixtures")
