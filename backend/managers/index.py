@@ -335,4 +335,36 @@ def admin_ingest():
         return {"ok": True}
     except Exception as e:
         return {"ok": False, "error": str(e)}
+    
+@router.get("/debug/owner/{owner}")
+def debug_owner(owner: str):
+    """
+    Debug endpoint to verify owner mapping and matchup data.
+    """
+    mgr = get_manager_by_owner(owner)
+    if not mgr:
+        raise HTTPException(status_code=404, detail="Owner not found in managers.json")
+
+    entry_id = parse_entry_id_from_url(mgr.get("fpl_team_url", "") or "")
+    hist = load_history()
+
+    opps = {}
+    for m in hist:
+        if not entry_id:
+            continue
+        if str(m.get("entry_1_entry")) == str(entry_id) or str(m.get("entry_2_entry")) == str(entry_id):
+            opp_id = str(m.get("entry_2_entry")) if str(m.get("entry_1_entry")) == str(entry_id) else str(m.get("entry_1_entry"))
+            opps[opp_id] = opps.get(opp_id, 0) + 1
+
+    return {
+        "owner": owner,
+        "entry_id": entry_id,
+        "manager_found": True,
+        "fpl_team_url": mgr.get("fpl_team_url"),
+        "history_file_exists": os.path.exists("backend/results/history/matches_all.json"),
+        "num_matches_in_history": len(hist),
+        "num_opponents_found": len(opps),
+        "sample_opponents": list(opps.items())[:5],  # first few opponents + match counts
+    }
+
 
