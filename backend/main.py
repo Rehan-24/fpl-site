@@ -66,7 +66,7 @@ SCRIPT_PATH = os.path.join(BASE_DIR, "src", "fpl_management.py")
 EXCEL_NAME_TEMPLATE = "{league}_results_v3.xlsx"
 
 # --- Routers ---
-app.include_router(managers_router, prefix="/api")
+app.include_router(managers_router, prefix="/api/managers")
 app.include_router(news_router, prefix="/api")
 
 
