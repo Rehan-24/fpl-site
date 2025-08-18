@@ -17,7 +17,7 @@ export default function FixtureFDRCard({ ownerName }: { ownerName: string }) {
 
   useEffect(() => {
     if (!ownerName) return
-    fetch(`/api/managers/${encodeURIComponent(ownerName)}/fixtures`)
+    fetch(`https://tfpl.onrender.com/api/managers/${encodeURIComponent(ownerName)}/fixtures`)
       .then(r=>r.json())
       .then(d=>setFixtures(d.fixtures||[]))
       .catch(()=>setFixtures([]))

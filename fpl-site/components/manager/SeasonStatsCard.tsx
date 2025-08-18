@@ -9,7 +9,7 @@ export default function SeasonStatsCard({ ownerName }: { ownerName: string }) {
 
   useEffect(()=>{
     if (!ownerName) return
-    fetch(`/api/managers/${encodeURIComponent(ownerName)}/season-stats`)
+    fetch(`https://tfpl.onrender.com/api/managers/${encodeURIComponent(ownerName)}/season-stats`)
       .then(r=>r.json())
       .then(d=>setRows(d.stats||[]))
       .catch(()=>setRows([]))
