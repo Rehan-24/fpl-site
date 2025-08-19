@@ -46,11 +46,39 @@ const expandTrophies = (ts?: Trophy[]) =>
 // default
 const DEFAULT_AVATAR = '/images/dynamic_images/placeholder.png'
 
+// Fallback-normalize the API row into the shape this page expects
+function normalizeManager(m: any, ownerFallback: string): Manager {
+  const placementsRaw = m?.placements;
+  return {
+    name: (m?.name || m?.owner_name || ownerFallback || "").trim(),
+    team: m?.team || m?.display_name || "",
+    current_league: m?.current_league ?? m?.league ?? undefined,
+    years_playing: m?.years_playing ?? undefined,
+    premier_years: m?.premier_years ?? undefined,
+    championship_years: m?.championship_years ?? undefined,
+    promotions: m?.promotions ?? 0,
+    relegations: m?.relegations ?? 0,
+    best_finish: m?.best_finish ?? null,
+    titles: Number.isFinite(Number(m?.titles)) ? Number(m?.titles) : 0,
+    titles_list: m?.titles_list ?? "",
+    bio: m?.bio ?? "",
+    image_url: m?.image_url || "",
+    dynamic_image_url: m?.dynamic_image_url || "",
+    fpl_team_url: m?.fpl_team_url || undefined,
+    favorite_club: m?.favorite_club || "",
+    placements: Array.isArray(placementsRaw) ? placementsRaw.length : (placementsRaw ?? 0),
+    social_url: m?.social_url || "",
+    trophies: Array.isArray(m?.trophies) ? m.trophies : [],
+  };
+}
+
 export default function ManagerBio() {
   const { query, isReady } = useRouter()
   const ownerSlug = Array.isArray(query.owner) ? query.owner[0] : query.owner
   const [manager, setManager] = useState<Manager | null>(null)
   const [notFound, setNotFound] = useState(false)
+  const safeName = useMemo(() => manager?.name || (typeof ownerSlug === 'string' ? decodeURIComponent(ownerSlug) : ''), [manager?.name, ownerSlug]);
+
 
   const API_BASE = useMemo(
     () => (process.env.NEXT_PUBLIC_API_BASE_URL || 'https://tfpl.onrender.com').replace(/\/$/, ''),
@@ -69,7 +97,7 @@ export default function ManagerBio() {
           return;
         }
         const data = await res.json();
-        setManager(data);
+        setManager(normalizeManager(data, ownerName));
         setNotFound(false);
       } catch (e) {
         console.error(e);
@@ -79,10 +107,16 @@ export default function ManagerBio() {
     })();
   }, [isReady, ownerSlug, API_BASE]);
 
+  //const { first, last } = useMemo(() => {
+  //  const parts = (manager?.name || '').split(' ')
+  //  return { first: parts[0] || '', last: parts.slice(1).join(' ') }
+  //}, [manager?.name])
+
+  // for the split:
   const { first, last } = useMemo(() => {
-    const parts = (manager?.name || '').split(' ')
-    return { first: parts[0] || '', last: parts.slice(1).join(' ') }
-  }, [manager?.name])
+    const parts = (safeName || '').split(' ');
+    return { first: parts[0] || '', last: parts.slice(1).join(' ') };
+  }, [safeName]);
 
   if (!manager) return <p className="p-6">Loading…</p>
   if ((manager as any).error) return <p className="p-6 text-red-600">Manager not found</p>
@@ -90,11 +124,11 @@ export default function ManagerBio() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-blue-200 to-purple-100 text-[#37003c]">
       <Head>
-        <title>{manager.name} - tFPL Bio</title>
-        <meta property="og:title" content={`${manager.name} - tFPL Bio`} />
+        <title>{safeName} - tFPL Bio</title>
+        <meta property="og:title" content={`${safeName} - tFPL Bio`} />
         <meta property="og:description" content={manager.bio || 'Zidane Threepeat is Underrated'} />
         <meta property="og:image" content={`https://tfpl.vercel.app/${manager.image_url || 'images/managers/empty_preview.jpg'}`} />
-        <meta property="og:url" content={`https://tfpl.vercel.app/managers/${manager.name}`} />
+        <meta property="og:url" content={`https://tfpl.vercel.app/managers/${safeName}`} />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="THE Fantasy Premier League" />
       </Head>
