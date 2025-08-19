@@ -15,7 +15,7 @@ datasource db {
 
 model Manager {
   id            Int      @id @default(autoincrement())
-  entry_id      Int      @unique
+  entry_id      Int?     @unique           // <-- now optional (nullable)
   display_name  String
   owner_name    String?
   fpl_team_url  String?
@@ -26,7 +26,7 @@ model Manager {
 
   aliases       ManagerAlias[]
 
-  @@map("manager") // table name in DB will be lowercase 'manager'
+  @@map("manager")
 }
 
 model ManagerAlias {
