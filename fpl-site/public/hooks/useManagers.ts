@@ -14,6 +14,7 @@ export type ManagerUI = {
   titles: number;
   trophies?: Trophy[];
   dynamic_image_url?: string;
+  fpl_team_url?: string;
 };
 
 const DEFAULT_AVATAR = "/images/managers/no_pp.jpg";
@@ -57,6 +58,7 @@ const adapt = (m: any): ManagerUI => {
     social_url: m?.social_url ?? "",
     titles: toInt(m?.titles, 0),
     trophies,
+    fpl_team_url: m?.fpl_team_url || undefined, 
   };
 };
 

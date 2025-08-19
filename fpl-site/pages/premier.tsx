@@ -82,12 +82,22 @@ export default function Premier() {
   };
 
   // Manager map for fast lookups
+  // const managersByTeam = useMemo(() => {
+  //   const m = new Map<string, Manager>();
+  //   (managersData || []).forEach((mgr: Manager) => {
+  //     if (mgr?.team) m.set(mgr.team, mgr);
+  //   });
+  //   return m;
+  // }, [managersData]);
+
+  // build the map
   const managersByTeam = useMemo(() => {
-    const m = new Map<string, Manager>();
-    (managersData || []).forEach((mgr: Manager) => {
-      if (mgr?.team) m.set(mgr.team, mgr);
-    });
-    return m;
+  const m = new Map<string, Manager>();
+  (managersData || []).forEach((mgr: Manager) => {
+    const key = String(mgr?.team || "").trim().toLowerCase();
+    if (key) m.set(key, mgr);
+      });
+      return m;
   }, [managersData]);
 
   const normalizeNumber = (v: any) => {
@@ -337,7 +347,8 @@ export default function Premier() {
             </thead>
             <tbody>
               {sortedData.map((row, i) => {
-                const mgr = managersByTeam.get(row.Team);
+                const teamKey = String(row.Team || "").trim().toLowerCase();
+                const mgr = managersByTeam.get(teamKey);
                 return (
                   <tr key={i}>
                     <td

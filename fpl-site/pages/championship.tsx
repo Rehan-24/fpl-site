@@ -79,10 +79,20 @@ export default function Championship() {
   };
 
   // Fast map: team -> manager record
+  //const managersByTeam = useMemo(() => {
+  //  const m = new Map<string, Manager>();
+  //  (managersData || []).forEach((mgr: Manager) => {
+  //    if (mgr?.team) m.set(mgr.team, mgr);
+  //  });
+  //  return m;
+  //}, [managersData]);
+
+  // build the map
   const managersByTeam = useMemo(() => {
     const m = new Map<string, Manager>();
     (managersData || []).forEach((mgr: Manager) => {
-      if (mgr?.team) m.set(mgr.team, mgr);
+      const key = String(mgr?.team || "").trim().toLowerCase();
+      if (key) m.set(key, mgr);
     });
     return m;
   }, [managersData]);
@@ -361,7 +371,8 @@ export default function Championship() {
 
               <tbody>
                 {sortedData.map((row, i) => {
-                  const mgr = managersByTeam.get(row.Team);
+                    const teamKey = String(row.Team || "").trim().toLowerCase();
+                    const mgr = managersByTeam.get(teamKey);
                   return (
                     <tr key={i}>
                       {/* Position (sticky) */}
