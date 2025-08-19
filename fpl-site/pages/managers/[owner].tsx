@@ -39,14 +39,6 @@ const TROPHY_ICONS: Record<TrophyKey, string> = {
   championship: '/images/trophies/championship_trophy.png',
 }
 
-const [manager, setManager] = useState<Manager | null>(null);
-const [notFound, setNotFound] = useState(false);
-
-const API_BASE = useMemo(
-  () => (process.env.NEXT_PUBLIC_API_BASE_URL || 'https://tfpl.onrender.com').replace(/\/$/, ''),
-  []
-);
-
 // repeat each trophy icon by its count
 const expandTrophies = (ts?: Trophy[]) =>
   (ts ?? []).flatMap(t => Array.from({ length: t.count ?? 0 }, () => t.type))
@@ -58,28 +50,34 @@ export default function ManagerBio() {
   const { query, isReady } = useRouter()
   const ownerSlug = Array.isArray(query.owner) ? query.owner[0] : query.owner
   const [manager, setManager] = useState<Manager | null>(null)
+  const [notFound, setNotFound] = useState(false)
+
+  const API_BASE = useMemo(
+    () => (process.env.NEXT_PUBLIC_API_BASE_URL || 'https://tfpl.onrender.com').replace(/\/$/, ''),
+    []
+  );
 
   useEffect(() => {
-  if (!isReady || !ownerSlug) return;
-  const ownerName = decodeURIComponent(ownerSlug);
-  (async () => {
-    try {
-      const res = await fetch(`${API_BASE}/api/managers?owner=${encodeURIComponent(ownerName)}`);
-      if (!res.ok) {
+    if (!isReady || !ownerSlug) return;
+    const ownerName = decodeURIComponent(ownerSlug);
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/managers?owner=${encodeURIComponent(ownerName)}`);
+        if (!res.ok) {
+          setNotFound(true);
+          setManager(null);
+          return;
+        }
+        const data = await res.json();
+        setManager(data);
+        setNotFound(false);
+      } catch (e) {
+        console.error(e);
         setNotFound(true);
         setManager(null);
-        return;
       }
-      const data = await res.json();
-      setManager(data);
-      setNotFound(false);
-    } catch (e) {
-      console.error(e);
-      setNotFound(true);
-      setManager(null);
-    }
-  })();
-}, [isReady, ownerSlug, API_BASE]);
+    })();
+  }, [isReady, ownerSlug, API_BASE]);
 
   const { first, last } = useMemo(() => {
     const parts = (manager?.name || '').split(' ')
