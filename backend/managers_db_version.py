@@ -18,6 +18,9 @@ router = APIRouter()
 DB_URL = os.getenv("SUPABASE_DB_URL")
 ALLOWED_FIELDS = {"bio", "favorite_club", "social_url", "image_url"}
 
+HISTORY_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "results", "history"))
+os.makedirs(HISTORY_DIR, exist_ok=True)
+
 # ---------- Helpers ----------
 def parse_entry_id_from_url(url: str) -> Optional[str]:
     if not url:
@@ -301,12 +304,35 @@ def fixtures_next(owner: str):
 # ---------- Admin passthrough ----------
 @router.post("/admin/ingest")
 def admin_ingest():
+    """
+    Runs scripts/ingest_h2h.py and returns its stdout/stderr so we can see why it failed.
+    Also sets CWD to the script folder to make relative paths inside the script work.
+    """
     try:
         script = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "scripts", "ingest_h2h.py"))
-        subprocess.check_call([sys.executable, script])
-        return {"ok": True}
+        script_dir = os.path.dirname(script)
+
+        # Pass through env; sometimes the script needs league IDs or DB URL
+        env = os.environ.copy()
+
+        res = subprocess.run(
+            [sys.executable, script],
+            cwd=script_dir,                  # <-- critical if the script uses relative paths
+            env=env,
+            capture_output=True,
+            text=True,
+        )
+        ok = (res.returncode == 0)
+        # Return the tail of stdout/stderr to keep payload small but useful
+        tail = 4000
+        return {
+            "ok": ok,
+            "returncode": res.returncode,
+            "stdout": res.stdout[-tail:],
+            "stderr": res.stderr[-tail:],
+        }
     except Exception as e:
-        return {"ok": False, "error": str(e)}
+        return {"ok": False, "error": repr(e)}
 
 @router.get("/debug/owner/{owner}")
 def debug_owner(owner: str):
