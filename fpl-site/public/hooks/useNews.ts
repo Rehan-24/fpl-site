@@ -21,7 +21,8 @@ export function useNewsList() {
 
 export function useNewsDetail(id: string | null | undefined) {
   const enabled = Boolean(id);
-  const url = enabled ? `https://tfpl.onrender.com/api/news/${encodeURIComponent(id!)}` : '';
+  const BASE = (process.env.NEXT_PUBLIC_BACKEND_BASE || "https://tfpl.onrender.com").replace(/\/$/, "");
+  const url = enabled ? `${BASE}/api/standings?league=${encodeURIComponent(id!)}}` : '';
   const key = enabled ? `news:detail:${id}` : 'noop';
   if (!enabled) {
     return { data: null as NewsDetail | null, usingCache: false, loading: false, error: null, refresh: () => {} };

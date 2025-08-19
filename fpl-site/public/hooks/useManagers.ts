@@ -34,8 +34,9 @@ export function useManagers() {
 
 export function useManager(ownerName: string | null | undefined) {
   const enabled = Boolean(ownerName);
+  const BASE = (process.env.NEXT_PUBLIC_BACKEND_BASE || "https://tfpl.onrender.com").replace(/\/$/, "");
   const url = enabled
-    ? `https://tfpl.onrender.com/api/managers?owner=${encodeURIComponent(ownerName!)}`
+    ? `${BASE}/api/standings?league=${encodeURIComponent(ownerName!)}}`
     : '';
   const key = enabled ? `managers:owner:${ownerName}` : 'noop';
 
