@@ -4,15 +4,26 @@ import { useNewsDetail } from "@/public/hooks/useNews";
 import NavBar from "@/components/NavBar";
 import GWInfoBar from "@/components/GWInfoBar";
 
-function formatDate(iso: string) {
-  const d = new Date(iso);
-  return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+function formatDate(s?: string | null) {
+  if (!s) return "";
+  // Handle plain 'YYYY-MM-DD' as UTC so it doesn't timezone-shift
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const [y, m, d] = s.split("-").map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    return dt.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  }
+  const t = Date.parse(s);
+  if (Number.isNaN(t)) return "";
+  return new Date(t).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
+
 
 export default function NewsDetailPage() {
   const router = useRouter();
   const { id } = router.query as { id?: string };
   const { data, loading, error } = useNewsDetail(id);
+  const tags: string[] = (data?.tags ?? []) as string[];
+
 
   return (
     <>
@@ -44,11 +55,20 @@ export default function NewsDetailPage() {
           {data && (
             <article className="mt-2">
               <h1 className="text-2xl sm:text-3xl font-extrabold text-[#37003c]">{data.title}</h1>
-              <time dateTime={data.date} className="block text-sm text-gray-600 mt-1">{formatDate(data.date)}</time>
-              {data.tags?.length > 0 && (
+              {!!formatDate(data?.date) && (
+                <time dateTime={data!.date!} className="block text-sm text-gray-600 mt-1">
+                  {formatDate(data!.date!)}
+                </time>
+                )}
+              {tags.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {data.tags.map(t => (
-                    <span key={t} className="px-2 py-1 text-xs rounded bg-[#efe2fd] text-[#37003c] border border-gray-300">{t}</span>
+                  {tags.map((t) => (
+                    <span
+                      key={t}
+                      className="px-2 py-1 text-xs rounded bg-[#efe2fd] text-[#37003c] border border-gray-300"
+                    >
+                      {t}
+                    </span>
                   ))}
                 </div>
               )}
@@ -57,7 +77,7 @@ export default function NewsDetailPage() {
               )}
               <div
                 className="prose prose-sm sm:prose max-w-none mt-6 prose-headings:text-[#37003c] prose-p:text-[#37003c] prose-a:text-[#37003c] prose-strong:text-[#37003c]"
-                dangerouslySetInnerHTML={{ __html: (data as any).content }}
+                dangerouslySetInnerHTML={{ __html: data?.content ?? (data as any)?.content_html ?? "" }}
               />
             </article>
           )}
