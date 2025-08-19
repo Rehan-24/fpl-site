@@ -18,7 +18,7 @@ def _conn():
 def fetch_all_managers():
     sql = """
     select
-      m.id, m.discord_id, m.display_name, m.owner_name, m.fpl_team_url,
+      m.id, m.discord_id, m.team, m.owner_name, m.fpl_team_url,
       m.favorite_club, m.image_url, m.dynamic_image_url,
       m.social_url, m.bio, m.current_league,
       m.years_playing, m.premier_years, m.championship_years,
@@ -33,7 +33,7 @@ def fetch_all_managers():
     left join public.manager_trophy t on t.manager_id = m.id
     where m.active = true
     group by m.id
-    order by lower(m.display_name);
+    order by lower(m.team);
     """
     with _conn() as conn, conn.cursor() as cur:
         cur.execute(sql)
