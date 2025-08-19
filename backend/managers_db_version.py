@@ -79,8 +79,8 @@ def get_managers(owner: Optional[str] = None):
         row = fetch_manager_by_owner(owner)
         if not row:
             raise HTTPException(status_code=404, detail="Manager not found")
-        return row
-    return fetch_all_managers()
+        return _row_to_manager(row)
+    return [ _row_to_manager(r) for r in fetch_all_managers() ]
 
 @router.get("/user/{id_or_name}")
 def get_user(id_or_name: str):
