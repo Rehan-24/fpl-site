@@ -2,7 +2,6 @@
 import os
 import psycopg
 from psycopg.rows import dict_row
-from save_snapshot import save_standings_snapshot
 
 DB_URL = os.getenv("SUPABASE_DB_URL")
 
@@ -123,16 +122,6 @@ def update_manager_fields_by_discord(discord_id: str, updates: dict) -> bool:
     with _conn() as conn, conn.cursor() as cur:
         cur.execute(sql, params)
         return cur.rowcount > 0
-    
-def rebuild_handler():
-    premier_rows = compute_premier()
-    champ_rows   = compute_championship()
-    gw = detect_current_gameweek()
-
-    save_standings_snapshot("premier", gw, premier_rows)
-    save_standings_snapshot("championship", gw, champ_rows)
-
-    return {"ok": True, "gw": gw}
 
 # ---------- Standings helpers (season stats) ----------
 
