@@ -1,10 +1,8 @@
-# backend/managers_db_version.py
 import os, re, subprocess, sys, json
 from datetime import datetime, timezone
 from typing import Dict, Any
-
 from fastapi import APIRouter, HTTPException, Body
-
+from backend_db import fetch_manager_by_owner, fetch_manager_by_discord, update_manager_fields
 from backend_db import (
     fetch_all_managers,
     fetch_manager_by_owner,
@@ -15,6 +13,8 @@ from backend_db import (
 )
 
 router = APIRouter()
+
+ALLOWED_FIELDS = {"bio", "favorite_club", "social_url", "image_url"}
 
 # ---------- Helpers (FPL URL parsing) ----------
 
@@ -43,62 +43,37 @@ def get_managers(owner: str | None = None):
         return row
     return fetch_all_managers()
 
+
 @router.get("/user/{id}")
 def get_user(id: str):
-    id_clean = id.strip()
-    row = None
-    # Try discord id first if it's digits
-    if id_clean.isdigit():
-        row = fetch_manager_by_discord(id_clean)
-    if not row:
-        row = fetch_manager_by_owner(id_clean)  # treat as owner_name
+    """
+    Fetch a manager by either discord_id (exact) OR name (case-insensitive),
+    matching the legacy JSON behavior.
+    """
+    row = fetch_manager_by_any(id)
     if not row:
         raise HTTPException(status_code=404, detail="User not found")
     return row
-
-ALLOWED_FIELDS = {"bio", "favorite_club", "social_url", "image_url", "dynamic_image_url"}
 
 @router.post("/user/{id}")
 def update_user(id: str, updates: Dict[str, Any] = Body(...)):
+    """
+    Update a manager by either discord_id OR name.
+    Allowed fields: bio, favorite_club, social_url, image_url.
+    Returns the updated row (same shape as GET).
+    """
     if not isinstance(updates, dict):
         raise HTTPException(status_code=400, detail="Payload must be a JSON object")
-    filtered = {k: v for k, v in updates.items() if k in ALLOWED_FIELDS}
+
+    filtered = {k: v for k, v in updates.items() if k in ALLOWED_MANAGER_FIELDS}
     if not filtered:
         raise HTTPException(status_code=400, detail="No valid fields to update")
 
-    id_clean = id.strip()
-    ok = False
-    if id_clean.isdigit():
-        ok = update_manager_fields_by_discord(id_clean, filtered)
-        if not ok:
-            # fallback to owner_name with same string
-            ok = update_manager_fields_by_owner(id_clean, filtered)
-    else:
-        ok = update_manager_fields_by_owner(id_clean, filtered)
-
-    if not ok:
-        raise HTTPException(status_code=404, detail="User not found")
-    # Return the fresh row
-    return get_user(id_clean)
-
-@router.get("/username/{name}")
-def get_user_by_name(name: str):
-    row = fetch_manager_by_owner(name)
+    row = update_manager_by_any(id, **filtered)
     if not row:
         raise HTTPException(status_code=404, detail="User not found")
-    return row
 
-@router.post("/username/{name}")
-def update_user_by_name(name: str, updates: Dict[str, Any] = Body(...)):
-    if not isinstance(updates, dict):
-        raise HTTPException(status_code=400, detail="Payload must be a JSON object")
-    filtered = {k: v for k, v in updates.items() if k in ALLOWED_FIELDS}
-    if not filtered:
-        raise HTTPException(status_code=400, detail="No valid fields to update")
-    ok = update_manager_fields_by_owner(name, filtered)
-    if not ok:
-        raise HTTPException(status_code=404, detail="User not found")
-    return get_user_by_name(name)
+    return {"ok": True, "updated": filtered, "user": row}
 
 # ---------- Season stats (now from standings_row) ----------
 

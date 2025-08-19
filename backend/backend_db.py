@@ -1,9 +1,12 @@
 # backend/backend_db.py
 import os
-import psycopg
+from typing import Optional
+from psycopg import connect
 from psycopg.rows import dict_row
 
 DB_URL = os.getenv("SUPABASE_DB_URL")
+
+ALLOWED_MANAGER_FIELDS = {"bio", "favorite_club", "social_url", "image_url"}
 
 def _conn():
     if not DB_URL:
@@ -35,53 +38,69 @@ def fetch_all_managers():
     with _conn() as conn, conn.cursor() as cur:
         cur.execute(sql)
         return cur.fetchall()
-
-def fetch_manager_by_owner(owner: str):
-    sql = """
-    select
-      m.id, m.display_name, m.owner_name, m.fpl_team_url,
-      m.favorite_club, m.image_url, m.dynamic_image_url,
-      m.social_url, m.bio, m.current_league,
-      m.years_playing, m.premier_years, m.championship_years,
-      m.promotions, m.relegations, m.best_finish,
-      m.titles, m.titles_list, m.active,
-      coalesce(
-        json_agg(json_build_object('type', t.type, 'count', t.count))
-          filter (where t.id is not null),
-        '[]'::json
-      ) as trophies
-    from public.manager m
-    left join public.manager_trophy t on t.manager_id = m.id
-    where lower(m.owner_name) = lower(%s)
-    group by m.id;
-    """
-    with _conn() as conn, conn.cursor() as cur:
-        cur.execute(sql, (owner,))
+    
+def fetch_manager_by_discord(discord_id: str) -> Optional[dict]:
+    if not DB_URL: return None
+    q = "select * from public.manager where discord_id = %s limit 1"
+    with connect(DB_URL, row_factory=dict_row) as conn, conn.cursor() as cur:
+        cur.execute(q, (discord_id.strip(),))
         return cur.fetchone()
 
-def fetch_manager_by_discord(discord_id: str):
-    sql = """
-    select
-      m.id, m.display_name, m.owner_name, m.fpl_team_url,
-      m.favorite_club, m.image_url, m.dynamic_image_url,
-      m.social_url, m.bio, m.current_league,
-      m.years_playing, m.premier_years, m.championship_years,
-      m.promotions, m.relegations, m.best_finish,
-      m.titles, m.titles_list, m.active,
-      coalesce(
-        json_agg(json_build_object('type', t.type, 'count', t.count))
-          filter (where t.id is not null),
-        '[]'::json
-      ) as trophies
-    from public.manager m
-    left join public.manager_trophy t on t.manager_id = m.id
-    where m.discord_id = %s
-    group by m.id;
-    """
-    with _conn() as conn, conn.cursor() as cur:
-        # discord_id is bigint but we pass a string safely
-        cur.execute(sql, (discord_id,))
+def fetch_manager_by_owner(owner_name: str) -> Optional[dict]:
+    if not DB_URL: return None
+    q = "select * from public.manager where lower(owner_name) = lower(%s) limit 1"
+    with connect(DB_URL, row_factory=dict_row) as conn, conn.cursor() as cur:
+        cur.execute(q, (owner_name.strip(),))
         return cur.fetchone()
+
+def fetch_manager_by_any(identifier: str) -> Optional[dict]:
+    """Try discord_id exact match first; if not found, try owner_name (case-insensitive)."""
+    identifier = (identifier or "").strip()
+    return fetch_manager_by_discord(identifier) or fetch_manager_by_owner(identifier)
+
+def update_manager_fields(*, owner_name: str = None, discord_id: str = None, **fields) -> Optional[dict]:
+    """
+    Update allowed manager fields by either owner_name or discord_id.
+    Returns the updated row (dict) or None if no row matched.
+    """
+    if not DB_URL: return None
+    sets, vals = [], []
+    for k, v in fields.items():
+        if k in ALLOWED_MANAGER_FIELDS:
+            sets.append(f"{k} = %s")
+            vals.append(v)
+    if not sets:
+        return None
+
+    where = None
+    if discord_id:
+        where = "discord_id = %s"
+        vals.append(discord_id.strip())
+    elif owner_name:
+        where = "lower(owner_name) = lower(%s)"
+        vals.append(owner_name.strip())
+    else:
+        return None
+
+    sql = f"""
+      update public.manager
+         set {", ".join(sets)}, updated_at = now()
+       where {where}
+    returning *;
+    """
+    with connect(DB_URL, row_factory=dict_row) as conn, conn.cursor() as cur:
+        cur.execute(sql, vals)
+        row = cur.fetchone()
+        conn.commit()
+        return row
+
+def update_manager_by_any(identifier: str, **fields) -> Optional[dict]:
+    """Try to update by discord_id first; if that matches nothing, try owner_name."""
+    identifier = (identifier or "").strip()
+    row = update_manager_fields(discord_id=identifier, **fields)
+    if row:
+        return row
+    return update_manager_fields(owner_name=identifier, **fields)
 
 # ---------- Managers (updates) ----------
 
