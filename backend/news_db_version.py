@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Header
 from typing import Optional
 from backend_db import list_news, get_news_detail
+import os
 
 router = APIRouter()
 API_KEY = os.getenv("NEWS_API_KEY", "")
