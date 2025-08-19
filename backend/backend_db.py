@@ -11,7 +11,7 @@ ALLOWED_MANAGER_FIELDS = {"bio", "favorite_club", "social_url", "image_url"}
 def _conn():
     if not DB_URL:
         raise RuntimeError("SUPABASE_DB_URL is not set")
-    return psycopg.connect(DB_URL, row_factory=dict_row)
+    return connect(DB_URL, row_factory=dict_row)
 
 # ---------- Managers (reads) ----------
 
