@@ -76,7 +76,7 @@ app.include_router(managers_router, prefix="/api")
 # Also mount under /api/managers for the new owner endpoints you’re testing:
 app.include_router(managers_router, prefix="/api/managers")
 
-app.include_router(seed_router, prefix="/api", tags=["admin"])
+#app.include_router(seed_router, prefix="/api", tags=["admin"])
 app.include_router(managers_router, prefix="/api", tags=["managers"])
 app.include_router(news_router,     prefix="/api", tags=["news"])
 
