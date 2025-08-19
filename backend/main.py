@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from managers.index import router as managers_router
 from news.index import router as news_router
 from fastapi import BackgroundTasks
-from admin.seed import router as seed_router
+#from admin.seed import router as seed_router
 from managers_db_version import router as managers_router
 from news_db_version import router as news_router
 
