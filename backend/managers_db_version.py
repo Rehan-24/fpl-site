@@ -1,7 +1,8 @@
 import os, re, subprocess, sys, json
 from datetime import datetime, timezone
 from typing import Dict, Any
-from fastapi import APIRouter, HTTPException, Body
+from psycopg import connect
+from fastapi import APIRouter, HTTPException, Body, Header
 from backend_db import fetch_manager_by_owner, fetch_manager_by_discord, update_manager_fields
 from backend_db import (
     fetch_all_managers,
@@ -32,6 +33,43 @@ def league_id_for_manager(mgr: dict) -> int | None:
     if "champ" in league: return CHAMPIONSHIP_LEAGUE_ID
     return None
 
+def _row_to_manager(row):
+    # adapt to your actual columns
+    return {
+        "name": row["owner_name"],
+        "team": row["team"],
+        "favorite_club": row["favorite_club"],
+        "bio": row["bio"],
+        "image_url": row["image_url"],
+        "dynamic_image_url": row["dynamic_image_url"],
+        "fpl_team_url": row["fpl_team_url"],
+        "social_url": row["social_url"],
+        "placements": row["placements"],
+        "titles": row["titles"],
+        "trophies": row["trophies"],
+        "discord_id": str(row["discord_id"]) if row["discord_id"] is not None else None,
+    }
+
+def _get_by_id_or_name(cur, id_or_name: str):
+    v = id_or_name.strip()
+    # 1) try discord_id text match
+    cur.execute("""
+        select *
+        from public.manager
+        where discord_id is not null and discord_id::text = %s
+        limit 1
+    """, (v,))
+    r = cur.fetchone()
+    if r: return r
+    # 2) try owner_name exact (case-insensitive)
+    cur.execute("""
+        select *
+        from public.manager
+        where lower(owner_name) = lower(%s)
+        limit 1
+    """, (v,))
+    return cur.fetchone()
+
 # ---------- API parity with legacy JSON routes ----------
 
 @router.get("/managers")
@@ -44,36 +82,59 @@ def get_managers(owner: str | None = None):
     return fetch_all_managers()
 
 
-@router.get("/user/{id}")
-def get_user(id: str):
-    """
-    Fetch a manager by either discord_id (exact) OR name (case-insensitive),
-    matching the legacy JSON behavior.
-    """
-    row = fetch_manager_by_any(id)
-    if not row:
-        raise HTTPException(status_code=404, detail="User not found")
-    return row
+@router.get("/user/{id_or_name}")
+def get_user(id_or_name: str):
+    if not DB_URL:
+        raise HTTPException(status_code=500, detail="DB not configured")
+    with connect(DB_URL) as conn, conn.cursor(row_factory=dict) as cur:
+        row = _get_by_id_or_name(cur, id_or_name)
+        if not row:
+            raise HTTPException(status_code=404, detail="User not found")
+        return _row_to_manager(row)
 
-@router.post("/user/{id}")
-def update_user(id: str, updates: Dict[str, Any] = Body(...)):
-    """
-    Update a manager by either discord_id OR name.
-    Allowed fields: bio, favorite_club, social_url, image_url.
-    Returns the updated row (same shape as GET).
-    """
+@router.post("/user/{id_or_name}")
+def update_user(
+    id_or_name: str,
+    updates: dict = Body(...),
+    actor_id: str = Header(default="")  # bot sends interaction.user.id here
+):
+    if not DB_URL:
+        raise HTTPException(status_code=500, detail="DB not configured")
     if not isinstance(updates, dict):
         raise HTTPException(status_code=400, detail="Payload must be a JSON object")
 
-    filtered = {k: v for k, v in updates.items() if k in ALLOWED_MANAGER_FIELDS}
-    if not filtered:
+    fields = {k: v for k, v in updates.items() if k in ALLOWED_FIELDS}
+    if not fields:
         raise HTTPException(status_code=400, detail="No valid fields to update")
 
-    row = update_manager_by_any(id, **filtered)
-    if not row:
-        raise HTTPException(status_code=404, detail="User not found")
+    with connect(DB_URL) as conn, conn.cursor(row_factory=dict) as cur:
+        row = _get_by_id_or_name(cur, id_or_name)
+        if not row:
+            raise HTTPException(status_code=404, detail="User not found")
 
-    return {"ok": True, "updated": filtered, "user": row}
+        # simple “self or mod” check — allow if actor matches record or if actor is in MOD_IDS
+        mods = set(filter(None, (os.getenv("DISCORD_MOD_IDS","").split(",") if os.getenv("DISCORD_MOD_IDS") else [])))
+        if str(row.get("discord_id") or "") != str(actor_id).strip() and str(actor_id).strip() not in mods:
+            raise HTTPException(status_code=403, detail="Not allowed")
+
+        sets = []
+        params = []
+        for k, v in fields.items():
+            sets.append(f"{k} = %s")
+            params.append(v)
+        sets.append("updated_at = now()")
+
+        params.append(row["id"])  # pk
+        cur.execute(f"""
+            update public.manager
+            set {", ".join(sets)}
+            where id = %s
+        """, params)
+        conn.commit()
+
+        # return fresh row
+        cur.execute("select * from public.manager where id = %s", (row["id"],))
+        return _row_to_manager(cur.fetchone())
 
 # ---------- Season stats (now from standings_row) ----------
 
