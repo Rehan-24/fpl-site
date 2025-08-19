@@ -8,12 +8,11 @@ export type ManagerUI = {
   name: string;
   team: string;
   favorite_club: string;
-  placements: number | string;        // page handles number|string
+  placements: number | string;
   image_url: string;
   social_url: string;
   titles: number;
   trophies?: Trophy[];
-  // keep dynamic for future use
   dynamic_image_url?: string;
 };
 
@@ -32,17 +31,14 @@ const toInt = (v: any, d = 0) => {
 };
 
 const adapt = (m: any): ManagerUI => {
-  // Works for both legacy {name,team,...} and DB {owner_name,display_name,...}
   const name = m?.name ?? m?.owner_name ?? "";
   const team = m?.team ?? m?.display_name ?? "";
   const placementsRaw = m?.placements;
-  const placements =
-    Array.isArray(placementsRaw)
-      ? placementsRaw.length
-      : placementsRaw ?? 0;
+  const placements = Array.isArray(placementsRaw)
+    ? placementsRaw.length
+    : placementsRaw ?? 0;
 
-  const image =
-    m?.image_url || m?.dynamic_image_url || DEFAULT_AVATAR;
+  const image = m?.image_url || m?.dynamic_image_url || DEFAULT_AVATAR;
 
   const trophies: Trophy[] = Array.isArray(m?.trophies)
     ? m.trophies.map((t: any) => ({
@@ -64,15 +60,23 @@ const adapt = (m: any): ManagerUI => {
   };
 };
 
+// --------- lightweight module cache so we can expose `usingCache` ----------
+let MANAGERS_CACHE: ManagerUI[] | null = null;
+let MANAGERS_CACHE_TS = 0;
+const STALE_MS = 60_000; // 1 minute
+
 export function useManagers() {
   const [data, setData] = useState<ManagerUI[] | null>(null);
   const [loading, setLoading] = useState(false);
+  const [usingCache, setUsingCache] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const base = useMemo(
     () =>
-      (process.env.NEXT_PUBLIC_API_BASE_URL || "https://tfpl.onrender.com")
-        .replace(/\/$/, ""),
+      (process.env.NEXT_PUBLIC_API_BASE_URL || "https://tfpl.onrender.com").replace(
+        /\/$/,
+        ""
+      ),
     []
   );
 
@@ -81,25 +85,38 @@ export function useManagers() {
     setError(null);
     try {
       const res = await fetch(`${base}/api/managers`, {
-        headers: { "Accept": "application/json" },
-        // Next.js (app router) hint; ignored in pages router
+        headers: { Accept: "application/json" },
         next: { revalidate: 60 },
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const raw = await res.json();
-      const arr = Array.isArray(raw) ? raw : [raw];
-      setData(arr.map(adapt));
+      const arr = (Array.isArray(raw) ? raw : [raw]).map(adapt);
+
+      // update cache
+      MANAGERS_CACHE = arr;
+      MANAGERS_CACHE_TS = Date.now();
+
+      setData(arr);
     } catch (e: any) {
       setError(e?.message || "Failed to load managers");
       setData([]);
     } finally {
       setLoading(false);
+      setUsingCache(false); // after a network refresh, we're no longer serving cache
     }
   }, [base]);
 
   useEffect(() => {
-    if (data === null) refresh();
+    const fresh =
+      MANAGERS_CACHE && Date.now() - MANAGERS_CACHE_TS < STALE_MS;
+    if (fresh) {
+      setData(MANAGERS_CACHE);
+      setUsingCache(true);
+    }
+    if (data === null) {
+      void refresh();
+    }
   }, [data, refresh]);
 
-  return { data, loading, error, refresh };
+  return { data, loading, error, usingCache, refresh };
 }
