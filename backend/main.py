@@ -5,6 +5,10 @@ from fastapi.staticfiles import StaticFiles
 from managers.index import router as managers_router
 from news.index import router as news_router
 from fastapi import BackgroundTasks
+from admin.seed import router as seed_router
+from managers_db_version import router as managers_router
+from news_db_version import router as news_router
+
 import threading, traceback
 import os
 import json
@@ -71,6 +75,11 @@ app.include_router(news_router, prefix="/api")
 app.include_router(managers_router, prefix="/api")
 # Also mount under /api/managers for the new owner endpoints you’re testing:
 app.include_router(managers_router, prefix="/api/managers")
+
+app.include_router(seed_router, prefix="/api", tags=["admin"])
+app.include_router(managers_router, prefix="/api", tags=["managers"])
+app.include_router(news_router,     prefix="/api", tags=["news"])
+
 
 
 
