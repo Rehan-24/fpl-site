@@ -10,12 +10,9 @@ def _conn():
         raise RuntimeError("SUPABASE_DB_URL is not set")
     return psycopg.connect(DB_URL, row_factory=dict_row)
 
-# ---- Managers: reads ----
+# ---------- Managers (reads) ----------
 
 def fetch_all_managers():
-    """
-    Returns all active managers. Extend SELECT as needed.
-    """
     sql = """
     select
       m.id, m.display_name, m.owner_name, m.fpl_team_url,
@@ -40,9 +37,6 @@ def fetch_all_managers():
         return cur.fetchall()
 
 def fetch_manager_by_owner(owner: str):
-    """
-    Looks up a manager by owner_name (case-insensitive).
-    """
     sql = """
     select
       m.id, m.display_name, m.owner_name, m.fpl_team_url,
@@ -65,48 +59,98 @@ def fetch_manager_by_owner(owner: str):
         cur.execute(sql, (owner,))
         return cur.fetchone()
 
-# ---- Managers: update ----
-
-def update_manager_fields(owner: str, updates: dict) -> bool:
+def fetch_manager_by_discord(discord_id: str):
+    sql = """
+    select
+      m.id, m.display_name, m.owner_name, m.fpl_team_url,
+      m.favorite_club, m.image_url, m.dynamic_image_url,
+      m.social_url, m.bio, m.current_league,
+      m.years_playing, m.premier_years, m.championship_years,
+      m.promotions, m.relegations, m.best_finish,
+      m.titles, m.titles_list, m.active,
+      coalesce(
+        json_agg(json_build_object('type', t.type, 'count', t.count))
+          filter (where t.id is not null),
+        '[]'::json
+      ) as trophies
+    from public.manager m
+    left join public.manager_trophy t on t.manager_id = m.id
+    where m.discord_id = %s
+    group by m.id;
     """
-    Updates a manager row by owner_name for a small, safe allowlist of fields.
-    Returns True if something was updated, False otherwise.
-    """
-    if not updates:
-        return False
+    with _conn() as conn, conn.cursor() as cur:
+        # discord_id is bigint but we pass a string safely
+        cur.execute(sql, (discord_id,))
+        return cur.fetchone()
 
-    # Allow only these columns to be edited (Discord bot / admin UI)
-    allow = {
-        "bio",
-        "favorite_club",
-        "social_url",
-        "image_url",
-        "dynamic_image_url",
-        # add more if you need them later:
-        # "display_name", "fpl_team_url", "current_league",
-        # "years_playing", "premier_years", "championship_years",
-        # "titles", "titles_list",
-    }
+# ---------- Managers (updates) ----------
 
-    fields = [k for k in updates.keys() if k in allow]
+_ALLOW_EDIT = {
+    "bio",
+    "favorite_club",
+    "social_url",
+    "image_url",
+    "dynamic_image_url",
+}
+
+def update_manager_fields_by_owner(owner: str, updates: dict) -> bool:
+    fields = [k for k in updates.keys() if k in _ALLOW_EDIT]
     if not fields:
         return False
-
-    # Build "col1 = %s, col2 = %s, ..." safely using the allowlist
     set_clause = ", ".join(f"{k} = %s" for k in fields)
     params = [updates[k] for k in fields] + [owner]
-
     sql = (
         f"update public.manager "
         f"set {set_clause}, updated_at = now() "
         f"where lower(owner_name) = lower(%s)"
     )
-
     with _conn() as conn, conn.cursor() as cur:
         cur.execute(sql, params)
         return cur.rowcount > 0
 
-# ---- News: reads ----
+def update_manager_fields_by_discord(discord_id: str, updates: dict) -> bool:
+    fields = [k for k in updates.keys() if k in _ALLOW_EDIT]
+    if not fields:
+        return False
+    set_clause = ", ".join(f"{k} = %s" for k in fields)
+    params = [updates[k] for k in fields] + [discord_id]
+    sql = (
+        f"update public.manager "
+        f"set {set_clause}, updated_at = now() "
+        f"where discord_id = %s"
+    )
+    with _conn() as conn, conn.cursor() as cur:
+        cur.execute(sql, params)
+        return cur.rowcount > 0
+
+# ---------- Standings helpers (season stats) ----------
+
+def latest_standing_for_owner(owner: str):
+    """
+    Return the most recent standings row for this owner (any league),
+    plus the league size for that gameweek.
+    """
+    with _conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            select league, gameweek, position, points, score
+            from public.standings_row
+            where lower(owner) = lower(%s)
+            order by gameweek desc
+            limit 1
+        """, (owner,))
+        row = cur.fetchone()
+        if not row:
+            return None
+        cur.execute("""
+            select count(*) as league_size
+            from public.standings_row
+            where league = %s and gameweek = %s
+        """, (row["league"], row["gameweek"]))
+        sz = cur.fetchone()
+        row["league_size"] = (sz or {}).get("league_size", None)
+        return row
+
+# ---------- News ----------
 
 def list_news():
     sql = """
@@ -128,3 +172,15 @@ def get_news_detail(article_id: str):
     with _conn() as conn, conn.cursor() as cur:
         cur.execute(sql, (article_id,))
         return cur.fetchone()
+
+def list_news_tags():
+    sql = """
+    select distinct unnest(tags) as tag
+    from public.news_article
+    where published = true
+    order by tag;
+    """
+    with _conn() as conn, conn.cursor() as cur:
+        cur.execute(sql)
+        rows = cur.fetchall()
+        return [r["tag"] for r in rows if r and r.get("tag") is not None]

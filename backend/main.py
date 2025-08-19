@@ -70,11 +70,11 @@ SCRIPT_PATH = os.path.join(BASE_DIR, "src", "fpl_management.py")
 EXCEL_NAME_TEMPLATE = "{league}_results_v3.xlsx"
 
 # --- Routers ---
-app.include_router(news_router, prefix="/api")
+#app.include_router(news_router, prefix="/api")
 # Keep the original base so existing calls keep working:
-app.include_router(managers_router, prefix="/api")
+#app.include_router(managers_router, prefix="/api")
 # Also mount under /api/managers for the new owner endpoints you’re testing:
-app.include_router(managers_router, prefix="/api/managers")
+#app.include_router(managers_router, prefix="/api/managers")
 
 #app.include_router(seed_router, prefix="/api", tags=["admin"])
 app.include_router(managers_router, prefix="/api", tags=["managers"])
