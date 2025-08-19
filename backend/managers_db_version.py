@@ -14,7 +14,7 @@ from backend_db import (
 )
 
 router = APIRouter()
-
+DB_URL = os.getenv("SUPABASE_DB_URL")
 ALLOWED_FIELDS = {"bio", "favorite_club", "social_url", "image_url"}
 
 # ---------- Helpers (FPL URL parsing) ----------
