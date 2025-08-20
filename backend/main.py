@@ -11,6 +11,7 @@ from news_db_version import router as news_router
 from backend_db import insert_table_snapshot, get_latest_table_snapshot
 from pydantic import BaseModel
 from typing import Optional, Any, Dict
+from datetime import datetime
 
 import threading, traceback
 import os
@@ -300,11 +301,18 @@ def post_table_snapshot(s: TableSnapshotIn, _: None = Depends(require_admin)):
     return {"ok": True}
 
 @app.get("/api/tables/latest", tags=["tables"])
-def get_table_latest(league: str, gw: Optional[int] = None):
+def get_table_latest(league: str, gw: int | None = None):
     row = get_latest_table_snapshot(league, gw)
     if not row:
         raise HTTPException(status_code=404, detail="No snapshot found")
+
+    dt = row.get("generated_at")
+    if isinstance(dt, datetime):
+        # Make it ISO 8601 and force Z for UTC
+        row["generated_at"] = dt.isoformat().replace("+00:00", "Z")
+
     return row
+
 
 @app.post("/api/cron/trigger-rebuild")
 def cron_trigger_rebuild(
