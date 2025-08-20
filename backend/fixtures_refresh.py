@@ -1,7 +1,7 @@
 import os, requests
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Tuple
-from .backend_db import upsert_fixtures, recent_form_score, fdr_from_composite, fetch_all_managers
+from backend_db import upsert_fixtures, recent_form_score, fdr_from_composite, fetch_all_managers
 
 FPL_BASE = "https://fantasy.premierleague.com/api"
 
