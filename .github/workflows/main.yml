@@ -10,7 +10,7 @@ jobs:
     steps:
       - name: Try to wake up Render backend
         run: |
-          URL="https://tfpl.onrender.com/api/ping"
+          URL="https://tfpl.onrender.com/ping"
           MAX_ATTEMPTS=20
           DELAY=30
 
