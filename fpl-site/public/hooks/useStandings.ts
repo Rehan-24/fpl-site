@@ -43,7 +43,13 @@ export function useStandings(defaultLeague?: string, opts?: UseStandingsOpts) {
         // If we got here, snapshot exists — show it immediately
         setRows(normalizeRows(snap));
         // Use the snapshot timestamp as updatedAt
-        const ts = snap?.generated_at ? Date.parse(snap.generated_at) : Date.now();
+        const ts = snap?.generated_at
+          ? new Date(
+              // be robust to "YYYY-MM-DD HH:MM:SS+00" vs ISO with "T"
+              String(snap.generated_at).replace(" ", "T").replace("+00", "Z")
+            ).getTime()
+          : Date.now();
+
         setUpdatedAt(Number.isFinite(ts) ? ts : Date.now());
         setUsingCache(true);
         setLoading(false);
