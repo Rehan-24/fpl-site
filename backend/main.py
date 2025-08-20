@@ -555,3 +555,7 @@ def health():
     payload["admin_key_set"] = bool(ADMIN_KEY)
     payload["admin_key_len"] = len(ADMIN_KEY or "")
     return payload
+
+@app.get("/ping")
+def ping():
+    return {"status": "ok"}
