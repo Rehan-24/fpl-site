@@ -112,10 +112,11 @@ def refresh_fixtures(_: bool = Depends(_require_api_key)):
     if os.environ.get("H2H_CHAMPIONSHIP_LEAGUE_ID"):
         ligs.append(("Championship", int(os.environ["H2H_CHAMPIONSHIP_LEAGUE_ID"])))
 
+    inserted = []
     for name, lid in ligs:
-        refresh_h2h_fixtures_for_league(league_id=lid, league_name=name)
-
-    return {"ok": True, "season": current_season_label(), "leagues": [n for n, _ in ligs]}
+        n = refresh_h2h_fixtures_for_league(league_id=lid, league_name=name)
+        inserted.append({"league": name, "rows": n})
+    return {"ok": True, "season": current_season_label(), "inserted": inserted}
 
 app.include_router(router_admin)
 

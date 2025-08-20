@@ -331,3 +331,18 @@ def debug_owner(owner: str):
         "num_opponents_found": len(opps),
         "sample_opponents": list(opps.items())[:5],
     }
+    
+@router.get("/admin/fixtures-stats")
+def fixtures_stats():
+    import psycopg
+    from psycopg.rows import dict_row
+    DB_URL = os.getenv("SUPABASE_DB_URL")
+    with psycopg.connect(DB_URL, row_factory=dict_row) as conn, conn.cursor() as cur:
+        cur.execute("SELECT season, COUNT(*) AS n FROM public.fixtures_h2h GROUP BY season ORDER BY season DESC;")
+        by_season = cur.fetchall()
+        cur.execute("SELECT DISTINCT league_id FROM public.fixtures_h2h ORDER BY 1;")
+        leagues = [r["league_id"] for r in cur.fetchall()]
+        cur.execute("SELECT home_owner AS owner FROM public.fixtures_h2h LIMIT 1;")
+        sample_owner = (cur.fetchone() or {}).get("owner")
+    return {"by_season": by_season, "leagues": leagues, "sample_owner": sample_owner}
+

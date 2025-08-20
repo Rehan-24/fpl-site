@@ -292,7 +292,7 @@ def get_manager_fixtures(owner: str, season: str, include_past: bool, limit_next
         home_score, away_score,
         home_fdr, away_fdr
       FROM public.fixtures_h2h
-      WHERE season = %s AND (home_owner = %s OR away_owner = %s)
+      # WHERE season = %s AND (lower(home_owner) = lower(%s) OR lower(away_owner) = lower(%s))
     """
     args = [season, owner, owner]
     if not include_past:
