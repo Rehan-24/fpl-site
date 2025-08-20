@@ -250,7 +250,10 @@ def get_latest_table_snapshot(league: str, gw: int | None = None):
         return row  # already a dict or None
     
 # ---------- UPSERT FIXTURES ----------
-def upsert_fixtures(fixtures_rows: List[Dict[str, Any]]) -> None:
+def upsert_fixtures(fixtures_rows: list[dict]) -> int:
+    if not fixtures_rows:
+        return 0
+
     sql = """
     INSERT INTO public.fixtures_h2h (
       season, league_id, gw, fixture_id, kickoff_utc, finished,
@@ -276,10 +279,22 @@ def upsert_fixtures(fixtures_rows: List[Dict[str, Any]]) -> None:
       away_fdr = EXCLUDED.away_fdr,
       updated_at = now();
     """
-    with psycopg.connect(os.environ["SUPABASE_DB_URL"], row_factory=dict_row) as conn, conn.cursor() as cur:
-        for row in fixtures_rows:
-            cur.execute(sql, row)
+
+    with psycopg.connect(os.environ["SUPABASE_DB_URL"], row_factory=dict_row) as conn:
+        with conn.cursor() as cur:
+            # turn off server-side prepare to avoid duplicate prepared statement names
+            try:
+                cur.prepare_threshold = None
+            except Exception:
+                pass
+
+            # batch to keep memory & lock times sane
+            BATCH = 1000
+            for i in range(0, len(fixtures_rows), BATCH):
+                cur.executemany(sql, fixtures_rows[i:i+BATCH])
+
         conn.commit()
+    return len(fixtures_rows)
 
 # ---------- READ MANAGER FIXTURES ----------
 def get_manager_fixtures(owner: str, season: str, include_past: bool, limit_next: Optional[int]) -> List[Dict[str, Any]]:
