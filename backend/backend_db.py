@@ -3,7 +3,6 @@ import os
 import psycopg
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
-from psycopg import connect
 from psycopg.rows import dict_row
 from psycopg.types.json import Json
 
@@ -16,7 +15,7 @@ ALLOWED_MANAGER_FIELDS = {"bio", "favorite_club", "social_url", "image_url"}
 def _conn():
     if not DB_URL:
         raise RuntimeError("SUPABASE_DB_URL is not set")
-    return connect(DB_URL, row_factory=dict_row)
+    return psycopg.connect(DB_URL, row_factory=dict_row)
 
 # ---------- Managers (reads) ----------
 
@@ -47,14 +46,14 @@ def fetch_all_managers():
 def fetch_manager_by_discord(discord_id: str) -> Optional[dict]:
     if not DB_URL: return None
     q = "select * from public.manager where discord_id = %s limit 1"
-    with connect(DB_URL, row_factory=dict_row) as conn, conn.cursor() as cur:
+    with psycopg.connect(DB_URL, row_factory=dict_row) as conn, conn.cursor() as cur:
         cur.execute(q, (discord_id.strip(),))
         return cur.fetchone()
 
 def fetch_manager_by_owner(owner_name: str) -> Optional[dict]:
     if not DB_URL: return None
     q = "select * from public.manager where lower(owner_name) = lower(%s) limit 1"
-    with connect(DB_URL, row_factory=dict_row) as conn, conn.cursor() as cur:
+    with psycopg.connect(DB_URL, row_factory=dict_row) as conn, conn.cursor() as cur:
         cur.execute(q, (owner_name.strip(),))
         return cur.fetchone()
 
@@ -93,7 +92,7 @@ def update_manager_fields(*, owner_name: str = None, discord_id: str = None, **f
        where {where}
     returning *;
     """
-    with connect(DB_URL, row_factory=dict_row) as conn, conn.cursor() as cur:
+    with psycopg.connect(DB_URL, row_factory=dict_row) as conn, conn.cursor() as cur:
         cur.execute(sql, vals)
         row = cur.fetchone()
         conn.commit()
@@ -299,6 +298,7 @@ def upsert_fixtures(fixtures_rows: list[dict]) -> int:
 # ---------- READ MANAGER FIXTURES ----------
 def get_manager_fixtures(owner: str, season: str, include_past: bool, limit_next: Optional[int]) -> List[Dict[str, Any]]:
     now = datetime.now(timezone.utc)
+    owner_norm = (owner or "").strip().lower()
     base = """
       SELECT
         season, league_id, gw, fixture_id, kickoff_utc, finished,
@@ -307,9 +307,10 @@ def get_manager_fixtures(owner: str, season: str, include_past: bool, limit_next
         home_score, away_score,
         home_fdr, away_fdr
       FROM public.fixtures_h2h
-      # WHERE season = %s AND (lower(home_owner) = lower(%s) OR lower(away_owner) = lower(%s))
+      WHERE season = %s
+        AND (lower(home_owner) = %s OR lower(away_owner) = %s)
     """
-    args = [season, owner, owner]
+    args = [season, owner_norm, owner_norm]
     if not include_past:
         base += " AND (kickoff_utc IS NULL OR kickoff_utc >= %s) "
         args.append(now)
@@ -325,7 +326,7 @@ def get_manager_fixtures(owner: str, season: str, include_past: bool, limit_next
 
     shaped = []
     for r in rows:
-        is_home = (r["home_owner"] == owner)
+        is_home = (str(r["home_owner"] or "").strip().lower() == owner_norm)
         opponent_owner = r["away_owner"] if is_home else r["home_owner"]
         opponent_team  = r["away_team_name"] if is_home else r["home_team_name"]
         score_for      = r["home_score"] if is_home else r["away_score"]
