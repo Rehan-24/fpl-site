@@ -301,11 +301,11 @@ export default function Premier() {
     <main className="bg-gradient-to-b from-blue-200 via-white to-purple-100 min-h-screen text-[#37003c]">
       <Head>
         <title>Premier Table | tFPL</title>
-        <meta property="og:title" content="Championship League Table" />
-        <meta property="og:description" content="Championship League Table" />
+        <meta property="og:title" content="Premier League Table" />
+        <meta property="og:description" content="Premier League Table" />
         <meta
           property="og:image"
-          content="https://4.bp.blogspot.com/-ilHxPtWB8FA/VkS9BiuUpAI/AAAAAAAAxAM/QNQtiFimLyE/s1600/English-Football-League%2B%25281%2529.jpg"
+          content="https://gmkoutsi.com/wp-content/uploads/2023/08/fantasy-premier-league.webp"
         />
         <meta property="og:url" content="https://tfpl.vercel.app/premier" />
         <meta property="og:type" content="website" />
