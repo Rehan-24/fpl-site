@@ -274,7 +274,7 @@ export default function Championship() {
 
   const first = rows[0] || {};
   const preferredOrder = [
-    "GP", "Wins", "Draws", "Losses", "Points",
+    "Points", "Wins", "Draws", "Losses", "GP", "Games Left",
     "Score", "Score Against", "Plus/Minus",
     "GW Transfers", "GW Transfer Hit",
     "Total Transfers Made", "Total Transfer Hit",

@@ -173,7 +173,7 @@ def excel_to_latest_json(league: str, preferred_sheet: Optional[str] = None) -> 
         df_sorted.insert(0, "Position", range(1, len(df_sorted) + 1))
         
     desired = [
-        "GP", "Wins", "Draws", "Losses", "Points",
+        "Points", "Wins", "Draws", "Losses", "GP", "Games Left",
         "Score", "Score Against", "Plus/Minus",
         "GW Transfers", "GW Transfer Hit",
         "Total Transfers Made", "Total Transfer Hit",
