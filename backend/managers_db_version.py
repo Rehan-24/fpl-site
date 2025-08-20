@@ -13,6 +13,7 @@ from backend_db import (
     fetch_manager_by_discord,
     latest_standing_for_owner,
 )
+from backend_db import list_manager_seasons
 
 router = APIRouter()
 
@@ -105,9 +106,20 @@ def fixtures_owner_alias(owner: str, all: bool = Query(False), limit: int | None
 #    return season_stats(owner)  # reuse your function below
 
 @router.get("/managers/{owner}/seasons")
-def list_owner_seasons(owner: str):
-    rows = get_season_stats_for_owner(owner)
-    return {"owner": owner, "seasons": rows}
+def seasons_for_owner(owner: str):
+    rows = list_manager_seasons(owner)
+    # normalize keys for frontend
+    out = []
+    for r in rows:
+        out.append({
+            "season": r.get("season"),
+            "league": r.get("league"),
+            "placement": r.get("placement"),
+            "points": r.get("league_points"),
+            "score": r.get("total_score"),
+            "overallRank": r.get("overall_rank"),
+        })
+    return {"owner": owner, "seasons": out}
 
 # (optional) keep legacy path but serve real data now
 @router.get("/managers/{owner}/season-stats")

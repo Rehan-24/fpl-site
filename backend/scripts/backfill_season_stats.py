@@ -1,133 +1,139 @@
-import os, re, time, argparse, requests
+import os, re, argparse, requests
 import psycopg
 from psycopg.rows import dict_row
+from typing import Optional, Dict, Any
 
-DB_URL = os.getenv("SUPABASE_DB_URL")
-FPL = "https://fantasy.premierleague.com/api"
+# Prefer env var; fall back to your hardcoded string if present
+DB_URL = os.getenv("SUPABASE_DB_URL") or "postgres://postgres.fmkbxhtmjlgeoiouphuy:2iL20hiLUtaxjRi9@aws-1-us-west-1.pooler.supabase.com:6543/postgres?sslmode=require"
 ENTRY_RE = re.compile(r"/entry/(\d+)/")
 
-SEASONS = ["2021-22","2022-23","2023-24","2024-25","2025-26"]  # adjust as needed
+SEASONS = ["2021-22", "2022-23", "2023-24", "2024-25", "2025-26"]
+HTTP_HEADERS = {"User-Agent": "tfpl-backfill/1.0"}
 
-def _entry_from_url(url: str|None) -> int|None:
-    if not url: return None
+def _parse_entry_id(url: Optional[str]) -> Optional[int]:
+    if not url:
+        return None
     m = ENTRY_RE.search(url)
     return int(m.group(1)) if m else None
 
-def _season_slug_from_fpl(name: str) -> str:
-    # "2023/24" -> "2023-24"
-    name = (name or "").strip()
-    return name.replace("/", "-")
+def fpl_label(s: str) -> str:
+    """'2024-25' -> '2024/25'"""
+    a = int(s.split("-")[0])
+    return f"{a}/{(a+1)%100:02d}"
 
-def fetch_managers():
-    sql = "select owner_name, team as team_name, fpl_team_url from public.manager where active = true"
-    with psycopg.connect(DB_URL, row_factory=dict_row) as conn, conn.cursor() as cur:
+def fetch_all_managers(conn):
+    sql = """
+      select owner_name, team, fpl_team_url
+      from public.manager
+      where active = true
+      order by lower(owner_name)
+    """
+    with conn.cursor() as cur:
         cur.execute(sql)
         return cur.fetchall()
 
-def upsert(rows):
-    if not rows: return 0
+def upsert_rows(rows):
+    if not rows:
+        return 0
+
     sql = """
-    INSERT INTO public.season_stats
-      (owner_name, season, fpl_entry_id, team_name, placement, league_points, total_score, overall_rank, updated_at)
+    INSERT INTO public.manager_season_stats
+      (owner_name, season, league, placement, league_points, total_score, updated_at)
     VALUES
-      (%(owner_name)s, %(season)s, %(fpl_entry_id)s, %(team_name)s, %(placement)s, %(league_points)s, %(total_score)s, %(overall_rank)s, now())
+      (%(owner_name)s, %(season)s, %(league)s, %(placement)s, %(league_points)s, %(total_score)s, now())
     ON CONFLICT (owner_name, season) DO UPDATE SET
-      fpl_entry_id  = EXCLUDED.fpl_entry_id,
-      team_name     = EXCLUDED.team_name,
-      placement     = COALESCE(EXCLUDED.placement, season_stats.placement),
-      league_points = COALESCE(EXCLUDED.league_points, season_stats.league_points),
-      total_score   = EXCLUDED.total_score,
-      overall_rank  = EXCLUDED.overall_rank,
+      league        = COALESCE(EXCLUDED.league, manager_season_stats.league),
+      placement     = COALESCE(EXCLUDED.placement, manager_season_stats.placement),
+      league_points = COALESCE(EXCLUDED.league_points, manager_season_stats.league_points),
+      total_score   = COALESCE(EXCLUDED.total_score, manager_season_stats.total_score),
       updated_at    = now();
     """
+
     with psycopg.connect(DB_URL, row_factory=dict_row) as conn:
+        # IMPORTANT: pgbouncer (transaction pooling) + server prepares = 💥
         try:
             conn.prepare_threshold = None
         except Exception:
             pass
+
         with conn.cursor() as cur:
             try:
                 cur.prepare_threshold = None
             except Exception:
                 pass
+            # optional no-op; harmless if unsupported
             try:
                 cur.execute("DEALLOCATE ALL;")
             except Exception:
                 pass
+
             cur.executemany(sql, rows)
+
         conn.commit()
     return len(rows)
 
-def backfill():
-    ms = fetch_managers()
-    out = []
-    for i, m in enumerate(ms, start=1):
-        owner = m["owner_name"]
-        eid = _entry_from_url(m.get("fpl_team_url"))
-        if not eid:
-            # create blank shells for seasons so UI still shows rows to be filled
-            for s in SEASONS:
-                out.append({"owner_name": owner, "season": s, "fpl_entry_id": None,
-                            "team_name": m.get("team_name"), "placement": None, "league_points": None,
-                            "total_score": None, "overall_rank": None})
-            continue
 
-        # Past seasons
-        try:
-            r = requests.get(f"{FPL}/entry/{eid}/history/", timeout=12)
-            r.raise_for_status()
-            hist = r.json() or {}
-            past = hist.get("past") or []
-        except Exception:
-            past = []
+def pull_fpl_history(entry_id: int) -> Dict[str, Any]:
+    r = requests.get(
+        f"https://fantasy.premierleague.com/api/entry/{entry_id}/history/",
+        timeout=20,
+        headers=HTTP_HEADERS,
+    )
+    r.raise_for_status()
+    return r.json() or {}
 
-        by_season = {}
-        for p in past:
-            slug = _season_slug_from_fpl(p.get("season_name", ""))
-            if slug in SEASONS:
-                by_season[slug] = {
-                    "total_score": p.get("total_points"),
-                    "overall_rank": p.get("rank") or p.get("overall_rank"),
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--seasons", default=",".join(SEASONS),
+                    help="Comma-separated list like 2021-22,2022-23,...")
+    args = ap.parse_args()
+    seasons = [s.strip() for s in args.seasons.split(",") if s.strip()]
+
+    if not DB_URL:
+        raise SystemExit("SUPABASE_DB_URL not set")
+
+    with psycopg.connect(DB_URL, row_factory=dict_row) as conn:
+        mgrs = fetch_all_managers(conn)
+
+        for m in mgrs:
+            owner = (m["owner_name"] or "").strip()
+            eid = _parse_entry_id(m.get("fpl_team_url"))
+            past_map: Dict[str, Dict[str, Any]] = {}
+
+            if eid:
+                try:
+                    hist = pull_fpl_history(eid)
+                    for p in (hist.get("past") or []):
+                        # keys: 'season_name' like '2023/24', plus 'total_points', 'rank'
+                        past_map[p.get("season_name")] = {
+                            "total_points": p.get("total_points"),
+                            "rank": p.get("rank"),
+                        }
+                except Exception:
+                    # network/API hiccup; just leave totals/ranks as None
+                    pass
+
+            for s in seasons:
+                row: Dict[str, Any] = {
+                    "owner_name": owner,
+                    "season": s,
+                    "league": None,
+                    "placement": None,
+                    "league_points": None,
+                    "total_score": None,
+                    "overall_rank": None,
+                    "fpl_entry_id": eid,
                 }
 
-        # Current season snapshot (team name + current totals if available)
-        cur_team, cur_pts, cur_rank = None, None, None
-        try:
-            r2 = requests.get(f"{FPL}/entry/{eid}/", timeout=12)
-            r2.raise_for_status()
-            j = r2.json() or {}
-            cur_team = j.get("name")
-            cur_pts  = j.get("summary_overall_points")
-            cur_rank = j.get("summary_overall_rank")
-        except Exception:
-            pass
+                label = fpl_label(s)  # e.g. '2024/25'
+                if label in past_map:
+                    row["total_score"]  = past_map[label].get("total_points")
+                    row["overall_rank"] = past_map[label].get("rank")
 
-        # build rows for all seasons; keep your league fields empty (manual or separately imported)
-        for s in SEASONS:
-            src = by_season.get(s, {})
-            total = src.get("total_score")
-            rank  = src.get("overall_rank")
-            # if season is current and past didn’t have it yet, use current snapshot
-            if s == SEASONS[-1]:
-                total = total if total is not None else cur_pts
-                rank  = rank if rank  is not None else cur_rank
-            out.append({
-                "owner_name": owner,
-                "season": s,
-                "fpl_entry_id": eid,
-                "team_name": cur_team or m.get("team_name"),
-                "placement": None,        # fill manually / later
-                "league_points": None,    # fill manually / later (or from your JSON)
-                "total_score": total,
-                "overall_rank": rank,
-            })
+                upsert_row(conn, row)
 
-        # be polite to FPL API
-        time.sleep(0.2)
-
-    n = upsert(out)
-    print(f"upserted/updated {n} rows")
-    return n
+        conn.commit()
+        print(f"Backfill complete for seasons: {', '.join(seasons)}")
 
 if __name__ == "__main__":
-    backfill()
+    main()

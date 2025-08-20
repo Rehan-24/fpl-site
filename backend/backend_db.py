@@ -478,6 +478,17 @@ def detect_next_gw(season: str) -> Optional[int]:
         return (int(mx) + 1) if mx is not None else None
 
 # --- Last-season finish reads ---
+def list_manager_seasons(owner: str):
+    sql = """
+      select season, league, placement, league_points, total_score, overall_rank
+      from public.manager_season_stats
+      where lower(owner_name) = lower(%s)
+      order by season asc
+    """
+    with _conn() as conn, conn.cursor() as cur:
+        cur.execute(sql, (owner,))
+        return cur.fetchall()
+
 
 # --- Season stats helpers ---
 def upsert_season_stats(rows: list[dict]) -> int:
