@@ -479,6 +479,57 @@ def detect_next_gw(season: str) -> Optional[int]:
 
 # --- Last-season finish reads ---
 
+# --- Season stats helpers ---
+def upsert_season_stats(rows: list[dict]) -> int:
+    if not rows:
+        return 0
+    sql = """
+    INSERT INTO public.season_stats
+      (owner_name, season, fpl_entry_id, team_name, placement, league_points, total_score, overall_rank, updated_at)
+    VALUES
+      (%(owner_name)s, %(season)s, %(fpl_entry_id)s, %(team_name)s, %(placement)s, %(league_points)s, %(total_score)s, %(overall_rank)s, now())
+    ON CONFLICT (owner_name, season) DO UPDATE SET
+      fpl_entry_id  = EXCLUDED.fpl_entry_id,
+      team_name     = EXCLUDED.team_name,
+      placement     = EXCLUDED.placement,
+      league_points = EXCLUDED.league_points,
+      total_score   = EXCLUDED.total_score,
+      overall_rank  = EXCLUDED.overall_rank,
+      updated_at    = now();
+    """
+    with psycopg.connect(DB_URL, row_factory=dict_row) as conn:
+        try:
+            conn.prepare_threshold = None
+        except Exception:
+            pass
+        with conn.cursor() as cur:
+            try:
+                cur.prepare_threshold = None
+            except Exception:
+                pass
+            try:
+                cur.execute("DEALLOCATE ALL;")
+            except Exception:
+                pass
+            BATCH = 1000
+            for i in range(0, len(rows), BATCH):
+                cur.executemany(sql, rows[i:i+BATCH])
+        conn.commit()
+    return len(rows)
+
+def get_season_stats_for_owner(owner_name: str) -> list[dict]:
+    q = """
+    SELECT owner_name, season, fpl_entry_id, team_name,
+           placement, league_points, total_score, overall_rank
+    FROM public.season_stats
+    WHERE lower(owner_name) = lower(%s)
+    ORDER BY season ASC
+    """
+    with _conn() as conn, conn.cursor() as cur:
+        cur.execute(q, (owner_name,))
+        return cur.fetchall()
+
+
 def get_last_finish_for(owner: str, season: str, league: str | None = None) -> dict | None:
     """
     Look up last season's finish for this owner.

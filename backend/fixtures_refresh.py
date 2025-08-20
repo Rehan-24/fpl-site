@@ -65,8 +65,9 @@ def current_season_label() -> str:
 def last_season_label():
     # '2025-26' -> '2024-25'
     cur = current_season_label()
-    a, b = cur.split("-")
-    return f"{int(a)-1}-{b}"
+    start = int(cur.split("-")[0])    # 2025
+    last_start = start - 1            # 2024
+    return f"{last_start}-{str((last_start + 1) % 100).zfill(2)}"  # '2024-25'
 
 
 def refresh_h2h_fixtures_for_league(league_id: int, league_name: str) -> int:

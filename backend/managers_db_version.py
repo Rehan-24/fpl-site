@@ -4,7 +4,7 @@ from psycopg.rows import dict_row
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 from fastapi import APIRouter, HTTPException, Body, Header, Query
-
+from backend_db import get_season_stats_for_owner
 from backend_db import get_manager_fixtures
 from fixtures_refresh import current_season_label
 from backend_db import (
@@ -100,9 +100,20 @@ def fixtures_owner_alias(owner: str, all: bool = Query(False), limit: int | None
     return _fixtures_payload(owner, all, limit)
 
 # Season stats
-@router.get("/managers/owner/{owner}/season-stats")
-def season_stats_canonical(owner: str):
-    return season_stats(owner)  # reuse your function below
+#@router.get("/managers/owner/{owner}/season-stats")
+#def season_stats_canonical(owner: str):
+#    return season_stats(owner)  # reuse your function below
+
+@router.get("/managers/{owner}/seasons")
+def list_owner_seasons(owner: str):
+    rows = get_season_stats_for_owner(owner)
+    return {"owner": owner, "seasons": rows}
+
+# (optional) keep legacy path but serve real data now
+@router.get("/managers/{owner}/season-stats")
+def season_stats(owner: str):
+    rows = get_season_stats_for_owner(owner)
+    return {"stats": rows}
 
 # Matchups
 @router.get("/managers/owner/{owner}/matchups")
