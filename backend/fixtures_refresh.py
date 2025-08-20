@@ -102,8 +102,8 @@ def refresh_h2h_fixtures_for_league(league_id: int, league_name: str) -> int:
                 away_score = fx.get("entry_2_points")
 
                 # Recent-form difficulty (opponent strength)
-                away_comp = owner_comp(away_owner)
-                home_comp = owner_comp(home_owner)
+                home_comp = recent_form_score(home_owner, season)['composite']
+                away_comp = recent_form_score(away_owner, season)['composite']
                 home_fdr = fdr_from_composite(away_comp)
                 away_fdr = fdr_from_composite(home_comp)
 

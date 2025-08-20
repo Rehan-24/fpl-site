@@ -312,7 +312,37 @@ def upsert_fixtures(fixtures_rows: list[dict]) -> int:
 def get_manager_fixtures(owner: str, season: str, include_past: bool, limit_next: Optional[int]) -> List[Dict[str, Any]]:
     now = datetime.now(timezone.utc)
     owner_norm = (owner or "").strip().lower()
-    base = """
+
+    # Base owner filter (case-insensitive)
+    where = """
+      WHERE season = %s
+        AND (lower(home_owner) = %s OR lower(away_owner) = %s)
+    """
+    args = [season, owner_norm, owner_norm]
+
+    if include_past:
+        # All fixtures for this owner in the season
+        order = " ORDER BY gw ASC, (kickoff_utc IS NULL), kickoff_utc ASC "
+        limit_clause = ""
+    else:
+        # Only the next 3 GWs after the current one
+        next_gw = detect_next_gw(season)
+        if next_gw is not None:
+            where += " AND gw BETWEEN %s AND %s "
+            args.extend([next_gw, next_gw + 2])
+            # Order by GW only (time can be null early season)
+            order = " ORDER BY gw ASC, (kickoff_utc IS NULL), kickoff_utc ASC "
+            limit_clause = ""  # window already constrained to 3 GWs
+        else:
+            # If we can't detect, fall back to time-based "upcoming"
+            where += " AND (kickoff_utc IS NULL OR kickoff_utc >= %s) "
+            args.append(now)
+            order = " ORDER BY (kickoff_utc IS NULL), kickoff_utc ASC, gw ASC "
+            limit_clause = " LIMIT %s " if limit_next else ""
+            if limit_next:
+                args.append(limit_next)
+
+    sql = f"""
       SELECT
         season, league_id, gw, fixture_id, kickoff_utc, finished,
         home_owner, away_owner,
@@ -320,21 +350,13 @@ def get_manager_fixtures(owner: str, season: str, include_past: bool, limit_next
         home_score, away_score,
         home_fdr, away_fdr
       FROM public.fixtures_h2h
-      WHERE season = %s
-        AND (lower(home_owner) = %s OR lower(away_owner) = %s)
+      {where}
+      {order}
+      {limit_clause}
     """
-    args = [season, owner_norm, owner_norm]
-    if not include_past:
-        base += " AND (kickoff_utc IS NULL OR kickoff_utc >= %s) "
-        args.append(now)
-
-    base += " ORDER BY (kickoff_utc IS NULL), kickoff_utc ASC, gw ASC "
-    if not include_past and limit_next:
-        base += " LIMIT %s "
-        args.append(limit_next)
 
     with psycopg.connect(os.environ["SUPABASE_DB_URL"], row_factory=dict_row) as conn, conn.cursor() as cur:
-        cur.execute(base, args)
+        cur.execute(sql, args)
         rows = cur.fetchall()
 
     shaped = []
@@ -344,10 +366,11 @@ def get_manager_fixtures(owner: str, season: str, include_past: bool, limit_next
         opponent_team  = r["away_team_name"] if is_home else r["home_team_name"]
         score_for      = r["home_score"] if is_home else r["away_score"]
         score_against  = r["away_score"] if is_home else r["home_score"]
-        fdr            = (r["away_fdr"] if is_home else r["home_fdr"])  # FDR vs opponent
+        fdr            = (r["away_fdr"] if is_home else r["home_fdr"])  # difficulty vs opponent
+
         shaped.append({
             "gw": r["gw"],
-            "kickoff_utc": r["kickoff_utc"],
+            "kickoff_utc": r["kickoff_utc"],     # keep for compatibility
             "finished": r["finished"],
             "is_home": is_home,
             "opponent_owner": opponent_owner,
@@ -356,7 +379,9 @@ def get_manager_fixtures(owner: str, season: str, include_past: bool, limit_next
             "score_against": score_against,
             "fdr": fdr,
         })
+
     return shaped
+
 
 # ---------- RECENT FORM / POINTS HELPERS (for FDR) ----------
 def _fetch_recent_completed(owner: str, season: str, limit_matches: int) -> List[Dict[str, Any]]:
@@ -372,9 +397,10 @@ def _fetch_recent_completed(owner: str, season: str, limit_matches: int) -> List
       ORDER BY gw DESC
       LIMIT %s
     """
-    with psycopg.connect(DB_URL, row_factory=dict_row) as conn, conn.cursor() as cur:
+    with psycopg.connect(os.environ["SUPABASE_DB_URL"], row_factory=dict_row) as conn, conn.cursor() as cur:
         cur.execute(sql, [season, owner_norm, owner_norm, limit_matches])
         return cur.fetchall()
+
 
 def recent_form_score(owner: str, season: str, limit_matches: int = 5) -> Dict[str, float]:
     rows = _fetch_recent_completed(owner, season, limit_matches)
@@ -407,4 +433,28 @@ def fdr_from_composite(opponent_composite: float) -> int:
     if s >= 0.50: return 3
     if s >= 0.35: return 2
     return 1
+
+def detect_next_gw(season: str) -> Optional[int]:
+    """
+    Returns the smallest GW in this season that still has upcoming/unfinished matches.
+    Falls back to MAX(gw)+1 if the season's remaining fixtures are all finished.
+    """
+    with psycopg.connect(os.environ["SUPABASE_DB_URL"], row_factory=dict_row) as conn, conn.cursor() as cur:
+        # primary: first GW with any unfinished fixture (kickoff in future or kickoff unknown)
+        cur.execute("""
+            SELECT MIN(gw) AS next_gw
+            FROM public.fixtures_h2h
+            WHERE season = %s
+              AND (finished IS NOT TRUE)
+        """, [season])
+        row = cur.fetchone()
+        if row and row.get("next_gw") is not None:
+            return int(row["next_gw"])
+
+        # fallback: everything finished → return last gw + 1 (or None if table empty)
+        cur.execute("SELECT MAX(gw) AS max_gw FROM public.fixtures_h2h WHERE season = %s", [season])
+        r2 = cur.fetchone()
+        mx = (r2 or {}).get("max_gw")
+        return (int(mx) + 1) if mx is not None else None
+
 
