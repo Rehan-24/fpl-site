@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 
 type Fixture = {
   gw: number;
@@ -16,10 +16,14 @@ type Fixture = {
 export default function FixtureFDRCard({ ownerName }: { ownerName: string }) {
   const [rows, setRows] = useState<Fixture[]>([]);
   const [showAll, setShowAll] = useState(false);
+  const API_BASE = useMemo(
+    () => (process.env.NEXT_PUBLIC_API_BASE_URL || 'https://tfpl.onrender.com').replace(/\/$/, ''),
+    []
+  );
 
   useEffect(() => {
     const q = showAll ? "?all=1" : "";
-    fetch(`/api/managers/${encodeURIComponent(ownerName)}/fixtures${q}`)
+    fetch(`${API_BASE}/api/managers/${encodeURIComponent(ownerName)}/fixtures${q}`)
       .then(r => r.json())
       .then(d => setRows(Array.isArray(d.fixtures) ? d.fixtures : []))
       .catch(() => setRows([]));
