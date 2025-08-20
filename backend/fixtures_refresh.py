@@ -65,6 +65,10 @@ def refresh_h2h_fixtures_for_league(league_id: int, league_name: str) -> int:
             comp_cache[owner] = recent_form_score(owner, season, limit_matches=5)["composite"]
         return comp_cache[owner]
 
+    home_comp = owner_comp(home_owner)
+    away_comp = owner_comp(away_owner)
+
+
     fixtures_rows: List[Dict[str, Any]] = []
     headers = {"User-Agent": "tfpl-site"}  # be polite
 

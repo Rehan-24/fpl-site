@@ -1,6 +1,8 @@
 # backend/backend_db.py
 import os
 import psycopg
+import requests
+
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from psycopg.rows import dict_row
@@ -436,25 +438,43 @@ def fdr_from_composite(opponent_composite: float) -> int:
 
 def detect_next_gw(season: str) -> Optional[int]:
     """
-    Returns the smallest GW in this season that still has upcoming/unfinished matches.
-    Falls back to MAX(gw)+1 if the season's remaining fixtures are all finished.
+    Prefer FPL's bootstrap-static to decide the 'next' GW.
+    Fallback to DB-based heuristic if the API is unavailable.
     """
+    try:
+        r = requests.get("https://fantasy.premierleague.com/api/bootstrap-static/", timeout=10)
+        r.raise_for_status()
+        events = r.json().get("events", [])
+        # Primary: explicit next GW
+        for e in events:
+            if e.get("is_next"):
+                return int(e["id"])
+        # Secondary: if nothing flagged as next, use current GW (still ongoing)
+        for e in events:
+            if e.get("is_current"):
+                return int(e["id"])
+        # Tertiary: highest event whose deadline has not passed is a rough 'next'
+        # (Usually covered by is_next/is_current, so rarely used)
+        ids = [int(e["id"]) for e in events if "id" in e]
+        return min(ids) if ids else None
+    except Exception:
+        pass
+
+    # Fallback: DB heuristic (first unfinished GW or last+1)
     with psycopg.connect(os.environ["SUPABASE_DB_URL"], row_factory=dict_row) as conn, conn.cursor() as cur:
-        # primary: first GW with any unfinished fixture (kickoff in future or kickoff unknown)
         cur.execute("""
             SELECT MIN(gw) AS next_gw
             FROM public.fixtures_h2h
-            WHERE season = %s
-              AND (finished IS NOT TRUE)
+            WHERE season = %s AND (finished IS NOT TRUE)
         """, [season])
         row = cur.fetchone()
         if row and row.get("next_gw") is not None:
             return int(row["next_gw"])
 
-        # fallback: everything finished → return last gw + 1 (or None if table empty)
         cur.execute("SELECT MAX(gw) AS max_gw FROM public.fixtures_h2h WHERE season = %s", [season])
         r2 = cur.fetchone()
         mx = (r2 or {}).get("max_gw")
         return (int(mx) + 1) if mx is not None else None
+
 
 

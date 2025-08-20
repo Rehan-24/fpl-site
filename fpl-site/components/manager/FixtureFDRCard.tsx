@@ -22,12 +22,27 @@ export default function FixtureFDRCard({ ownerName }: { ownerName: string }) {
   );
 
   useEffect(() => {
-    const q = showAll ? "?all=1" : "";
-    fetch(`${API_BASE}/api/managers/${encodeURIComponent(ownerName)}/fixtures${q}`)
-      .then(r => r.json())
-      .then(d => setRows(Array.isArray(d.fixtures) ? d.fixtures : []))
-      .catch(() => setRows([]));
-  }, [ownerName, showAll]);
+  const q = showAll ? "?all=1" : "";
+  fetch(`${API_BASE}/api/managers/${encodeURIComponent(ownerName)}/fixtures${q}`)
+    .then(r => r.json())
+    .then(d => {
+      const arr = Array.isArray(d.fixtures) ? d.fixtures : [];
+      const mapped: Fixture[] = arr.map((r: any) => ({
+        gw: r.gw,
+        kickoff_utc: r.kickoff_utc,
+        finished: r.finished,
+        is_home: r.is_home,
+        opponentTeam: r.opponent_team ?? r.opponentTeam ?? "",    // ← map
+        opponentManager: r.opponent_owner ?? r.opponentManager,    // ← map
+        score_for: r.score_for,
+        score_against: r.score_against,
+        fdr: r.fdr,
+      }));
+      setRows(mapped);
+    })
+    .catch(() => setRows([]));
+}, [ownerName, showAll, API_BASE]);
+
 
   // Badge color
   const fdrBadge = (n?: number | null) => {
