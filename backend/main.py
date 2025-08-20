@@ -305,12 +305,9 @@ def get_table_latest(league: str, gw: int | None = None):
     row = get_latest_table_snapshot(league, gw)
     if not row:
         raise HTTPException(status_code=404, detail="No snapshot found")
-
     dt = row.get("generated_at")
     if isinstance(dt, datetime):
-        # Make it ISO 8601 and force Z for UTC
         row["generated_at"] = dt.isoformat().replace("+00:00", "Z")
-
     return row
 
 

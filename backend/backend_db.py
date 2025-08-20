@@ -207,52 +207,42 @@ def list_news_tags():
         return [r["tag"] for r in rows if r and r.get("tag") is not None]
     
 # ---------- Table Snapshots ----------
-
 def insert_table_snapshot(league: str, gw: int | None, payload: dict,
                           source: str = "backend", schema_version: int = 1) -> None:
+    league = (league or "").strip().lower()
     sql = """
     INSERT INTO public.league_table_snapshots
       (league, gw, generated_at, source, schema_version, payload)
     VALUES (%s, %s, now(), %s, %s, %s)
-    ON CONFLICT DO NOTHING;
+    ON CONFLICT DO NOTHING
     """
-    # Note: wrap payload in Json(...) so psycopg sends proper json
     with _conn() as conn, conn.cursor() as cur:
         cur.execute(sql, (league, gw, source, schema_version, Json(payload)))
 
 
 def get_latest_table_snapshot(league: str, gw: int | None = None):
+    league = (league or "").strip().lower()
     if gw is None:
         sql = """
         SELECT league, gw, generated_at, source, schema_version, payload
         FROM public.league_table_snapshots
-        WHERE league = %s
+        WHERE lower(league) = lower(%s)
         ORDER BY generated_at DESC
-        LIMIT 1;
+        LIMIT 1
         """
         params = (league,)
     else:
         sql = """
         SELECT league, gw, generated_at, source, schema_version, payload
         FROM public.league_table_snapshots
-        WHERE league = %s AND gw = %s
+        WHERE lower(league) = lower(%s) AND gw = %s
         ORDER BY generated_at DESC
-        LIMIT 1;
+        LIMIT 1
         """
         params = (league, gw)
 
-    with _conn() as conn, conn.cursor() as cur:
+    with _conn() as conn, conn.cursor(row_factory=dict_row) as cur:
         cur.execute(sql, params)
         row = cur.fetchone()
-        if not row:
-            return None
-        # psycopg returns a tuple; map to a dict for FastAPI
-        return {
-            "league": row[0],
-            "gw": row[1],
-            "generated_at": row[2],
-            "source": row[3],
-            "schema_version": row[4],
-            "payload": row[5],
-        }
+        return row  # already a dict or None
 
