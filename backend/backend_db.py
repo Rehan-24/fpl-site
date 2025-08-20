@@ -279,21 +279,28 @@ def upsert_fixtures(fixtures_rows: list[dict]) -> int:
       updated_at = now();
     """
 
-    with psycopg.connect(os.environ["SUPABASE_DB_URL"], row_factory=dict_row) as conn:
+    with psycopg.connect(DB_URL, row_factory=dict_row) as conn:
+        # turn off server-side prepared statements at the connection level
+        try:
+            conn.prepare_threshold = None
+        except Exception:
+            pass
+
         with conn.cursor() as cur:
-            # turn off server-side prepare to avoid duplicate prepared statement names
+            # (also off at cursor level for good measure)
             try:
                 cur.prepare_threshold = None
             except Exception:
                 pass
 
-            # batch to keep memory & lock times sane
             BATCH = 1000
             for i in range(0, len(fixtures_rows), BATCH):
-                cur.executemany(sql, fixtures_rows[i:i+BATCH])
+                # ensure this single call doesn't prepare on the server
+                cur.executemany(sql, fixtures_rows[i:i+BATCH], prepare=False)
 
         conn.commit()
     return len(fixtures_rows)
+
 
 # ---------- READ MANAGER FIXTURES ----------
 def get_manager_fixtures(owner: str, season: str, include_past: bool, limit_next: Optional[int]) -> List[Dict[str, Any]]:
@@ -347,9 +354,7 @@ def get_manager_fixtures(owner: str, season: str, include_past: bool, limit_next
 
 # ---------- RECENT FORM / POINTS HELPERS (for FDR) ----------
 def _fetch_recent_completed(owner: str, season: str, limit_matches: int) -> List[Dict[str, Any]]:
-    """
-    Last N completed fixtures (either as home or away) for this owner in this season.
-    """
+    owner_norm = (owner or "").strip().lower()
     sql = """
       SELECT gw, finished,
              home_owner, away_owner,
@@ -357,48 +362,33 @@ def _fetch_recent_completed(owner: str, season: str, limit_matches: int) -> List
       FROM public.fixtures_h2h
       WHERE season = %s
         AND finished = TRUE
-        AND (home_owner = %s OR away_owner = %s)
+        AND (lower(home_owner) = %s OR lower(away_owner) = %s)
       ORDER BY gw DESC
       LIMIT %s
     """
-    with psycopg.connect(os.environ["SUPABASE_DB_URL"], row_factory=dict_row) as conn, conn.cursor() as cur:
-        cur.execute(sql, [season, owner, owner, limit_matches])
+    with psycopg.connect(DB_URL, row_factory=dict_row) as conn, conn.cursor() as cur:
+        cur.execute(sql, [season, owner_norm, owner_norm, limit_matches])
         return cur.fetchall()
 
 def recent_form_score(owner: str, season: str, limit_matches: int = 5) -> Dict[str, float]:
-    """
-    Returns a dictionary with:
-      - avg_points_for: average FPL H2H points scored over last N
-      - wl_score: W(1) / D(0.5) / L(0) averaged
-      - composite: weighted blend -> used for FDR mapping
-    """
     rows = _fetch_recent_completed(owner, season, limit_matches)
     if not rows:
-        return {"avg_points_for": 0.0, "wl_score": 0.5, "composite": 0.5}  # neutral
-
-    pts = []
-    wl  = []
+        return {"avg_points_for": 0.0, "wl_score": 0.5, "composite": 0.5}
+    owner_norm = (owner or "").strip().lower()
+    pts, wl = [], []
     for r in rows:
-        is_home = (r["home_owner"] == owner)
+        is_home = (str(r["home_owner"] or "").strip().lower() == owner_norm)
         for_ = r["home_score"] if is_home else r["away_score"]
         ag_  = r["away_score"] if is_home else r["home_score"]
         pts.append(float(for_ or 0))
         if for_ is None or ag_ is None:
             continue
-        if for_ > ag_:
-            wl.append(1.0)
-        elif for_ == ag_:
-            wl.append(0.5)
-        else:
-            wl.append(0.0)
-
+        wl.append(1.0 if for_ > ag_ else 0.5 if for_ == ag_ else 0.0)
     avg_points_for = (sum(pts) / len(pts)) if pts else 0.0
     wl_score = (sum(wl) / len(wl)) if wl else 0.5
-    # Blend weights similar to your frontend utils/fdr.ts intent:
-    # 60% recent points scored, 40% WDL (normalized)
-    # Normalize points to ~[0,1] by dividing by 60 (typical H2H ceiling per GW)
     composite = 0.6 * min(avg_points_for / 60.0, 1.0) + 0.4 * wl_score
     return {"avg_points_for": avg_points_for, "wl_score": wl_score, "composite": composite}
+
 
 def fdr_from_composite(opponent_composite: float) -> int:
     """
