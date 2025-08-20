@@ -1,9 +1,10 @@
 import os, re, subprocess, sys, json
+import psycopg
+from psycopg.rows import dict_row
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional
-from backend_db import get_manager_fixtures 
-from fixtures_refresh import current_season_label
 from fastapi import APIRouter, HTTPException, Body, Header, Query
+
 from backend_db import get_manager_fixtures
 from fixtures_refresh import current_season_label
 from backend_db import (
@@ -122,7 +123,7 @@ def get_managers(owner: Optional[str] = None):
 def get_user(id_or_name: str):
     if not DB_URL:
         raise HTTPException(status_code=500, detail="DB not configured")
-    with connect(DB_URL, row_factory=dict_row) as conn:              # <-- dict_row
+    with psycopg.connect(DB_URL, row_factory=dict_row) as conn:
         with conn.cursor() as cur:
             row = _get_by_id_or_name(cur, id_or_name)
             if not row:
@@ -153,7 +154,7 @@ def update_user(
     if not fields:
         raise HTTPException(status_code=400, detail="No valid fields to update")
 
-    with connect(DB_URL, row_factory=dict_row) as conn:               # <-- dict_row
+    with psycopg.connect(DB_URL, row_factory=dict_row) as conn:
         with conn.cursor() as cur:
             row = _get_by_id_or_name(cur, id_or_name)
             if not row:
@@ -161,7 +162,7 @@ def update_user(
 
             # --- permissions ---
             enforce = (os.getenv("ENFORCE_ACTOR", "1") != "0")
-            bot_key = os.getenv("BOT_API_KEY", "")
+            bot_key = os.getenv("API_KEY", "")
             if enforce:
                 # If a bot key is configured and provided, allow
                 if bot_key and x_api_key and x_api_key == bot_key:

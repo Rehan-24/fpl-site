@@ -99,7 +99,8 @@ app.include_router(news_router,     prefix="/api", tags=["news"])
 router_admin = APIRouter(prefix="/api/admin", tags=["admin"])
 
 def _require_api_key(x_api_key: str = Header(None)):
-    if not x_api_key or x_api_key != os.environ.get("BOT_API_KEY"):
+    expected = os.environ.get("BOT_API_KEY") or os.environ.get("API_KEY")
+    if not expected or not x_api_key or x_api_key.strip() != expected.strip():
         raise HTTPException(status_code=401, detail="unauthorized")
     return True
 

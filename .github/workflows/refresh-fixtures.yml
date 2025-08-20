@@ -11,7 +11,7 @@ jobs:
       - name: Hit admin refresh
         run: |
           curl -sS -X POST "$BACKEND_URL/api/admin/refresh-fixtures" \
-            -H "X-Api-Key: $BOT_API_KEY"
+            -H "X-Api-Key: $API_KEY"
         env:
           BACKEND_URL: ${{ secrets.BACKEND_URL }}      # e.g., https://tfpl.onrender.com
-          BOT_API_KEY: ${{ secrets.BOT_API_KEY }}
+          API_KEY: ${{ secrets.API_KEY }}
