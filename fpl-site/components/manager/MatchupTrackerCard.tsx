@@ -7,10 +7,14 @@ type VsRow = { opponentTeamId: string; opponentTeam: string; w:number; l:number;
 export default function MatchupTrackerCard({ ownerName }: { ownerName: string }) {
   const [rows, setRows] = useState<VsRow[]>([])
   const [expanded, setExpanded] = useState(false)
+  const API_BASE = useMemo(
+    () => (process.env.NEXT_PUBLIC_API_BASE_URL || 'https://tfpl.onrender.com').replace(/\/$/, ''),
+    []
+  );
 
   useEffect(()=>{
     if (!ownerName) return
-    fetch(`/api/managers/${encodeURIComponent(ownerName)}/matchups`)
+    fetch(`${API_BASE}/api/managers/${encodeURIComponent(ownerName)}/matchups`)
       .then(r=>r.json())
       .then(d=>setRows(d.vs||[]))
       .catch(()=>setRows([]))

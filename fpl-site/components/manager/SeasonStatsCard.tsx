@@ -1,15 +1,19 @@
 
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 
 type SeasonRow = { season:string; placement:number|null; points:number; score:number; overallRank:number|null }
 
 export default function SeasonStatsCard({ ownerName }: { ownerName: string }) {
   const [rows, setRows] = useState<SeasonRow[]>([])
+  const API_BASE = useMemo(
+      () => (process.env.NEXT_PUBLIC_API_BASE_URL || 'https://tfpl.onrender.com').replace(/\/$/, ''),
+      []
+  );
 
   useEffect(()=>{
     if (!ownerName) return
-    fetch(`/api/managers/${encodeURIComponent(ownerName)}/season-stats`)
+    fetch(`${API_BASE}/api/managers/${encodeURIComponent(ownerName)}/season-stats`)
       .then(r=>r.json())
       .then(d=>setRows(d.stats||[]))
       .catch(()=>setRows([]))
