@@ -1,6 +1,7 @@
 # backend/backend_db.py
 import os
 import psycopg
+from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from psycopg import connect
 from psycopg.rows import dict_row
