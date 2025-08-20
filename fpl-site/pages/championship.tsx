@@ -337,7 +337,7 @@ export default function Championship() {
         </button>
         {updatedAt && (
           <span className=" mb-4 px-4 py-2 text-xs text-gray-600">
-            Last updated: {new Date(updatedAt * 1000).toLocaleString()}
+            Last updated: {new Date(updatedAt).toLocaleString()}
           </span>
         )}
         {usingCache && (
@@ -353,7 +353,7 @@ export default function Championship() {
             <table className="bg-purple-100 border-separate border-spacing-x-[1px] rounded-md shadow-md text-sm w-full">
               <thead>
                 <tr>
-                  <th className="sticky-header-position bg-[#37003c] text-white px-3 py-2 text-xs font-semibold">
+                  <th className="bg-[#37003c] text-white px-3 py-2 text-xs font-semibold">
                     <button onClick={() => handleSort("Position")}>
                       Position {getSortIndicator("Position")}
                     </button>
@@ -381,7 +381,7 @@ export default function Championship() {
                     <tr key={i}>
                       {/* Position (sticky) */}
                       <td
-                        className={`sticky-position px-3 py-2 border-b border-gray-400 text-center ${getCellStyle(
+                        className={`px-3 py-2 border-b border-gray-400 text-center ${getCellStyle(
                           "Position",
                           row.Position,
                           row

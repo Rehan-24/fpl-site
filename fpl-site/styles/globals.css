@@ -75,7 +75,7 @@ td.sticky.left-32 {
 /* Sticky "Team" column (custom color for column cells) */
 .sticky-team {
   position: sticky;
-  left: 75px; /* Adjust based on column width */
+  left: 0px; /* Adjust based on column width 75*/
   z-index: 2;
   background-color: #f2e9fd; /* Same color for Team column */
 }
@@ -92,7 +92,7 @@ td.sticky.left-32 {
 .sticky-header-team {
   position: sticky;
   top: 0;
-  left: 75px; /* Align with Team column */
+  left: 0px; /* Align with Team column 75*/
   background-color: #37003c; /* Header background color for Team */
 }
 
