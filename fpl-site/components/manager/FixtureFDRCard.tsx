@@ -29,6 +29,11 @@ export default function FixtureFDRCard({ ownerName }: { ownerName: string }) {
   const [error, setError] = useState<string | null>(null)
   const [showAll, setShowAll] = useState(false)
 
+  const API_BASE = useMemo(
+    () => (process.env.NEXT_PUBLIC_API_BASE_URL || 'https://tfpl.onrender.com').replace(/\/$/, ''),
+    []
+  );
+
   useEffect(() => {
     const ctrl = new AbortController()
     const run = async () => {
@@ -36,7 +41,7 @@ export default function FixtureFDRCard({ ownerName }: { ownerName: string }) {
         setLoading(true)
         setError(null)
         const q = showAll ? '?all=1' : ''
-        const res = await fetch(`/api/managers/${encodeURIComponent(ownerName)}/fixtures${q}`, {
+        const res = await fetch(`${API_BASE}/api/managers/${encodeURIComponent(ownerName)}/fixtures${q}`, {
           signal: ctrl.signal,
         })
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
