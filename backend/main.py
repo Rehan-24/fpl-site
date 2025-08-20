@@ -15,7 +15,7 @@ from datetime import datetime as _dt, timezone as _tz
 from fastapi import APIRouter, Depends, HTTPException, Header
 import os
 
-from .fixtures_refresh import refresh_h2h_fixtures_for_league, current_season_label
+from fixtures_refresh import refresh_h2h_fixtures_for_league, current_season_label
 import threading, traceback
 import os
 import json
