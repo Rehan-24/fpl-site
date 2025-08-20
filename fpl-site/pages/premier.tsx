@@ -265,7 +265,7 @@ export default function Premier() {
       const r2 = await fetch(`${BACKEND_BASE}/api/rebuild?league=premier`, { method: "POST" });
       const body = await r2.json().catch(() => ({}));
       if (!r2.ok) throw new Error(body?.detail || `HTTP ${r2.status}`);
-      alert(body?.status ? "Update started" : "Update triggered");
+      alert(body?.status ? "Update Triggered" : "Update Started");
       await refreshStandings();
 
     } catch (e: any) {
@@ -287,7 +287,7 @@ export default function Premier() {
       </Head>
 
       <header className="relative bg-gradient-to-r from-blue-300 via-blue-400 to-[#5b329e] text-[#37003c] p-6 shadow-lg">
-        <h1 className="text-4xl font-bold">Fantasy Premier League (v5)</h1>
+        <h1 className="text-center sm:text-left relative z-10 text-4xl font-bold text-[#37003c]">Fantasy Premier League (v5)</h1>
         <NavBar />
       </header>
 

@@ -260,6 +260,10 @@ export default function Championship() {
         // that resolves current GW internally, e.g. POST /api/rebuild?league=premier
         const publicUrl = `${BACKEND_BASE}/api/rebuild?league=championship`;
         const r2 = await fetch(publicUrl, { method: "POST" });
+        const body = await r2.json().catch(() => ({}));
+        if (!r2.ok) throw new Error(body?.detail || `HTTP ${r2.status}`);
+        alert(body?.status ? "Update Triggered" : "Update Started");
+        await refreshStandings();
   
       } catch (e: any) {
         alert(e?.message || "Request failed");
