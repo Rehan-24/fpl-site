@@ -1,9 +1,11 @@
 # backend/backend_db.py
 import os
-from typing import Optional
+import psycopg
+from typing import List, Dict, Any, Optional
 from psycopg import connect
 from psycopg.rows import dict_row
 from psycopg.types.json import Json
+
 
 
 DB_URL = os.getenv("SUPABASE_DB_URL")
@@ -245,4 +247,151 @@ def get_latest_table_snapshot(league: str, gw: int | None = None):
         cur.execute(sql, params)
         row = cur.fetchone()
         return row  # already a dict or None
+    
+# ---------- UPSERT FIXTURES ----------
+def upsert_fixtures(fixtures_rows: List[Dict[str, Any]]) -> None:
+    sql = """
+    INSERT INTO public.fixtures_h2h (
+      season, league_id, gw, fixture_id, kickoff_utc, finished,
+      home_entry_id, home_team_name, home_owner, home_score,
+      away_entry_id, away_team_name, away_owner, away_score,
+      home_fdr, away_fdr, updated_at
+    ) VALUES (
+      %(season)s, %(league_id)s, %(gw)s, %(fixture_id)s, %(kickoff_utc)s, %(finished)s,
+      %(home_entry_id)s, %(home_team_name)s, %(home_owner)s, %(home_score)s,
+      %(away_entry_id)s, %(away_team_name)s, %(away_owner)s, %(away_score)s,
+      %(home_fdr)s, %(away_fdr)s, now()
+    )
+    ON CONFLICT (season, league_id, gw, fixture_id) DO UPDATE SET
+      kickoff_utc = EXCLUDED.kickoff_utc,
+      finished = EXCLUDED.finished,
+      home_team_name = EXCLUDED.home_team_name,
+      home_owner = EXCLUDED.home_owner,
+      home_score = EXCLUDED.home_score,
+      away_team_name = EXCLUDED.away_team_name,
+      away_owner = EXCLUDED.away_owner,
+      away_score = EXCLUDED.away_score,
+      home_fdr = EXCLUDED.home_fdr,
+      away_fdr = EXCLUDED.away_fdr,
+      updated_at = now();
+    """
+    with psycopg.connect(os.environ["SUPABASE_DB_URL"], row_factory=dict_row) as conn, conn.cursor() as cur:
+        for row in fixtures_rows:
+            cur.execute(sql, row)
+        conn.commit()
+
+# ---------- READ MANAGER FIXTURES ----------
+def get_manager_fixtures(owner: str, season: str, include_past: bool, limit_next: Optional[int]) -> List[Dict[str, Any]]:
+    now = datetime.now(timezone.utc)
+    base = """
+      SELECT
+        season, league_id, gw, fixture_id, kickoff_utc, finished,
+        home_owner, away_owner,
+        home_team_name, away_team_name,
+        home_score, away_score,
+        home_fdr, away_fdr
+      FROM public.fixtures_h2h
+      WHERE season = %s AND (home_owner = %s OR away_owner = %s)
+    """
+    args = [season, owner, owner]
+    if not include_past:
+        base += " AND (kickoff_utc IS NULL OR kickoff_utc >= %s) "
+        args.append(now)
+
+    base += " ORDER BY (kickoff_utc IS NULL), kickoff_utc ASC, gw ASC "
+    if not include_past and limit_next:
+        base += " LIMIT %s "
+        args.append(limit_next)
+
+    with psycopg.connect(os.environ["SUPABASE_DB_URL"], row_factory=dict_row) as conn, conn.cursor() as cur:
+        cur.execute(base, args)
+        rows = cur.fetchall()
+
+    shaped = []
+    for r in rows:
+        is_home = (r["home_owner"] == owner)
+        opponent_owner = r["away_owner"] if is_home else r["home_owner"]
+        opponent_team  = r["away_team_name"] if is_home else r["home_team_name"]
+        score_for      = r["home_score"] if is_home else r["away_score"]
+        score_against  = r["away_score"] if is_home else r["home_score"]
+        fdr            = (r["away_fdr"] if is_home else r["home_fdr"])  # FDR vs opponent
+        shaped.append({
+            "gw": r["gw"],
+            "kickoff_utc": r["kickoff_utc"],
+            "finished": r["finished"],
+            "is_home": is_home,
+            "opponent_owner": opponent_owner,
+            "opponent_team": opponent_team,
+            "score_for": score_for,
+            "score_against": score_against,
+            "fdr": fdr,
+        })
+    return shaped
+
+# ---------- RECENT FORM / POINTS HELPERS (for FDR) ----------
+def _fetch_recent_completed(owner: str, season: str, limit_matches: int) -> List[Dict[str, Any]]:
+    """
+    Last N completed fixtures (either as home or away) for this owner in this season.
+    """
+    sql = """
+      SELECT gw, finished,
+             home_owner, away_owner,
+             home_score, away_score
+      FROM public.fixtures_h2h
+      WHERE season = %s
+        AND finished = TRUE
+        AND (home_owner = %s OR away_owner = %s)
+      ORDER BY gw DESC
+      LIMIT %s
+    """
+    with psycopg.connect(os.environ["SUPABASE_DB_URL"], row_factory=dict_row) as conn, conn.cursor() as cur:
+        cur.execute(sql, [season, owner, owner, limit_matches])
+        return cur.fetchall()
+
+def recent_form_score(owner: str, season: str, limit_matches: int = 5) -> Dict[str, float]:
+    """
+    Returns a dictionary with:
+      - avg_points_for: average FPL H2H points scored over last N
+      - wl_score: W(1) / D(0.5) / L(0) averaged
+      - composite: weighted blend -> used for FDR mapping
+    """
+    rows = _fetch_recent_completed(owner, season, limit_matches)
+    if not rows:
+        return {"avg_points_for": 0.0, "wl_score": 0.5, "composite": 0.5}  # neutral
+
+    pts = []
+    wl  = []
+    for r in rows:
+        is_home = (r["home_owner"] == owner)
+        for_ = r["home_score"] if is_home else r["away_score"]
+        ag_  = r["away_score"] if is_home else r["home_score"]
+        pts.append(float(for_ or 0))
+        if for_ is None or ag_ is None:
+            continue
+        if for_ > ag_:
+            wl.append(1.0)
+        elif for_ == ag_:
+            wl.append(0.5)
+        else:
+            wl.append(0.0)
+
+    avg_points_for = (sum(pts) / len(pts)) if pts else 0.0
+    wl_score = (sum(wl) / len(wl)) if wl else 0.5
+    # Blend weights similar to your frontend utils/fdr.ts intent:
+    # 60% recent points scored, 40% WDL (normalized)
+    # Normalize points to ~[0,1] by dividing by 60 (typical H2H ceiling per GW)
+    composite = 0.6 * min(avg_points_for / 60.0, 1.0) + 0.4 * wl_score
+    return {"avg_points_for": avg_points_for, "wl_score": wl_score, "composite": composite}
+
+def fdr_from_composite(opponent_composite: float) -> int:
+    """
+    Map opponent strength (higher = stronger opponent) to difficulty 1..5.
+    Tuned buckets; feel free to tweak.
+    """
+    s = opponent_composite  # 0 (cold) → 1 (hot)
+    if s >= 0.80: return 5
+    if s >= 0.65: return 4
+    if s >= 0.50: return 3
+    if s >= 0.35: return 2
+    return 1
 
