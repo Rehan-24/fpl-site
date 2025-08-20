@@ -1,12 +1,12 @@
 import os, re, subprocess, sys, json
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional
-
-from fastapi import APIRouter, HTTPException, Body, Header
-from psycopg import connect
-from psycopg.rows import dict_row  # <-- important
-
-from backend_db import (
+from backend_db import get_manager_fixtures 
+from fixtures_refresh import current_season_label
+from fastapi import APIRouter, HTTPException, Body, Header, Query
+from backend.backend_db import get_manager_fixtures
+from backend.fixtures_refresh import current_season_label
+from backend.backend_db import (
     fetch_all_managers,
     fetch_manager_by_owner,
     fetch_manager_by_discord,
@@ -74,6 +74,39 @@ def _get_by_id_or_name(cur, id_or_name: str) -> Optional[Dict[str, Any]]:
         limit 1
     """, (v,))
     return cur.fetchone()
+
+def _fixtures_payload(owner: str, show_all: bool, limit: int | None):
+    season = current_season_label()
+    rows = get_manager_fixtures(
+        owner,
+        season,
+        include_past=bool(show_all),
+        limit_next=(None if show_all else (limit or 3)),
+    )
+    return {"season": season, "fixtures": rows}
+
+
+# --- Fixtures (DB-backed, supports ?all=1 & ?limit=3) ---
+
+# Canonical path
+@router.get("/managers/owner/{owner}/fixtures")
+def fixtures_owner_canonical(owner: str, all: bool = Query(False), limit: int | None = Query(None)):
+    return _fixtures_payload(owner, all, limit)
+
+# Alias path used by your UI (/api/managers/{owner}/fixtures)
+@router.get("/managers/{owner}/fixtures")
+def fixtures_owner_alias(owner: str, all: bool = Query(False), limit: int | None = Query(None)):
+    return _fixtures_payload(owner, all, limit)
+
+# Season stats
+@router.get("/managers/owner/{owner}/season-stats")
+def season_stats_canonical(owner: str):
+    return season_stats(owner)  # reuse your function below
+
+# Matchups
+@router.get("/managers/owner/{owner}/matchups")
+def matchups_canonical(owner: str):
+    return matchups_all_time(owner)
 
 # ---------- API parity with legacy JSON routes ----------
 @router.get("/managers")
@@ -160,7 +193,7 @@ def update_user(
             return {"ok": True, "updated": fields, "user": _row_to_manager(updated)}
 
 # ---------- Season stats (DB) ----------
-@router.get("/owner/{owner}/season-stats")
+@router.get("/managers/{owner}/season-stats")
 def season_stats(owner: str):
     latest = latest_standing_for_owner(owner)
     if not latest:
@@ -190,7 +223,7 @@ def load_history():
     except Exception:
         return []
 
-@router.get("/owner/{owner}/matchups")
+@router.get("/managers/{owner}/matchups")
 def matchups_all_time(owner: str):
     mgr = fetch_manager_by_owner(owner)
     if not mgr:
@@ -241,65 +274,6 @@ def matchups_all_time(owner: str):
     def score(r): return r["w"] - r["l"] + 0.25*r["d"]
     out = sorted(vs.values(), key=score, reverse=True)
     return {"scope": "all_time", "vs": out}
-
-# ---------- Fixtures (live FPL) ----------
-@router.get("/owner/{owner}/fixtures")
-def fixtures_next(owner: str):
-    mgr = fetch_manager_by_owner(owner)
-    if not mgr:
-        raise HTTPException(status_code=404, detail="Owner not found")
-    league_id = league_id_for_manager(mgr)
-    entry_id = parse_entry_id_from_url(mgr.get("fpl_team_url", "") or "")
-    if not league_id or not entry_id:
-        return {"fixtures": []}
-
-    import requests
-    url_base = f"https://fantasy.premierleague.com/api/leagues-h2h-matches/league/{league_id}/"
-    page = 1
-    results = []
-    try:
-        while True:
-            r = requests.get(url_base, params={"page": page}, headers={"User-Agent":"tfpl-site"})
-            if r.status_code != 200:
-                break
-            j = r.json()
-            res = j.get("results", [])
-            results.extend(res)
-            if not j.get("has_next") or not res:
-                break
-            page += 1
-    except Exception:
-        return {"fixtures": []}
-
-    upcoming = []
-    now = datetime.now(timezone.utc)
-    for m in results:
-        e = m.get("event")
-        a = m.get("entry_1_entry") or m.get("team_h_entry") or m.get("league_entry_1")
-        b = m.get("entry_2_entry") or m.get("team_a_entry") or m.get("league_entry_2")
-        if str(a) != str(entry_id) and str(b) != str(entry_id):
-            continue
-        if m.get("finished") or m.get("winner"):
-            continue
-
-        opp_entry = b if str(a) == str(entry_id) else a
-        opp_name = m.get("entry_2_player_name") if str(a)==str(entry_id) else m.get("entry_1_player_name")
-        opp_team = m.get("entry_2_name")        if str(a)==str(entry_id) else m.get("entry_1_name")
-        homeAway = 'H' if str(a)==str(entry_id) else 'A'
-
-        upcoming.append({
-            "gw": e or None,
-            "date": m.get("kickoff_time") or now.isoformat(),
-            "opponentTeamId": str(opp_entry),
-            "opponentTeam": opp_team or "Opponent",
-            "opponentManagerId": str(opp_entry),
-            "opponentManager": opp_name or "Unknown",
-            "homeAway": homeAway,
-            "fdr": 3
-        })
-
-    upcoming.sort(key=lambda x: (x["gw"] or 99))
-    return {"fixtures": upcoming[:3] if len(upcoming) > 3 else upcoming}
 
 # ---------- Admin passthrough ----------
 @router.post("/admin/ingest")
