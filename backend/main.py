@@ -11,7 +11,7 @@ from news_db_version import router as news_router
 from backend_db import insert_table_snapshot, get_latest_table_snapshot
 from pydantic import BaseModel
 from typing import Optional, Any, Dict
-from datetime import datetime
+from datetime import datetime as _dt, timezone as _tz
 
 import threading, traceback
 import os
@@ -19,7 +19,8 @@ import json
 import subprocess
 import time
 from typing import Optional
-import hashlib, re, requests, datetime
+import hashlib, re, requests
+import datetime as dt_mod
 import pandas as pd
 import math
 import pandas as pd
@@ -216,7 +217,7 @@ def fetch_current_gw() -> int:
         if e.get("is_next"):
             return int(e["id"])
     # 3) fallback by deadline time
-    now = datetime.datetime.utcnow()
+    now = dt_mod.datetime.utcnow()
     past = []
     for e in events:
         dt = e.get("deadline_time")
@@ -227,7 +228,7 @@ def fetch_current_gw() -> int:
             # strip 'Z' if present
             if dt.endswith("Z"):
                 dt = dt[:-1]
-            dtu = datetime.datetime.fromisoformat(dt)
+            dtu = dt_mod.datetime.fromisoformat(dt)
             if dtu <= now:
                 past.append((int(e["id"]), dtu))
         except Exception:
@@ -305,9 +306,16 @@ def get_table_latest(league: str, gw: int | None = None):
     row = get_latest_table_snapshot(league, gw)
     if not row:
         raise HTTPException(status_code=404, detail="No snapshot found")
-    dt = row.get("generated_at")
-    if isinstance(dt, datetime):
-        row["generated_at"] = dt.isoformat().replace("+00:00", "Z")
+    g = row.get("generated_at")
+    if isinstance(g, _dt):
+         row["generated_at"] = g.astimezone(_tz.utc).isoformat().replace("+00:00", "Z")
+    elif isinstance(g, str):
+        s = g.strip().replace(" ", "T")
+        if s.endswith("+00:00") or s.endswith("+00"):
+            s = s.split("+")[0] + "Z"
+        elif s[-1].isdigit():
+            s = s + "Z"  # assume UTC if no tz info
+        row["generated_at"] = s
     return row
 
 
