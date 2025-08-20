@@ -10,7 +10,7 @@ export default function MatchupTrackerCard({ ownerName }: { ownerName: string })
 
   useEffect(()=>{
     if (!ownerName) return
-    fetch(`https://tfpl.onrender.com/api/managers/${encodeURIComponent(ownerName)}/matchups`)
+    fetch(`/api/managers/${encodeURIComponent(ownerName)}/matchups`)
       .then(r=>r.json())
       .then(d=>setRows(d.vs||[]))
       .catch(()=>setRows([]))
