@@ -4,9 +4,9 @@ from typing import Dict, Any, Optional
 from backend_db import get_manager_fixtures 
 from fixtures_refresh import current_season_label
 from fastapi import APIRouter, HTTPException, Body, Header, Query
-from backend.backend_db import get_manager_fixtures
-from backend.fixtures_refresh import current_season_label
-from backend.backend_db import (
+from backend_db import get_manager_fixtures
+from fixtures_refresh import current_season_label
+from backend_db import (
     fetch_all_managers,
     fetch_manager_by_owner,
     fetch_manager_by_discord,
