@@ -44,10 +44,11 @@ def _gw_window_from_bootstrap() -> tuple[int, int]:
         events = r.json().get("events", [])
         nxt = next((int(e["id"]) for e in events if e.get("is_next")), None)
         cur = next((int(e["id"]) for e in events if e.get("is_current")), None)
-        start = nxt or cur or 1
-        start = max(1, min(38, start))
-        end = min(38, start + 2)
-        return start, end
+        if nxt:
+            start = max(1, nxt - 1)   # include previous GW to lock in finished scores
+            return start, min(38, nxt + 2)
+        start = cur or 1
+        return start, min(38, start + 2)
     except Exception:
         # fall back conservatively
         return 1, 3
