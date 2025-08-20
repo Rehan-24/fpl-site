@@ -1,0 +1,17 @@
+name: Refresh Fixtures Daily
+on:
+  schedule:
+    - cron: "12 9 * * *"   # 09:12 UTC daily (02:12 PT). Pick your time.
+  workflow_dispatch: {}
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hit admin refresh
+        run: |
+          curl -sS -X POST "$BACKEND_URL/api/admin/refresh-fixtures" \
+            -H "X-Api-Key: $BOT_API_KEY"
+        env:
+          BACKEND_URL: ${{ secrets.BACKEND_URL }}      # e.g., https://tfpl.onrender.com
+          BOT_API_KEY: ${{ secrets.BOT_API_KEY }}
