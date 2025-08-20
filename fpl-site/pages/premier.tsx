@@ -300,10 +300,20 @@ export default function Premier() {
   return (
     <main className="bg-gradient-to-b from-blue-200 via-white to-purple-100 min-h-screen text-[#37003c]">
       <Head>
-        <title>The Fantasy Premier League Table</title>
+        <title>Premier Table | tFPL</title>
+        <meta property="og:title" content="Championship League Table" />
+        <meta property="og:description" content="Championship League Table" />
+        <meta
+          property="og:image"
+          content="https://4.bp.blogspot.com/-ilHxPtWB8FA/VkS9BiuUpAI/AAAAAAAAxAM/QNQtiFimLyE/s1600/English-Football-League%2B%25281%2529.jpg"
+        />
+        <meta property="og:url" content="https://tfpl.vercel.app/premier" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="THE Fantasy Premier League" />
       </Head>
 
       <header className="relative bg-gradient-to-r from-blue-300 via-blue-400 to-[#5b329e] text-[#37003c] p-6 shadow-lg">
+        <div className="navbar-ripple pointer-events-none select-none absolute inset-0"></div>
         <h1 className="text-center sm:text-left relative z-10 text-4xl font-bold text-[#37003c]">Fantasy Premier League (v5)</h1>
         <NavBar />
       </header>

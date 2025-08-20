@@ -297,7 +297,7 @@ export default function Championship() {
   return (
     <main className="bg-gradient-to-b from-blue-200 via-white to-purple-100 min-h-screen text-[#37003c]">
       <Head>
-        <title>The Fantasy Championship League Table</title>
+        <title>Championship Table | tFPL</title>
         <meta property="og:title" content="Championship League Table" />
         <meta property="og:description" content="Championship League Table" />
         <meta
