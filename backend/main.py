@@ -94,7 +94,28 @@ EXCEL_NAME_TEMPLATE = "{league}_results_v3.xlsx"
 #app.include_router(seed_router, prefix="/api", tags=["admin"])
 app.include_router(managers_router, prefix="/api", tags=["managers"])
 app.include_router(news_router,     prefix="/api", tags=["news"])
+
+
 router_admin = APIRouter(prefix="/api/admin", tags=["admin"])
+
+def _require_api_key(x_api_key: str = Header(None)):
+    if not x_api_key or x_api_key != os.environ.get("BOT_API_KEY"):
+        raise HTTPException(status_code=401, detail="unauthorized")
+    return True
+
+@router_admin.post("/refresh-fixtures")
+def refresh_fixtures(_: bool = Depends(_require_api_key)):
+    ligs = []
+    if os.environ.get("H2H_PREMIER_LEAGUE_ID"):
+        ligs.append(("Premier", int(os.environ["H2H_PREMIER_LEAGUE_ID"])))
+    if os.environ.get("H2H_CHAMPIONSHIP_LEAGUE_ID"):
+        ligs.append(("Championship", int(os.environ["H2H_CHAMPIONSHIP_LEAGUE_ID"])))
+
+    for name, lid in ligs:
+        refresh_h2h_fixtures_for_league(league_id=lid, league_name=name)
+
+    return {"ok": True, "season": current_season_label(), "leagues": [n for n, _ in ligs]}
+
 app.include_router(router_admin)
 
 # --- Auth helper ---
@@ -313,23 +334,6 @@ def _rebuild_worker(leagues_list: list[str], gw_mode: str):
         if _CRON_LOCK.locked():
             _CRON_LOCK.release()
 
-def _require_api_key(x_api_key: str = Header(None)):
-    if not x_api_key or x_api_key != os.environ.get("BOT_API_KEY"):
-        raise HTTPException(status_code=401, detail="unauthorized")
-    return True
-
-@router_admin.post("/refresh-fixtures")
-def refresh_fixtures(_: bool = Depends(_require_api_key)):
-    ligs = []
-    if os.environ.get("H2H_PREMIER_LEAGUE_ID"):
-        ligs.append(("Premier", int(os.environ["H2H_PREMIER_LEAGUE_ID"])))
-    if os.environ.get("H2H_CHAMPIONSHIP_LEAGUE_ID"):
-        ligs.append(("Championship", int(os.environ["H2H_CHAMPIONSHIP_LEAGUE_ID"])))
-
-    for name, lid in ligs:
-        refresh_h2h_fixtures_for_league(league_id=lid, league_name=name)
-
-    return {"ok": True, "season": current_season_label(), "leagues": [n for n, _ in ligs]}
 
 @app.post("/api/tables/snapshot", tags=["tables"])
 def post_table_snapshot(s: TableSnapshotIn, _: None = Depends(require_admin)):
