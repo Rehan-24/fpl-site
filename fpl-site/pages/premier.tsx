@@ -315,7 +315,9 @@ export default function Premier() {
       <header className="relative bg-gradient-to-r from-blue-300 via-blue-400 to-[#5b329e] text-[#37003c] p-6 shadow-lg">
         <div className="navbar-ripple pointer-events-none select-none absolute inset-0"></div>
         <h1 className="text-center sm:text-left relative z-10 text-4xl font-bold text-[#37003c]">Fantasy Premier League (v5)</h1>
-        <NavBar />
+        <div className="navbar-buttons relative z-20">
+            <NavBar />
+        </div>
       </header>
 
       {gwInfo && !loading && !error && (
