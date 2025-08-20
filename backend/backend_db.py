@@ -203,3 +203,40 @@ def list_news_tags():
         cur.execute(sql)
         rows = cur.fetchall()
         return [r["tag"] for r in rows if r and r.get("tag") is not None]
+    
+# ---------- Table Snapshots ----------
+
+def insert_table_snapshot(league: str, gw: int | None, payload: dict,
+                          source: str = "backend", schema_version: int = 1) -> None:
+    sql = """
+    insert into public.league_table_snapshots
+      (league, gw, generated_at, source, schema_version, payload)
+    values ($1, $2, now(), $3, $4, $5::jsonb)
+    on conflict do nothing;
+    """
+    with _conn() as conn, conn.cursor() as cur:
+        cur.execute(sql, (league, gw, source, schema_version, payload))
+
+def get_latest_table_snapshot(league: str, gw: int | None = None):
+    if gw is None:
+        sql = """
+        select league, gw, generated_at, source, schema_version, payload
+        from public.league_table_snapshots
+        where league = $1
+        order by generated_at desc
+        limit 1;
+        """
+        params = (league,)
+    else:
+        sql = """
+        select league, gw, generated_at, source, schema_version, payload
+        from public.league_table_snapshots
+        where league = $1 and gw = $2
+        order by generated_at desc
+        limit 1;
+        """
+        params = (league, gw)
+    with _conn() as conn, conn.cursor() as cur:
+        cur.execute(sql, params)
+        return cur.fetchone()
+

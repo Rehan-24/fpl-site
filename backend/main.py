@@ -8,6 +8,9 @@ from fastapi import BackgroundTasks
 #from admin.seed import router as seed_router
 from managers_db_version import router as managers_router
 from news_db_version import router as news_router
+from backend_db import insert_table_snapshot, get_latest_table_snapshot
+from pydantic import BaseModel
+from typing import Optional, Any, Dict
 
 import threading, traceback
 import os
@@ -44,6 +47,13 @@ def _to_json_safe(v):
         return v
     except Exception:
         return None
+    
+class TableSnapshotIn(BaseModel):
+    league: str
+    gw: Optional[int] = None
+    payload: Dict[str, Any]
+    source: str = "backend"
+    schema_version: int = 1
 
 app = FastAPI()
 
@@ -80,7 +90,18 @@ EXCEL_NAME_TEMPLATE = "{league}_results_v3.xlsx"
 app.include_router(managers_router, prefix="/api", tags=["managers"])
 app.include_router(news_router,     prefix="/api", tags=["news"])
 
+@app.post("/api/tables/snapshot", tags=["tables"])
+def post_table_snapshot(s: TableSnapshotIn, _: None = Depends(require_admin)):
+    # Admin-protected write
+    insert_table_snapshot(s.league, s.gw, s.payload, s.source, s.schema_version)
+    return {"ok": True}
 
+@app.get("/api/tables/latest", tags=["tables"])
+def get_table_latest(league: str, gw: Optional[int] = None):
+    row = get_latest_table_snapshot(league, gw)
+    if not row:
+        raise HTTPException(status_code=404, detail="No snapshot found")
+    return row
 
 
 # --- Auth helper ---
@@ -395,6 +416,11 @@ def admin_rebuild(
 
         # 2) Convert the specific GW sheet to JSON (so UI matches the run)
         data = excel_to_latest_json(league, preferred_sheet=f"GW{resolved_gw}")
+        
+        try:
+            insert_table_snapshot(league, resolved_gw, {"rows": data.get("rows", [])}, source="cron", schema_version=1)
+        except Exception as _e:
+            logger.error("snapshot insert failed for %s gw %s: %s", league, resolved_gw, _e)        
 
         return {
             "status": "ok",
@@ -438,6 +464,11 @@ def admin_rebuild_all(
 
             # 2) Convert specifically the GW sheet we just built (e.g., "GW7")
             data = excel_to_latest_json(lg, preferred_sheet=f"GW{resolved_gw}")
+            
+            try:
+                insert_table_snapshot(lg, resolved_gw, {"rows": data.get("rows", [])}, source="cron", schema_version=1)
+            except Exception as _e:
+                logger.error("snapshot insert failed for %s gw %s: %s", lg, resolved_gw, _e)
 
             results[lg] = {
                 "status": "ok",
@@ -471,6 +502,11 @@ def public_rebuild(league: str = Query("premier"), gw: Optional[str] = Query(Non
     # 3) convert Excel → JSON (prefer the GW sheet we just built)
     try:
         data = excel_to_latest_json(league, preferred_sheet=f"GW{resolved_gw}")
+        # NEW: snapshot it
+        try:
+            insert_table_snapshot(league, resolved_gw, {"rows": data.get("rows", [])}, source="manual", schema_version=1)
+        except Exception as _e:
+            logger.error("snapshot insert failed for %s gw %s: %s", league, resolved_gw, _e)
     except Exception as e:
         _fail("excel_to_json", e)
 
