@@ -3,6 +3,8 @@ import os
 from typing import Optional
 from psycopg import connect
 from psycopg.rows import dict_row
+from psycopg.types.json import Json
+
 
 DB_URL = os.getenv("SUPABASE_DB_URL")
 
@@ -209,34 +211,48 @@ def list_news_tags():
 def insert_table_snapshot(league: str, gw: int | None, payload: dict,
                           source: str = "backend", schema_version: int = 1) -> None:
     sql = """
-    insert into public.league_table_snapshots
+    INSERT INTO public.league_table_snapshots
       (league, gw, generated_at, source, schema_version, payload)
-    values ($1, $2, now(), $3, $4, $5::jsonb)
-    on conflict do nothing;
+    VALUES (%s, %s, now(), %s, %s, %s)
+    ON CONFLICT DO NOTHING;
     """
+    # Note: wrap payload in Json(...) so psycopg sends proper json
     with _conn() as conn, conn.cursor() as cur:
-        cur.execute(sql, (league, gw, source, schema_version, payload))
+        cur.execute(sql, (league, gw, source, schema_version, Json(payload)))
+
 
 def get_latest_table_snapshot(league: str, gw: int | None = None):
     if gw is None:
         sql = """
-        select league, gw, generated_at, source, schema_version, payload
-        from public.league_table_snapshots
-        where league = $1
-        order by generated_at desc
-        limit 1;
+        SELECT league, gw, generated_at, source, schema_version, payload
+        FROM public.league_table_snapshots
+        WHERE league = %s
+        ORDER BY generated_at DESC
+        LIMIT 1;
         """
         params = (league,)
     else:
         sql = """
-        select league, gw, generated_at, source, schema_version, payload
-        from public.league_table_snapshots
-        where league = $1 and gw = $2
-        order by generated_at desc
-        limit 1;
+        SELECT league, gw, generated_at, source, schema_version, payload
+        FROM public.league_table_snapshots
+        WHERE league = %s AND gw = %s
+        ORDER BY generated_at DESC
+        LIMIT 1;
         """
         params = (league, gw)
+
     with _conn() as conn, conn.cursor() as cur:
         cur.execute(sql, params)
-        return cur.fetchone()
+        row = cur.fetchone()
+        if not row:
+            return None
+        # psycopg returns a tuple; map to a dict for FastAPI
+        return {
+            "league": row[0],
+            "gw": row[1],
+            "generated_at": row[2],
+            "source": row[3],
+            "schema_version": row[4],
+            "payload": row[5],
+        }
 
