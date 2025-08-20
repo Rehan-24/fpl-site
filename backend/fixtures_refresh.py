@@ -1,7 +1,10 @@
 import requests
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Tuple
-from backend_db import upsert_fixtures, recent_form_score, fdr_from_composite, fetch_all_managers
+from backend_db import (
+    upsert_fixtures, recent_form_score, fdr_from_composite, fetch_all_managers,
+    get_last_finish_for, fallback_fdr_from_finish
+)
 import re
 
 FPL_BASE = "https://fantasy.premierleague.com/api"
@@ -59,11 +62,17 @@ def current_season_label() -> str:
     start = y if now.month >= 7 else (y - 1)
     return f"{start}-{str((start + 1) % 100).zfill(2)}"
 
+def last_season_label():
+    # '2025-26' -> '2024-25'
+    cur = current_season_label()
+    a, b = cur.split("-")
+    return f"{int(a)-1}-{b}"
+
+
 def refresh_h2h_fixtures_for_league(league_id: int, league_name: str) -> int:
     season = current_season_label()
     entry_to_owner, entry_to_team = _managers_maps()
 
-    # cache recent-form composites per owner to avoid repeated DB reads
     comp_cache: dict[str, float] = {}
     def owner_comp(owner: str) -> float:
         v = comp_cache.get(owner)
@@ -71,6 +80,14 @@ def refresh_h2h_fixtures_for_league(league_id: int, league_name: str) -> int:
             v = recent_form_score(owner, season, limit_matches=5)["composite"]
             comp_cache[owner] = v
         return v
+
+    # helper for seeded FDR from last season
+    def seed_fdr_for(owner: str) -> int:
+        prev = last_season_label()
+        row = get_last_finish_for(owner, prev, league_name)
+        if row and row.get("position"):
+            return fallback_fdr_from_finish(int(row["position"]))
+        return 3  # neutral if we have no record
 
     start_gw, end_gw = _gw_window_from_bootstrap()
     fixtures_rows: List[Dict[str, Any]] = []
@@ -97,8 +114,7 @@ def refresh_h2h_fixtures_for_league(league_id: int, league_name: str) -> int:
                 home_owner = entry_to_owner.get(int(he))
                 away_owner = entry_to_owner.get(int(ae))
                 if not home_owner or not away_owner:
-                    # skip fixtures not between your managers
-                    continue
+                    continue  # only store fixtures between your managers
 
                 kickoff = fx.get("kickoff_time") or fx.get("event_start_time")
                 kickoff_utc = datetime.fromisoformat(kickoff.replace("Z", "+00:00")) if kickoff else None
@@ -106,10 +122,17 @@ def refresh_h2h_fixtures_for_league(league_id: int, league_name: str) -> int:
                 home_score = fx.get("entry_1_points")
                 away_score = fx.get("entry_2_points")
 
-                hc = owner_comp(home_owner)
-                ac = owner_comp(away_owner)
-                home_fdr = fdr_from_composite(ac)   # difficulty vs opponent
-                away_fdr = fdr_from_composite(hc)
+                # --- FDR logic ---
+                if gw <= 4:
+                    # Strictly use last season’s finish for the first 4 GWs
+                    home_fdr = seed_fdr_for(away_owner)  # difficulty vs opponent
+                    away_fdr = seed_fdr_for(home_owner)
+                else:
+                    # After GW4, use recent form
+                    hc = owner_comp(home_owner)
+                    ac = owner_comp(away_owner)
+                    home_fdr = fdr_from_composite(ac)
+                    away_fdr = fdr_from_composite(hc)
 
                 fixtures_rows.append({
                     "season": season,

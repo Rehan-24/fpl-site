@@ -372,15 +372,16 @@ def get_manager_fixtures(owner: str, season: str, include_past: bool, limit_next
 
         shaped.append({
             "gw": r["gw"],
-            "kickoff_utc": r["kickoff_utc"],     # keep for compatibility
+            "kickoff_utc": r["kickoff_utc"],
             "finished": r["finished"],
             "is_home": is_home,
             "opponent_owner": opponent_owner,
-            "opponent_team": opponent_team,
+            "opponentTeam": opponent_team,
             "score_for": score_for,
             "score_against": score_against,
             "fdr": fdr,
         })
+
 
     return shaped
 
@@ -476,5 +477,46 @@ def detect_next_gw(season: str) -> Optional[int]:
         mx = (r2 or {}).get("max_gw")
         return (int(mx) + 1) if mx is not None else None
 
+# --- Last-season finish reads ---
+
+def get_last_finish_for(owner: str, season: str, league: str | None = None) -> dict | None:
+    """
+    Look up last season's finish for this owner.
+    Prefer the same league if provided; else any league row.
+    """
+    with _conn() as conn, conn.cursor() as cur:
+        if league:
+            cur.execute("""
+                SELECT season, league, owner_name, team_name, position, points
+                FROM public.last_season_finish
+                WHERE season = %s AND lower(owner_name) = lower(%s) AND lower(league) = lower(%s)
+                LIMIT 1
+            """, (season, owner, league))
+            row = cur.fetchone()
+            if row:
+                return row
+        cur.execute("""
+            SELECT season, league, owner_name, team_name, position, points
+            FROM public.last_season_finish
+            WHERE season = %s AND lower(owner_name) = lower(%s)
+            LIMIT 1
+        """, (season, owner))
+        return cur.fetchone()
+
+
+def fallback_fdr_from_finish(position: int) -> int:
+    """
+    Buckets (assumed):
+      1-6   -> 5
+      7-9   -> 4
+      10-14 -> 3
+      15-16 -> 2
+      17-20 -> 1
+    """
+    if position <= 6:  return 5
+    if position <= 9:  return 4
+    if position <= 14: return 3
+    if position <= 16: return 2
+    return 1
 
 
