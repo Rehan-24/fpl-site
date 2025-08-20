@@ -14,13 +14,13 @@ from typing import Optional, Any, Dict
 from datetime import datetime as _dt, timezone as _tz
 from fastapi import APIRouter, Depends, HTTPException, Header
 import os
-
+import threading, time
+from typing import List, Tuple
 from fixtures_refresh import refresh_h2h_fixtures_for_league, current_season_label
 import threading, traceback
 import os
 import json
 import subprocess
-import time
 from typing import Optional
 import hashlib, re, requests
 import datetime as dt_mod
@@ -84,6 +84,16 @@ SCRIPT_PATH = os.path.join(BASE_DIR, "src", "fpl_management.py")
 # The script is expected to write this Excel file per league:
 EXCEL_NAME_TEMPLATE = "{league}_results_v3.xlsx"
 
+_REFRESH_LOCK = threading.Lock()
+_REFRESH_STATE = {
+    "running": False,
+    "started_at": None,
+    "finished_at": None,
+    "season": None,
+    "per_league": [],   # list of {"league": str, "rows": int}
+    "error": None,
+}
+
 # --- Routers ---
 #app.include_router(news_router, prefix="/api")
 # Keep the original base so existing calls keep working:
@@ -104,19 +114,55 @@ def _require_api_key(x_api_key: str = Header(None)):
         raise HTTPException(status_code=401, detail="unauthorized")
     return True
 
+def _refresh_worker(leagues: List[Tuple[str, int]]):
+    global _REFRESH_STATE
+    with _REFRESH_LOCK:
+        _REFRESH_STATE.update({
+            "running": True,
+            "started_at": time.time(),
+            "finished_at": None,
+            "season": current_season_label(),
+            "per_league": [],
+            "error": None,
+        })
+    try:
+        results = []
+        for name, lid in leagues:
+            n = refresh_h2h_fixtures_for_league(league_id=lid, league_name=name)
+            results.append({"league": name, "rows": n})
+        with _REFRESH_LOCK:
+            _REFRESH_STATE["per_league"] = results
+    except Exception as e:
+        with _REFRESH_LOCK:
+            _REFRESH_STATE["error"] = f"{type(e).__name__}: {e}"
+    finally:
+        with _REFRESH_LOCK:
+            _REFRESH_STATE["running"] = False
+            _REFRESH_STATE["finished_at"] = time.time()
+
 @router_admin.post("/refresh-fixtures")
-def refresh_fixtures(_: bool = Depends(_require_api_key)):
+def refresh_fixtures(background: BackgroundTasks, _: bool = Depends(_require_api_key)):
     ligs = []
     if os.environ.get("H2H_PREMIER_LEAGUE_ID"):
         ligs.append(("Premier", int(os.environ["H2H_PREMIER_LEAGUE_ID"])))
     if os.environ.get("H2H_CHAMPIONSHIP_LEAGUE_ID"):
         ligs.append(("Championship", int(os.environ["H2H_CHAMPIONSHIP_LEAGUE_ID"])))
 
-    inserted = []
-    for name, lid in ligs:
-        n = refresh_h2h_fixtures_for_league(league_id=lid, league_name=name)
-        inserted.append({"league": name, "rows": n})
-    return {"ok": True, "season": current_season_label(), "inserted": inserted}
+    with _REFRESH_LOCK:
+        if _REFRESH_STATE["running"]:
+            return {"status": "already-running", "season": _REFRESH_STATE["season"]}
+
+    background.add_task(_refresh_worker, ligs)
+    return {
+        "status": "started",
+        "season": current_season_label(),
+        "leagues": [name for name, _ in ligs],
+    }
+
+@router_admin.get("/refresh-fixtures/status")
+def refresh_fixtures_status(_: bool = Depends(_require_api_key)):
+    with _REFRESH_LOCK:
+        return dict(_REFRESH_STATE)
 
 app.include_router(router_admin)
 

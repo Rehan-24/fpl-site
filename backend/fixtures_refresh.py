@@ -1,9 +1,10 @@
-import os, requests
+import requests
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Tuple
 from backend_db import upsert_fixtures, recent_form_score, fdr_from_composite, fetch_all_managers
 import re
 
+FPL_BASE = "https://fantasy.premierleague.com/api"
 ENTRY_RE = re.compile(r"/entry/(\d+)/")
 
 def _parse_entry_id(url: str | None) -> int | None:
@@ -13,23 +14,14 @@ def _parse_entry_id(url: str | None) -> int | None:
     return int(m.group(1)) if m else None
 
 def _managers_maps() -> tuple[dict[int, str], dict[int, str]]:
-    """
-    Build entry_id -> owner / team_name maps from your managers table.
-    Handles both 'fpl_entry_id' and 'fpl_team_url' (fallback).
-    Accepts either 'owner' or 'owner_name' column names.
-    """
-    owners = fetch_all_managers()  # raw DB rows (dicts)
+    owners = fetch_all_managers()
     entry_to_owner: dict[int, str] = {}
     entry_to_team: dict[int, str] = {}
-
     for m in owners:
-        # owner field can be 'owner' or 'owner_name' depending on your fetch function
         owner_name = m.get("owner") or m.get("owner_name") or m.get("name")
         if not owner_name:
             continue
-        eid = m.get("fpl_entry_id")
-        if not eid:
-            eid = _parse_entry_id(m.get("fpl_team_url"))
+        eid = m.get("fpl_entry_id") or _parse_entry_id(m.get("fpl_team_url"))
         if not eid:
             continue
         eid = int(eid)
@@ -37,10 +29,28 @@ def _managers_maps() -> tuple[dict[int, str], dict[int, str]]:
         team_name = m.get("team_name") or m.get("team")
         if team_name:
             entry_to_team[eid] = team_name
-
     return entry_to_owner, entry_to_team
 
-FPL_BASE = "https://fantasy.premierleague.com/api"
+def _gw_window_from_bootstrap() -> tuple[int, int]:
+    """
+    Decide which GWs to fetch:
+    - Prefer the one flagged 'is_next'
+    - Else use 'is_current'
+    - Return [start, start+2] (i.e., next 3 GWs), clamped to 1..38
+    """
+    try:
+        r = requests.get(f"{FPL_BASE}/bootstrap-static/", timeout=10)
+        r.raise_for_status()
+        events = r.json().get("events", [])
+        nxt = next((int(e["id"]) for e in events if e.get("is_next")), None)
+        cur = next((int(e["id"]) for e in events if e.get("is_current")), None)
+        start = nxt or cur or 1
+        start = max(1, min(38, start))
+        end = min(38, start + 2)
+        return start, end
+    except Exception:
+        # fall back conservatively
+        return 1, 3
 
 def current_season_label() -> str:
     now = datetime.now(timezone.utc)
@@ -49,35 +59,28 @@ def current_season_label() -> str:
     return f"{start}-{str((start + 1) % 100).zfill(2)}"
 
 def refresh_h2h_fixtures_for_league(league_id: int, league_name: str) -> int:
-    """
-    Pulls every GW’s fixtures from the FPL H2H API for the active season,
-    maps to your owners, computes FDR from opponent RECENT FORM (last 5),
-    and upserts into fixtures_h2h. Returns number of rows upserted.
-    """
     season = current_season_label()
     entry_to_owner, entry_to_team = _managers_maps()
 
-    # Pre-cache composites on demand to reduce DB hits
+    # cache recent-form composites per owner to avoid repeated DB reads
     comp_cache: dict[str, float] = {}
-
     def owner_comp(owner: str) -> float:
-        if owner not in comp_cache:
-            comp_cache[owner] = recent_form_score(owner, season, limit_matches=5)["composite"]
-        return comp_cache[owner]
+        v = comp_cache.get(owner)
+        if v is None:
+            v = recent_form_score(owner, season, limit_matches=5)["composite"]
+            comp_cache[owner] = v
+        return v
 
-    home_comp = owner_comp(home_owner)
-    away_comp = owner_comp(away_owner)
-
-
+    start_gw, end_gw = _gw_window_from_bootstrap()
     fixtures_rows: List[Dict[str, Any]] = []
-    headers = {"User-Agent": "tfpl-site"}  # be polite
+    headers = {"User-Agent": "tfpl-site"}
 
-    for gw in range(1, 39):  # up to 38
+    for gw in range(start_gw, end_gw + 1):
         page = 1
         while True:
             url = f"{FPL_BASE}/leagues-h2h-matches/league/{league_id}/"
             params = {"event": gw, "page": page}
-            r = requests.get(url, params=params, headers=headers, timeout=25)
+            r = requests.get(url, params=params, headers=headers, timeout=20)
             r.raise_for_status()
             payload = r.json()
             results = payload.get("results") or []
@@ -85,45 +88,41 @@ def refresh_h2h_fixtures_for_league(league_id: int, league_name: str) -> int:
                 break
 
             for fx in results:
-                # Entrants
-                home_entry = fx.get("entry_1_entry")
-                away_entry = fx.get("entry_2_entry")
-                if home_entry is None or away_entry is None:
-                    continue
-                home_owner = entry_to_owner.get(int(home_entry))
-                away_owner = entry_to_owner.get(int(away_entry))
-                if not home_owner or not away_owner:
-                    # skip if either side isn't one of your managers
+                he = fx.get("entry_1_entry")
+                ae = fx.get("entry_2_entry")
+                if he is None or ae is None:
                     continue
 
-                # Times & status
+                home_owner = entry_to_owner.get(int(he))
+                away_owner = entry_to_owner.get(int(ae))
+                if not home_owner or not away_owner:
+                    # skip fixtures not between your managers
+                    continue
+
                 kickoff = fx.get("kickoff_time") or fx.get("event_start_time")
-                kickoff_utc = None
-                if kickoff:
-                    kickoff_utc = datetime.fromisoformat(kickoff.replace("Z", "+00:00"))
+                kickoff_utc = datetime.fromisoformat(kickoff.replace("Z", "+00:00")) if kickoff else None
                 finished = bool(fx.get("finished"))
                 home_score = fx.get("entry_1_points")
                 away_score = fx.get("entry_2_points")
 
-                # Recent-form difficulty (opponent strength)
-                home_comp = recent_form_score(home_owner, season)['composite']
-                away_comp = recent_form_score(away_owner, season)['composite']
-                home_fdr = fdr_from_composite(away_comp)
-                away_fdr = fdr_from_composite(home_comp)
+                hc = owner_comp(home_owner)
+                ac = owner_comp(away_owner)
+                home_fdr = fdr_from_composite(ac)   # difficulty vs opponent
+                away_fdr = fdr_from_composite(hc)
 
                 fixtures_rows.append({
                     "season": season,
-                    "league_id": league_id,
+                    "league_id": int(league_id),
                     "gw": int(gw),
                     "fixture_id": int(fx["id"]),
                     "kickoff_utc": kickoff_utc,
                     "finished": finished,
-                    "home_entry_id": int(home_entry),
-                    "home_team_name": entry_to_team.get(int(home_entry)),
+                    "home_entry_id": int(he),
+                    "home_team_name": entry_to_team.get(int(he)),
                     "home_owner": home_owner,
                     "home_score": home_score,
-                    "away_entry_id": int(away_entry),
-                    "away_team_name": entry_to_team.get(int(away_entry)),
+                    "away_entry_id": int(ae),
+                    "away_team_name": entry_to_team.get(int(ae)),
                     "away_owner": away_owner,
                     "away_score": away_score,
                     "home_fdr": home_fdr,
