@@ -280,26 +280,32 @@ def upsert_fixtures(fixtures_rows: list[dict]) -> int:
     """
 
     with psycopg.connect(DB_URL, row_factory=dict_row) as conn:
-        # turn off server-side prepared statements at the connection level
+        # Disable server-side prepare at the connection level
         try:
             conn.prepare_threshold = None
         except Exception:
             pass
 
         with conn.cursor() as cur:
-            # (also off at cursor level for good measure)
+            # Also disable at the cursor level (older psycopg versions tolerate this)
             try:
                 cur.prepare_threshold = None
             except Exception:
                 pass
 
+            # Hard reset any lingering prepared statements from a previous run
+            try:
+                cur.execute("DEALLOCATE ALL;")
+            except Exception:
+                pass
+
             BATCH = 1000
             for i in range(0, len(fixtures_rows), BATCH):
-                # ensure this single call doesn't prepare on the server
-                cur.executemany(sql, fixtures_rows[i:i+BATCH], prepare=False)
+                cur.executemany(sql, fixtures_rows[i:i+BATCH])
 
         conn.commit()
     return len(fixtures_rows)
+
 
 
 # ---------- READ MANAGER FIXTURES ----------
