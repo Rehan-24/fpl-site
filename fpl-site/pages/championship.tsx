@@ -273,9 +273,26 @@ export default function Championship() {
     };
 
   const first = rows[0] || {};
-  const displayKeys = Object.keys(first).filter(
+  const preferredOrder = [
+    "GP", "Wins", "Draws", "Losses", "Points",
+    "Score", "Score Against", "Plus/Minus",
+    "GW Transfers", "GW Transfer Hit",
+    "Total Transfers Made", "Total Transfer Hit",
+    "GW Points on Bench", "Season Points on Bench",
+    "Highest Point Total Possible", "Current Team Value",
+    "Free Hit", "Wildcard 1", "Wildcard 2",
+    "Triple Captain", "Bench Boost", "AssMan",
+  ];
+
+  const allKeys = Object.keys(first || {}).filter(
     (k) => !["Owner", "Title Reward", "Position", "Team"].includes(k)
   );
+
+  // ordered keys: preferred first (if present), then any extras
+  const displayKeys = [
+    ...preferredOrder.filter(k => allKeys.includes(k)),
+    ...allKeys.filter(k => !preferredOrder.includes(k)),
+  ];
 
   return (
     <main className="bg-gradient-to-b from-blue-200 via-white to-purple-100 min-h-screen text-[#37003c]">
