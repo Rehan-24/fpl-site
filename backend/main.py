@@ -171,7 +171,20 @@ def excel_to_latest_json(league: str, preferred_sheet: Optional[str] = None) -> 
 
     if "Position" not in df_sorted.columns:
         df_sorted.insert(0, "Position", range(1, len(df_sorted) + 1))
-
+        
+    desired = [
+        "GP", "Wins", "Draws", "Losses", "Points",
+        "Score", "Score Against", "Plus/Minus",
+        "GW Transfers", "GW Transfer Hit",
+        "Total Transfers Made", "Total Transfer Hit",
+        "GW Points on Bench", "Season Points on Bench",
+        "Highest Point Total Possible", "Current Team Value",
+        "Free Hit", "Wildcard 1", "Wildcard 2",
+        "Triple Captain", "Bench Boost", "AssMan",
+    ]
+    cols = [c for c in desired if c in df_sorted.columns] + \
+        [c for c in df_sorted.columns if c not in desired and c not in ("Position","Team")]
+    df_sorted = df_sorted[["Position","Team", *cols]]
 
     # coerce to JSON-safe scalars
     def _jsonify(v):
