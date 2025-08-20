@@ -90,20 +90,6 @@ EXCEL_NAME_TEMPLATE = "{league}_results_v3.xlsx"
 app.include_router(managers_router, prefix="/api", tags=["managers"])
 app.include_router(news_router,     prefix="/api", tags=["news"])
 
-@app.post("/api/tables/snapshot", tags=["tables"])
-def post_table_snapshot(s: TableSnapshotIn, _: None = Depends(require_admin)):
-    # Admin-protected write
-    insert_table_snapshot(s.league, s.gw, s.payload, s.source, s.schema_version)
-    return {"ok": True}
-
-@app.get("/api/tables/latest", tags=["tables"])
-def get_table_latest(league: str, gw: Optional[int] = None):
-    row = get_latest_table_snapshot(league, gw)
-    if not row:
-        raise HTTPException(status_code=404, detail="No snapshot found")
-    return row
-
-
 # --- Auth helper ---
 def require_admin(x_api_key: str = Header("")):
     if not ADMIN_KEY or x_api_key != ADMIN_KEY:
@@ -307,6 +293,18 @@ def _rebuild_worker(leagues_list: list[str], gw_mode: str):
         if _CRON_LOCK.locked():
             _CRON_LOCK.release()
 
+@app.post("/api/tables/snapshot", tags=["tables"])
+def post_table_snapshot(s: TableSnapshotIn, _: None = Depends(require_admin)):
+    # Admin-protected write
+    insert_table_snapshot(s.league, s.gw, s.payload, s.source, s.schema_version)
+    return {"ok": True}
+
+@app.get("/api/tables/latest", tags=["tables"])
+def get_table_latest(league: str, gw: Optional[int] = None):
+    row = get_latest_table_snapshot(league, gw)
+    if not row:
+        raise HTTPException(status_code=404, detail="No snapshot found")
+    return row
 
 @app.post("/api/cron/trigger-rebuild")
 def cron_trigger_rebuild(
