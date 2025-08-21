@@ -227,6 +227,13 @@ def refresh_fixtures(background: BackgroundTasks, _: bool = Depends(_require_api
 def refresh_fixtures_status(_: bool = Depends(_require_api_key)):
     with _REFRESH_LOCK:
         return dict(_REFRESH_STATE)
+    
+@router_admin.post("/rebuild-matchups")
+def rebuild_matchups_admin(_: bool = Depends(_require_api_key)):
+    from backend_db import rebuild_manager_matchups
+    n = rebuild_manager_matchups()
+    return {"status": "ok", "pairs": n}
+
 
 app.include_router(router_admin)
 
