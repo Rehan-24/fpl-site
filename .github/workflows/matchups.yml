@@ -1,20 +1,21 @@
 name: Rebuild Matchups
+
 on:
   schedule:
-    - cron: '30 18 * * *'  # 10:30 during PST
+    - cron: '30 18 * * *'  # 1030am pst
   workflow_dispatch: {}
+
 jobs:
   rebuild:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - run: pip install -r requirements.txt
-      - env:
-          SUPABASE_DB_URL: postgres://postgres.fmkbxhtmjlgeoiouphuy:2iL20hiLUtaxjRi9@aws-1-us-west-1.pooler.supabase.com:6543/postgres?sslmode=require
-        run: python rebuild_matchup_tracker.py
+      - name: Trigger rebuild via API
+        env:
+          API_BASE: https://tfpl.onrender.com
+          ADMIN_API_KEY: ${{ secrets.TFPL_ADMIN_API_KEY }}
+        run: |
+          set -euo pipefail
+          echo "Calling $API_BASE/api/admin/rebuild-matchups ..."
+          curl -sS -X POST \
+            -H "X-Api-Key: wefbthneh9wf6cv23irj2f892e23fq23fn2309t24423t2fvawervweg234t" \
+            "$API_BASE/api/admin/rebuild-matchups"
