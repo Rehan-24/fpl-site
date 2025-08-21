@@ -70,7 +70,13 @@ def last_season_label():
     return f"{last_start}-{str((last_start + 1) % 100).zfill(2)}"  # '2024-25'
 
 
-def refresh_h2h_fixtures_for_league(league_id: int, league_name: str) -> int:
+def refresh_h2h_fixtures_for_league(
+    league_id: int,
+    league_name: str,
+    *,
+    start_gw: Optional[int] = None,
+    end_gw: Optional[int] = None,
+) -> int:
     season = current_season_label()
     entry_to_owner, entry_to_team = _managers_maps()
 
@@ -90,8 +96,14 @@ def refresh_h2h_fixtures_for_league(league_id: int, league_name: str) -> int:
             return fallback_fdr_from_finish(int(row["position"]))
         return 3  # neutral if we have no record
 
-    start_gw, end_gw = _gw_window_from_bootstrap()
-    end_gw = 38
+    # choose GW window
+    if start_gw is None or end_gw is None:
+        start_gw, end_gw = _gw_window_from_bootstrap()
+    start_gw = max(1, int(start_gw))
+    end_gw = min(38, int(end_gw))
+    if start_gw > end_gw:
+        start_gw, end_gw = end_gw, start_gw  # or raise
+
     fixtures_rows: List[Dict[str, Any]] = []
     headers = {"User-Agent": "tfpl-site"}
 

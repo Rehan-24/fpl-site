@@ -139,6 +139,70 @@ def _refresh_worker(leagues: List[Tuple[str, int]]):
         with _REFRESH_LOCK:
             _REFRESH_STATE["running"] = False
             _REFRESH_STATE["finished_at"] = time.time()
+            
+# add next to /api/admin/refresh-fixtures
+def _refresh_range_worker(leagues: List[Tuple[str, int]], start_gw: int, end_gw: int):
+    global _REFRESH_STATE
+    with _REFRESH_LOCK:
+        _REFRESH_STATE.update({
+            "running": True,
+            "started_at": time.time(),
+            "finished_at": None,
+            "season": current_season_label(),
+            "per_league": [],
+            "error": None,
+        })
+    try:
+        results = []
+        for name, lid in leagues:
+            n = refresh_h2h_fixtures_for_league(
+                league_id=lid,
+                league_name=name,
+                start_gw=start_gw,
+                end_gw=end_gw,
+            )
+            results.append({"league": name, "rows": n})
+        with _REFRESH_LOCK:
+            _REFRESH_STATE["per_league"] = results
+    except Exception as e:
+        with _REFRESH_LOCK:
+            _REFRESH_STATE["error"] = f"{type(e).__name__}: {e}"
+    finally:
+        with _REFRESH_LOCK:
+            _REFRESH_STATE["running"] = False
+            _REFRESH_STATE["finished_at"] = time.time()
+
+@router_admin.post("/refresh-fixtures-range")
+def refresh_fixtures_range(
+    background: BackgroundTasks,
+    start_gw: int = Query(1),
+    end_gw: int = Query(38),
+    _: bool = Depends(_require_api_key),
+):
+    if start_gw < 1 or end_gw > 38:
+        raise HTTPException(status_code=400, detail="start_gw/end_gw must be within 1..38")
+    if start_gw > end_gw:
+        start_gw, end_gw = end_gw, start_gw
+
+    ligs = []
+    if os.environ.get("H2H_PREMIER_LEAGUE_ID"):
+        ligs.append(("Premier", int(os.environ["H2H_PREMIER_LEAGUE_ID"])))
+    if os.environ.get("H2H_CHAMPIONSHIP_LEAGUE_ID"):
+        ligs.append(("Championship", int(os.environ["H2H_CHAMPIONSHIP_LEAGUE_ID"])))
+
+    with _REFRESH_LOCK:
+        if _REFRESH_STATE["running"]:
+            return {"status": "already-running", "season": _REFRESH_STATE["season"]}
+
+    background.add_task(_refresh_range_worker, ligs, start_gw, end_gw)
+    return {
+        "status": "started",
+        "season": current_season_label(),
+        "leagues": [name for name, _ in ligs],
+        "start_gw": start_gw,
+        "end_gw": end_gw,
+    }
+
 
 @router_admin.post("/refresh-fixtures")
 def refresh_fixtures(background: BackgroundTasks, _: bool = Depends(_require_api_key)):
