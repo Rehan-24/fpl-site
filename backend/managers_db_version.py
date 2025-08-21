@@ -44,21 +44,54 @@ def league_id_for_manager(mgr: dict) -> Optional[int]:
 def _row_to_manager(row: Dict[str, Any]) -> Dict[str, Any]:
     # tolerate either team/team_name columns, etc.
     team = row.get("team") or row.get("team_name")
+
+    # compute a total_experience fallback if years_playing is missing
+    years_playing = row.get("years_playing")
+    premier_years = row.get("premier_years")
+    championship_years = row.get("championship_years")
+    total_experience = (
+        years_playing
+        if years_playing is not None
+        else (
+            (premier_years or 0) + (championship_years or 0)
+            if (premier_years is not None or championship_years is not None)
+            else None
+        )
+    )
+
     return {
         "name": row.get("owner_name"),
         "team": team,
+
+        # profile bits
         "favorite_club": row.get("favorite_club"),
         "bio": row.get("bio"),
         "image_url": row.get("image_url"),
         "dynamic_image_url": row.get("dynamic_image_url"),
         "fpl_team_url": row.get("fpl_team_url"),
         "social_url": row.get("social_url"),
-        "placements": row.get("placements"),
-        "titles": row.get("titles"),
-        "trophies": row.get("trophies") or [],
-        "discord_id": str(row["discord_id"]) if row.get("discord_id") is not None else None,
         "current_league": row.get("current_league"),
+
+        # 🟢 stats needed by the Stats card
+        "years_playing": years_playing,
+        "premier_years": premier_years,
+        "championship_years": championship_years,
+        "promotions": row.get("promotions"),
+        "relegations": row.get("relegations"),
+        "best_finish": row.get("best_finish"),
+
+        # convenient alias so UI can show “Total Experience”
+        "total_experience": total_experience,
+
+        # trophies/title metadata you already had
+        "titles": row.get("titles"),
+        "titles_list": row.get("titles_list"),
+        "trophies": row.get("trophies") or [],
+
+        # misc
+        "discord_id": str(row["discord_id"]) if row.get("discord_id") is not None else None,
     }
+
 
 def _get_by_id_or_name(cur, id_or_name: str) -> Optional[Dict[str, Any]]:
     v = id_or_name.strip()
