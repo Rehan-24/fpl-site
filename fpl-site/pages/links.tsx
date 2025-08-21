@@ -3,11 +3,13 @@ import NavBar from "@/components/NavBar";
 import GWInfoBar from "@/components/GWInfoBar";
 
 const LINKS = [
-  { label: "Our Discord", href: "https://discord.gg/your-invite" },
-  { label: "r/FantasyPL (Reddit)", href: "https://www.reddit.com/r/FantasyPL/" },
   { label: "Official FPL", href: "https://fantasy.premierleague.com/" },
+  { label: "r/FantasyPL (Reddit)", href: "https://www.reddit.com/r/FantasyPL/" },
+  { label: "Live Bonus Point Tracker", href: "https://www.anewpla.net/fpl/live/" },
   { label: "LiveFPL", href: "https://www.livefpl.net/" },
-  { label: "FPL Review", href: "https://fplreview.com/" }
+  { label: "FPL Newspaper PL", href: "https://www.fplmundo.com/723566" },
+  { label: "FPL Newspaper CL", href: "https://www.fplmundo.com/850022" },
+  { label: "FPL Newspaper Blank", href: "https://www.fplmundo.com/" }
 ];
 
 export default function LinksPage() {
@@ -17,6 +19,7 @@ export default function LinksPage() {
         <title>Links | tFPL</title>
         <meta property="og:title" content="tFPL Links" />
         <meta property="og:description" content="Discord, Reddit, and useful FPL resources." />
+        <meta property="og:image" content="https://media.istockphoto.com/id/1468586532/photo/close-up-of-female-soccer-team-stacking-hands-in-the-field.webp?s=1024x1024&w=is&k=20&c=As235Hd0Y91RZy3h4Yv4PnwmpEEyjYnmxw96liOdICw=" />
         <meta property="og:url" content="https://tfpl.vercel.app/links" />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="THE Fantasy Premier League" />
