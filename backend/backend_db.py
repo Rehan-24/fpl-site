@@ -10,7 +10,7 @@ from psycopg.types.json import Json
 
 
 
-DB_URL = os.getenv("SUPABASE_DB_URL")
+DB_URL = os.getenv("SUPABASE_DB_URL") or "postgres://postgres.fmkbxhtmjlgeoiouphuy:2iL20hiLUtaxjRi9@aws-1-us-west-1.pooler.supabase.com:6543/postgres?sslmode=require"
 
 ALLOWED_MANAGER_FIELDS = {"bio", "favorite_club", "social_url", "image_url"}
 
