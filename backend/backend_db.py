@@ -545,8 +545,11 @@ def get_last_finish_for(owner: str, season: str, league: str | None = None) -> d
     """
     Look up last season's finish for this owner.
     Prefer the same league if provided; else any league row.
+    Falls back to manager_season_stats when last_season_finish has no row.
+    Returns a dict with at least: season, league, owner_name, position, points
     """
     with _conn() as conn, conn.cursor() as cur:
+        # 1) Try last_season_finish (authoritative if present)
         if league:
             cur.execute("""
                 SELECT season, league, owner_name, team_name, position, points
@@ -557,13 +560,47 @@ def get_last_finish_for(owner: str, season: str, league: str | None = None) -> d
             row = cur.fetchone()
             if row:
                 return row
+
         cur.execute("""
             SELECT season, league, owner_name, team_name, position, points
             FROM public.last_season_finish
             WHERE season = %s AND lower(owner_name) = lower(%s)
             LIMIT 1
         """, (season, owner))
+        row = cur.fetchone()
+        if row:
+            return row
+
+        # 2) Fallback: manager_season_stats (aliased to expected keys)
+        if league:
+            cur.execute("""
+                SELECT season,
+                       league,
+                       owner_name,
+                       NULL::text AS team_name,
+                       placement   AS position,
+                       league_points AS points
+                FROM public.manager_season_stats
+                WHERE season = %s AND lower(owner_name) = lower(%s) AND lower(league) = lower(%s)
+                LIMIT 1
+            """, (season, owner, league))
+            row = cur.fetchone()
+            if row:
+                return row
+
+        cur.execute("""
+            SELECT season,
+                   league,
+                   owner_name,
+                   NULL::text AS team_name,
+                   placement   AS position,
+                   league_points AS points
+            FROM public.manager_season_stats
+            WHERE season = %s AND lower(owner_name) = lower(%s)
+            LIMIT 1
+        """, (season, owner))
         return cur.fetchone()
+
 
 
 def fallback_fdr_from_finish(position: int) -> int:
