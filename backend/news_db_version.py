@@ -105,12 +105,11 @@ def create_news(
     body_html = _to_html(content_html, content_markdown, content)
     tag_list = _split_tags(tags)
     article_id = f"{_slug(title)}"
-
     sql = """
       insert into public.news_article
         (id, title, date, image_url, excerpt, content_html, tags, published)
       values
-        (%s,%s,current_date,%s,%s,%s,%s,true,%s)
+        (%s,%s,current_date,%s,%s,%s,%s,true)
       on conflict (id) do update set
         title = excluded.title,
         image_url = excluded.image_url,
