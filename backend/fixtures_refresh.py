@@ -95,7 +95,7 @@ def refresh_h2h_fixtures_for_league(
         #if row and row.get("position"):
             #return fallback_fdr_from_finish(int(row["position"]))
         #return 3  # neutral if we have no record
-        return row.get("fdr_seed")
+        return int(row["fdr_seed"])
 
     # choose GW window
     if start_gw is None or end_gw is None:
