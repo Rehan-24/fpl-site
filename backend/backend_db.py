@@ -369,7 +369,7 @@ def get_manager_fixtures(owner: str, season: str, include_past: bool, limit_next
         opponent_team  = r["away_team_name"] if is_home else r["home_team_name"]
         score_for      = r["home_score"] if is_home else r["away_score"]
         score_against  = r["away_score"] if is_home else r["home_score"]
-        fdr            = (r["away_fdr"] if is_home else r["home_fdr"])  # difficulty vs opponent
+        fdr = (r["home_fdr"] if is_home else r["away_fdr"])  # difficulty for THIS owner vs opponent
 
         shaped.append({
             "gw": r["gw"],
