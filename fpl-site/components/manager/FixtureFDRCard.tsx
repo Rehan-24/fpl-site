@@ -45,13 +45,24 @@ export default function FixtureFDRCard({ ownerName }: { ownerName: string }) {
 
 
   // Badge color
-  const fdrBadge = (n?: number | null) => {
-    const base = "inline-flex h-6 w-6 items-center justify-center rounded-md font-semibold";
-    if (n == null) return base + " bg-gray-300 text-gray-700";
-    if (n >= 4)    return base + " bg-red-500 text-white";
-    if (n === 3)   return base + " bg-yellow-400 text-black";
-    return           base + " bg-green-500 text-white";
+const fdrBadge = (n?: number | null) => {
+  const base =
+    "inline-flex h-6 w-6 items-center justify-center rounded-md font-semibold";
+
+  // fallback
+  if (n == null || n < 1 || n > 5) return base + " bg-gray-300 text-gray-700";
+
+  // exact colors to match the screenshot
+  const map: Record<number, string> = {
+    1: "bg-[#395c2b] text-white",  // dark green
+    2: "bg-[#00f28a] text-white",  // neon green
+    3: "bg-[#e5e5e5] text-gray-700", // light grey
+    4: "bg-[#ff2a5c] text-white",  // hot pink/red
+    5: "bg-[#6b0f2b] text-white",  // deep maroon
   };
+
+  return `${base} ${map[n]}`;
+};
 
   // Format result if finished
   const resultStr = (fx: Fixture) => {
