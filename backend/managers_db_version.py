@@ -79,6 +79,7 @@ def _row_to_manager(row: Dict[str, Any]) -> Dict[str, Any]:
         "promotions": row.get("promotions"),
         "relegations": row.get("relegations"),
         "best_finish": row.get("best_finish"),
+        "placements": row.get("placements"),
 
         # convenient alias so UI can show “Total Experience”
         "total_experience": total_experience,

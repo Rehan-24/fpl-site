@@ -24,7 +24,8 @@ def _conn():
 def fetch_all_managers():
     sql = """
     select
-      m.id, m.discord_id, m.team, m.owner_name, m.fpl_team_url,
+      m.id, m.discord_id, m.team, m.owner_name,
+      m.placements, m.fpl_team_url,
       m.favorite_club, m.image_url, m.dynamic_image_url,
       m.social_url, m.bio, m.current_league,
       m.years_playing, m.premier_years, m.championship_years,
