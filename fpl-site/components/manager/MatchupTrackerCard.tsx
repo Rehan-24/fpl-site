@@ -42,8 +42,8 @@ export default function MatchupTrackerCard({ ownerName }: { ownerName: string })
           <div>
             <div className="mb-1 font-semibold text-[#38003c]">Most Beaten</div>
             {best.map(r=> (
-              <div key={`b-${r.opponentTeamId}`} className="flex justify-between rounded-md border border-gray-300 bg-[#37003c] px-3 py-2">
-                <span className="truncate">{r.opponentTeam}</span>
+              <div key={`b-${r.opponentTeamId}`} className="flex justify-between rounded-md border border-[#37003c] bg-[#37003c] px-3 py-2">
+                <span className="truncate text-green-500">{r.opponentTeam}</span>
                 <span className="font-semibold text-green-500 ">{r.w}-{r.l}-{r.d}</span>
               </div>
             ))}
@@ -52,8 +52,8 @@ export default function MatchupTrackerCard({ ownerName }: { ownerName: string })
           <div>
             <div className="mb-1 font-semibold text-[#38003c]">Toughest Opponents</div>
             {worst.map(r=> (
-              <div key={`w-${r.opponentTeamId}`} className="flex justify-between rounded-md border border-gray-300 bg-[#37003c] px-3 py-2">
-                <span className="truncate">{r.opponentTeam}</span>
+              <div key={`w-${r.opponentTeamId}`} className="flex justify-between rounded-md border border-[#37003c] bg-[#37003c] px-3 py-2">
+                <span className="truncate text-green-500">{r.opponentTeam}</span>
                 <span className="font-semibold text-green-500 ">{r.w}-{r.l}-{r.d}</span>
               </div>
             ))}
