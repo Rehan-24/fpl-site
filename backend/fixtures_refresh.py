@@ -91,6 +91,7 @@ def refresh_h2h_fixtures_for_league(league_id: int, league_name: str) -> int:
         return 3  # neutral if we have no record
 
     start_gw, end_gw = _gw_window_from_bootstrap()
+    end_gw = 38
     fixtures_rows: List[Dict[str, Any]] = []
     headers = {"User-Agent": "tfpl-site"}
 
