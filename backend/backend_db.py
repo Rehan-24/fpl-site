@@ -542,65 +542,79 @@ def get_season_stats_for_owner(owner_name: str) -> list[dict]:
         return cur.fetchall()
 
 
-def get_last_finish_for(owner: str, season: str, league: Optional[str] = None) -> Optional[dict]:
+def get_last_finish_for(owner: str, season: str, league: str | None = None) -> dict | None:
     """
     Look up last season's finish for this owner.
     Prefer the same league if provided; else any league row.
-    Falls back to manager_season_stats when last_season_finish has no row.
-    Returns a dict with at least: season, league, owner_name, position, points
+    Accept both '2024-25' and '2024/25' season formats.
+    Trim/case-fold owner names.
+    Fallback to manager_season_stats if last_season_finish has no row.
     """
+    # Accept 'YYYY-YY' and 'YYYY/YY'
+    def _season_variants(s: str) -> list[str]:
+        s = (s or "").strip()
+        return [s, s.replace("-", "/"), s.replace("/", "-")]
+
+    owner_in = (owner or "").strip()
+
     with _conn() as conn, conn.cursor() as cur:
-        # 1) Try last_season_finish (authoritative if present)
+        # 1) Try last_season_finish with league first (if provided), then without
+        seasons = _season_variants(season)
+
         if league:
             cur.execute("""
                 SELECT season, league, owner_name, team_name, position, points
                 FROM public.last_season_finish
-                WHERE season = %s AND lower(owner_name) = lower(%s) AND lower(league) = lower(%s)
+                WHERE season = ANY(%s)
+                  AND lower(btrim(owner_name)) = lower(btrim(%s))
+                  AND lower(btrim(league)) = lower(btrim(%s))
                 LIMIT 1
-            """, (season, owner, league))
+            """, (seasons, owner_in, league))
             row = cur.fetchone()
-            if row:
+            if row and row.get("position") is not None:
                 return row
 
         cur.execute("""
             SELECT season, league, owner_name, team_name, position, points
             FROM public.last_season_finish
-            WHERE season = %s AND lower(owner_name) = lower(%s)
+            WHERE season = ANY(%s)
+              AND lower(btrim(owner_name)) = lower(btrim(%s))
             LIMIT 1
-        """, (season, owner))
+        """, (seasons, owner_in))
         row = cur.fetchone()
-        if row:
+        if row and row.get("position") is not None:
             return row
 
-        # 2) Fallback: manager_season_stats (aliased to expected keys)
+        # 2) Fallback to manager_season_stats (placement/league_points)
         if league:
             cur.execute("""
                 SELECT season,
                        league,
                        owner_name,
                        NULL::text AS team_name,
-                       placement   AS position,
+                       placement    AS position,
                        league_points AS points
                 FROM public.manager_season_stats
-                WHERE season = %s AND lower(owner_name) = lower(%s) AND lower(league) = lower(%s)
+                WHERE season = ANY(%s)
+                  AND lower(btrim(owner_name)) = lower(btrim(%s))
+                  AND (lower(btrim(league)) = lower(btrim(%s)) OR league IS NULL)
                 LIMIT 1
-            """, (season, owner, league))
-            row = cur.fetchone()
-            if row:
-                return row
-
-        cur.execute("""
-            SELECT season,
-                   league,
-                   owner_name,
-                   NULL::text AS team_name,
-                   placement   AS position,
-                   league_points AS points
-            FROM public.manager_season_stats
-            WHERE season = %s AND lower(owner_name) = lower(%s)
-            LIMIT 1
-        """, (season, owner))
+            """, (seasons, owner_in, league))
+        else:
+            cur.execute("""
+                SELECT season,
+                       league,
+                       owner_name,
+                       NULL::text AS team_name,
+                       placement    AS position,
+                       league_points AS points
+                FROM public.manager_season_stats
+                WHERE season = ANY(%s)
+                  AND lower(btrim(owner_name)) = lower(btrim(%s))
+                LIMIT 1
+            """, (seasons, owner_in))
         return cur.fetchone()
+
 
 
 
