@@ -9,7 +9,8 @@ const LINKS = [
   { label: "LiveFPL", href: "https://www.livefpl.net/" },
   { label: "FPL Newspaper PL", href: "https://www.fplmundo.com/723566" },
   { label: "FPL Newspaper CL", href: "https://www.fplmundo.com/850022" },
-  { label: "FPL Newspaper Blank", href: "https://www.fplmundo.com/" }
+  { label: "FPL Newspaper", href: "https://www.fplmundo.com/" },
+  { label: "Our Discord", href: "https://discord.gg/Y9Y3FjkU" },
 ];
 
 export default function LinksPage() {
