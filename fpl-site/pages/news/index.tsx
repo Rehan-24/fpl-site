@@ -24,10 +24,10 @@ export default function NewsPage() {
   return (
     <>
       <Head>
-        <title>tFPL News & Announcements</title>
+        <title>News | tFPL</title>
         <meta property="og:title" content="tFPL News & Announcements" />
         <meta property="og:description" content="League updates, new manager welcomes, rules tweaks, and Cup info." />
-        <meta property="og:image" content="https://fantasy.premierleague.com/static/media/share.58c0c2b0.png" />
+        <meta property="og:image" content="https://content.propstore.com/auction/la2018/listings/75653/img02.jpg" />
         <meta property="og:url" content="https://tfpl.vercel.app/news" />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="THE Fantasy Premier League" />
