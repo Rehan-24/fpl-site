@@ -95,7 +95,6 @@ def create_news(
     content_html: str | None = Body(default=None),
     content_markdown: str | None = Body(default=None),
     content: str | None = Body(default=None),  # allow plain 'content'
-    author: str | None = Body(default=None),
     x_api_key: str = Header(default="")
 ):
     if x_api_key != NEWS_API_KEY:
@@ -109,7 +108,7 @@ def create_news(
 
     sql = """
       insert into public.news_article
-        (id, title, date, image_url, excerpt, content_html, tags, published, author)
+        (id, title, date, image_url, excerpt, content_html, tags, published)
       values
         (%s,%s,current_date,%s,%s,%s,%s,true,%s)
       on conflict (id) do update set
@@ -118,13 +117,12 @@ def create_news(
         excerpt = excluded.excerpt,
         content_html = excluded.content_html,
         tags = excluded.tags,
-        author = excluded.author,
         published = true,
         updated_at = now()
     """
     from psycopg import connect
     with connect(DB_URL) as conn, conn.cursor() as cur:
-        cur.execute(sql, (article_id, title, image_url, excerpt, body_html, tag_list, author))
+        cur.execute(sql, (article_id, title, image_url, excerpt, body_html, tag_list))
         conn.commit()
     return {"ok": True, "id": article_id}
 
