@@ -13,7 +13,7 @@ export default function SeasonStatsCard({ ownerName }: { ownerName: string }) {
 
   useEffect(()=>{
     if (!ownerName) return
-    fetch(`${API_BASE}/api/managers/${encodeURIComponent(ownerName)}/season-stats`)
+    fetch(`${API_BASE}/api/managers/${encodeURIComponent(ownerName)}/seasons`)
       .then(r=>r.json())
       .then(d=>setRows(d.stats||[]))
       .catch(()=>setRows([]))
