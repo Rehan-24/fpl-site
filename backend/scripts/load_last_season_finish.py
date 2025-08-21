@@ -11,9 +11,9 @@ def upsert_last_season_finish(rows: list[dict]) -> int:
 
     sql = """
     INSERT INTO public.last_season_finish
-      (season, league, owner_name, position, fdr_seed, updated_at)
+      (season, league, owner_name, position, fdr_seed, league_points, updated_at)
     VALUES
-      (%(season)s, %(league)s, %(owner_name)s, %(position)s, %(fdr_seed)s, now())
+      (%(season)s, %(league)s, %(owner_name)s, %(position)s, %(fdr_seed)s, %(league_points)s, now())
     ON CONFLICT (season, league, owner_name) DO UPDATE SET
       position   = EXCLUDED.position,
       fdr_seed   = EXCLUDED.fdr_seed,
@@ -67,6 +67,7 @@ def main():
             "league": args.league,
             "owner_name": owner,
             "position": pos,
+            "league_points": rec.get("Points"),
             "fdr_seed": seed_from_position(pos),
         })
 

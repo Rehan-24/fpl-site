@@ -690,12 +690,16 @@ def get_matchups_for_owner(owner: str) -> list[dict]:
         cur.execute(sql, (key, key))
         rows = cur.fetchall()
 
-    # optional: owner -> team map for display
     team_map = {}
     with _conn() as conn, conn.cursor() as cur:
-        cur.execute("select owner_name, coalesce(team, team_name) as team from public.manager where active = true;")
+        cur.execute("""
+            select owner_name, team
+            from public.manager
+            where active = true
+        """)
         for r in cur.fetchall():
             team_map[(r.get("owner_name") or "").strip().lower()] = r.get("team")
+
 
     out = []
     for r in rows:
