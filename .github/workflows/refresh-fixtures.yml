@@ -1,7 +1,7 @@
 name: Refresh Fixtures Daily
 on:
   schedule:
-    - cron: "12 9 * * *"   # 09:12 UTC daily (02:12 PT). Pick your time.
+    - cron: '0 18 * * *'   # 10:00 during PST
   workflow_dispatch: {}
 
 jobs:
@@ -13,5 +13,5 @@ jobs:
           curl -sS -X POST "$BACKEND_URL/api/admin/refresh-fixtures" \
             -H "X-Api-Key: $API_KEY"
         env:
-          BACKEND_URL: ${{ secrets.BACKEND_URL }}      # e.g., https://tfpl.onrender.com
-          API_KEY: ${{ secrets.API_KEY }}
+          BACKEND_URL: tfpl.onrender.com
+          API_KEY: wefbthneh9wf6cv23irj2f892e23fq23fn2309t24423t2fvawervweg234t

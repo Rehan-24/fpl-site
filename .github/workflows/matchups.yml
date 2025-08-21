@@ -1,7 +1,7 @@
 name: Rebuild Matchups
 on:
   schedule:
-    - cron: "0 6 * * 1"   # Mondays 06:00 UTC
+    - cron: '30 18 * * *'  # 10:30 during PST
   workflow_dispatch: {}
 jobs:
   rebuild:
@@ -16,5 +16,5 @@ jobs:
           python-version: "3.11"
       - run: pip install -r requirements.txt
       - env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_DB_URL: postgres://postgres.fmkbxhtmjlgeoiouphuy:2iL20hiLUtaxjRi9@aws-1-us-west-1.pooler.supabase.com:6543/postgres?sslmode=require
         run: python rebuild_matchup_tracker.py
