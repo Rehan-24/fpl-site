@@ -211,8 +211,9 @@ def list_news_tags():
         return [r["tag"] for r in rows if r and r.get("tag") is not None]
     
 # ---------- Table Snapshots ----------
-def insert_table_snapshot(league: str, gw: int | None, payload: dict,
+def insert_table_snapshot(league: str, gw: Optional[int], payload: dict,
                           source: str = "backend", schema_version: int = 1) -> None:
+
     league = (league or "").strip().lower()
     sql = """
     INSERT INTO public.league_table_snapshots
@@ -224,7 +225,7 @@ def insert_table_snapshot(league: str, gw: int | None, payload: dict,
         cur.execute(sql, (league, gw, source, schema_version, Json(payload)))
 
 
-def get_latest_table_snapshot(league: str, gw: int | None = None):
+def get_latest_table_snapshot(league: str, gw: Optional[int] = None):
     league = (league or "").strip().lower()
     if gw is None:
         sql = """
@@ -541,7 +542,7 @@ def get_season_stats_for_owner(owner_name: str) -> list[dict]:
         return cur.fetchall()
 
 
-def get_last_finish_for(owner: str, season: str, league: str | None = None) -> dict | None:
+def get_last_finish_for(owner: str, season: str, league: Optional[str] = None) -> Optional[dict]:
     """
     Look up last season's finish for this owner.
     Prefer the same league if provided; else any league row.
@@ -617,5 +618,107 @@ def fallback_fdr_from_finish(position: int) -> int:
     if position <= 14: return 3
     if position <= 16: return 2
     return 1
+
+
+# ---------- MATCHUP TRACKER (all-time, from finished fixtures) ----------
+
+def rebuild_manager_matchups() -> int:
+    """
+    Recompute the aggregated matchup table from fixtures_h2h.
+    Counts only finished matches with non-null scores. Works across all seasons.
+    """
+    with _conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+          with completed as (
+            select season, gw, home_owner, away_owner, home_score, away_score
+            from public.fixtures_h2h
+            where finished = true
+              and home_score is not null
+              and away_score is not null
+          ),
+          norm as (
+            select
+              case when lower(home_owner) <= lower(away_owner) then home_owner else away_owner end as owner_a,
+              case when lower(home_owner) <= lower(away_owner) then away_owner else home_owner end as owner_b,
+              case when lower(home_owner) <= lower(away_owner) then home_score else away_score end as score_a,
+              case when lower(home_owner) <= lower(away_owner) then away_score else home_score end as score_b
+            from completed
+          ),
+          agg as (
+            select owner_a, owner_b,
+                   sum(case when score_a > score_b then 1 else 0 end) as w_a,
+                   sum(case when score_a = score_b then 1 else 0 end) as d,
+                   sum(case when score_a < score_b then 1 else 0 end) as w_b,
+                   sum(score_a) as gf_a,
+                   sum(score_b) as ga_a
+            from norm
+            group by owner_a, owner_b
+          )
+          insert into public.manager_matchups
+            (owner_key_a, owner_key_b, owner_a, owner_b, w_a, d, w_b, gf_a, ga_a, updated_at)
+          select lower(owner_a), lower(owner_b), owner_a, owner_b, w_a, d, w_b, gf_a, ga_a, now()
+          from agg
+          on conflict (owner_key_a, owner_key_b) do update set
+            owner_a = excluded.owner_a,
+            owner_b = excluded.owner_b,
+            w_a = excluded.w_a,
+            d   = excluded.d,
+            w_b = excluded.w_b,
+            gf_a = excluded.gf_a,
+            ga_a = excluded.ga_a,
+            updated_at = now();
+        """)
+        conn.commit()
+        cur.execute("select count(*) as n from public.manager_matchups;")
+        r = cur.fetchone()
+        return int((r or {}).get("n") or 0)
+
+
+def get_matchups_for_owner(owner: str) -> list[dict]:
+    """
+    Return per-opponent record from aggregated table for the given owner.
+    Shape: [{opponentOwner, opponentTeam, w,l,d,gf,ga}, ...]
+    """
+    key = (owner or "").strip().lower()
+    sql = """
+      select owner_a, owner_b, w_a, d, w_b, gf_a, ga_a
+      from public.manager_matchups
+      where owner_key_a = %s or owner_key_b = %s
+      order by least(owner_a, owner_b), greatest(owner_a, owner_b)
+    """
+    with _conn() as conn, conn.cursor() as cur:
+        cur.execute(sql, (key, key))
+        rows = cur.fetchall()
+
+    # optional: owner -> team map for display
+    team_map = {}
+    with _conn() as conn, conn.cursor() as cur:
+        cur.execute("select owner_name, coalesce(team, team_name) as team from public.manager where active = true;")
+        for r in cur.fetchall():
+            team_map[(r.get("owner_name") or "").strip().lower()] = r.get("team")
+
+    out = []
+    for r in rows:
+        a = (r["owner_a"] or "").strip()
+        b = (r["owner_b"] or "").strip()
+        akey, bkey = a.lower(), b.lower()
+
+        if key == akey:
+            opp = b
+            w, l, d = int(r["w_a"] or 0), int(r["w_b"] or 0), int(r["d"] or 0)
+            gf, ga = int(r["gf_a"] or 0), int(r["ga_a"] or 0)
+        else:
+            opp = a
+            w, l, d = int(r["w_b"] or 0), int(r["w_a"] or 0), int(r["d"] or 0)
+            gf, ga = int(r["ga_a"] or 0), int(r["gf_a"] or 0)
+
+        out.append({
+            "opponentOwner": opp,
+            "opponentTeam": team_map.get(opp.lower()),
+            "w": w, "l": l, "d": d,
+            "gf": gf, "ga": ga,
+        })
+    return out
+
 
 

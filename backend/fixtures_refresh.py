@@ -1,6 +1,6 @@
 import requests
 from datetime import datetime, timezone
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List, Tuple, Optional
 from backend_db import (
     upsert_fixtures, recent_form_score, fdr_from_composite, fetch_all_managers,
     get_last_finish_for, fallback_fdr_from_finish
@@ -10,13 +10,13 @@ import re
 FPL_BASE = "https://fantasy.premierleague.com/api"
 ENTRY_RE = re.compile(r"/entry/(\d+)/")
 
-def _parse_entry_id(url: str | None) -> int | None:
+def _parse_entry_id(url: Optional[str]) -> Optional[int]:
     if not url:
         return None
     m = ENTRY_RE.search(url)
     return int(m.group(1)) if m else None
 
-def _managers_maps() -> tuple[dict[int, str], dict[int, str]]:
+def _managers_maps() -> Tuple[Dict[int, str], Dict[int, str]]:
     owners = fetch_all_managers()
     entry_to_owner: dict[int, str] = {}
     entry_to_team: dict[int, str] = {}

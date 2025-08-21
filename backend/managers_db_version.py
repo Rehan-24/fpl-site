@@ -14,6 +14,8 @@ from backend_db import (
     latest_standing_for_owner,
 )
 from backend_db import list_manager_seasons
+from backend_db import get_matchups_for_owner as db_get_matchups_for_owner
+
 
 router = APIRouter()
 
@@ -249,55 +251,9 @@ def load_history():
 
 @router.get("/managers/{owner}/matchups")
 def matchups_all_time(owner: str):
-    mgr = fetch_manager_by_owner(owner)
-    if not mgr:
-        raise HTTPException(status_code=404, detail="Owner not found")
-
-    my_entry_id = parse_entry_id_from_url(mgr.get("fpl_team_url", "") or "")
-    owner_lower = owner.strip().lower()
-
-    hist = load_history() or []
-    vs: Dict[str, Dict[str, Any]] = {}
-
-    for m in hist:
-        a_id = (m.get("entry_1_entry") or "") and str(m.get("entry_1_entry"))
-        b_id = (m.get("entry_2_entry") or "") and str(m.get("entry_2_entry"))
-        a_pts, b_pts = m.get("entry_1_points"), m.get("entry_2_points")
-        a_name = (m.get("entry_1_player_name") or "").strip()
-        b_name = (m.get("entry_2_player_name") or "").strip()
-        a_team = (m.get("entry_1_name") or a_name or "Unknown").strip()
-        b_team = (m.get("entry_2_name") or b_name or "Unknown").strip()
-
-        me_is_a = bool(my_entry_id and a_id == my_entry_id)
-        me_is_b = bool(my_entry_id and b_id == my_entry_id)
-        if not (me_is_a or me_is_b):
-            me_is_a = (not my_entry_id) and (a_name.lower() == owner_lower)
-            me_is_b = (not my_entry_id) and (b_name.lower() == owner_lower)
-        if not (me_is_a or me_is_b):
-            continue
-
-        my_pts = a_pts if me_is_a else b_pts
-        op_pts = b_pts if me_is_a else a_pts
-        if my_pts is None or op_pts is None:
-            continue
-
-        opp_id   = b_id if me_is_a else a_id
-        opp_team = b_team if me_is_a else a_team
-        opp_name = b_name if me_is_a else a_name
-        key = opp_id or opp_name.lower() or opp_team
-
-        bucket = vs.setdefault(key, {
-            "opponentTeamId": opp_id or key,
-            "opponentTeam": opp_team or opp_name or "Unknown",
-            "w": 0, "l": 0, "d": 0
-        })
-        if my_pts > op_pts: bucket["w"] += 1
-        elif my_pts < op_pts: bucket["l"] += 1
-        else: bucket["d"] += 1
-
-    def score(r): return r["w"] - r["l"] + 0.25*r["d"]
-    out = sorted(vs.values(), key=score, reverse=True)
-    return {"scope": "all_time", "vs": out}
+    vs = db_get_matchups_for_owner(owner)
+    # shape is already consumable by your UI; adjust keys as needed
+    return {"scope": "all_time", "vs": vs}
 
 # ---------- Admin passthrough ----------
 @router.post("/admin/ingest")
