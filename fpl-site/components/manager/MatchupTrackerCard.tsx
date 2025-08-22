@@ -6,7 +6,7 @@ type VsRow = { opponentTeamId: string; opponentTeam: string; w:number; l:number;
 
 export default function MatchupTrackerCard({ ownerName }: { ownerName: string }) {
   const [rows, setRows] = useState<VsRow[]>([])
-  const [expanded, setExpanded] = useState(true)
+  const [expanded, setExpanded] = useState(false)
   const API_BASE = useMemo(
     () => (process.env.NEXT_PUBLIC_API_BASE_URL || 'https://tfpl.onrender.com').replace(/\/$/, ''),
     []
@@ -33,11 +33,11 @@ export default function MatchupTrackerCard({ ownerName }: { ownerName: string })
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-lg font-bold text-[#38003c]">Matchup Tracker (All-Time)</h3>
         <button onClick={()=>setExpanded(e=>!e)} className="absolute top-3 right-3 bg-[#37003c]/15 hover:bg-[#37003c]/25 text-[#37003c] text-xs font-semibold rounded-full px-4 py-1 transition z-20 pointer-events-auto">
-          {expanded ? 'Show Summary' : 'Show All'}
+          {expanded ? 'Show All' : 'Show Summary'}
         </button>
       </div>
 
-      {!expanded && (
+      {expanded && (
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm text-[#38003c]">
             <thead>
@@ -67,7 +67,7 @@ export default function MatchupTrackerCard({ ownerName }: { ownerName: string })
         </div>
       )}
 
-      {expanded && (
+      {!expanded && (
         <div className="mb-2 grid grid-cols-1 gap-3 md:grid-cols-2">
           <div>
             <div className="mb-1 font-semibold text-[#38003c]">Most Beaten</div>
