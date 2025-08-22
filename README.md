@@ -2,7 +2,7 @@ Created by Carter Witmer-Gautsch
   - thx CWG
 
 TODO:
-- populate historical season data for each manager
+- DONE populate historical season data for each manager + placements
 - have manager tables pull that information to sort out YoE/etc ?
 - automate FPL Mundo Posts
     - waiting until GW2 to see how the link changes, but this might be possible
