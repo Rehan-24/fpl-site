@@ -564,7 +564,7 @@ def get_last_finish_for(owner: str, season: str, league: str | None = None) -> d
 
         if league:
             cur.execute("""
-                SELECT season, league, owner_name, team_name, position, points
+                SELECT season, league, owner_name, team_name, position, points, fdr_seed
                 FROM public.last_season_finish
                 WHERE season = ANY(%s)
                   AND lower(btrim(owner_name)) = lower(btrim(%s))
@@ -576,7 +576,7 @@ def get_last_finish_for(owner: str, season: str, league: str | None = None) -> d
                 return row
 
         cur.execute("""
-            SELECT season, league, owner_name, team_name, position, points
+            SELECT season, league, owner_name, team_name, position, points, fdr_seed
             FROM public.last_season_finish
             WHERE season = ANY(%s)
               AND lower(btrim(owner_name)) = lower(btrim(%s))

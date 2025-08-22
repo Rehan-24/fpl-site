@@ -92,9 +92,10 @@ def refresh_h2h_fixtures_for_league(
     def seed_fdr_for(owner: str) -> int:
         prev = last_season_label()
         row = get_last_finish_for(owner, prev, league_name)
-        if row and row.get("position"):
-            return fallback_fdr_from_finish(int(row["position"]))
-        return 3  # neutral if we have no record
+        #if row and row.get("position"):
+            #return fallback_fdr_from_finish(int(row["position"]))
+        #return 3  # neutral if we have no record
+        return int(row["fdr_seed"])
 
     # choose GW window
     if start_gw is None or end_gw is None:
