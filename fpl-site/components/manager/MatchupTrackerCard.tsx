@@ -6,7 +6,7 @@ type VsRow = { opponentTeamId: string; opponentTeam: string; w:number; l:number;
 
 export default function MatchupTrackerCard({ ownerName }: { ownerName: string }) {
   const [rows, setRows] = useState<VsRow[]>([])
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(true)
   const API_BASE = useMemo(
     () => (process.env.NEXT_PUBLIC_API_BASE_URL || 'https://tfpl.onrender.com').replace(/\/$/, ''),
     []
@@ -33,34 +33,9 @@ export default function MatchupTrackerCard({ ownerName }: { ownerName: string })
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-lg font-bold text-[#38003c]">Matchup Tracker (All-Time)</h3>
         <button onClick={()=>setExpanded(e=>!e)} className="absolute top-3 right-3 bg-[#37003c]/15 hover:bg-[#37003c]/25 text-[#37003c] text-xs font-semibold rounded-full px-4 py-1 transition z-20 pointer-events-auto">
-          {expanded ? 'Show All' : 'Show Summary'}
+          {expanded ? 'Show Summary' : 'Show All'}
         </button>
       </div>
-
-      {expanded && (
-        <div className="mb-2 grid grid-cols-1 gap-3 md:grid-cols-2">
-          <div>
-            <div className="mb-1 font-semibold text-[#38003c]">Most Beaten</div>
-            {best.map(r=> (
-              <div key={`b-${r.opponentTeamId}`} className="flex justify-between rounded-md border border-[#37003c] bg-[#37003c] px-3 py-2">
-                <span className="truncate text-green-500">{r.opponentTeam}</span>
-                <span className="font-semibold text-green-500 ">{r.w}-{r.l}-{r.d}</span>
-              </div>
-            ))}
-            {!best.length && <div className="text-sm opacity-70">No data yet.</div>}
-          </div>
-          <div>
-            <div className="mb-1 font-semibold text-[#38003c]">Toughest Opponents</div>
-            {worst.map(r=> (
-              <div key={`w-${r.opponentTeamId}`} className="flex justify-between rounded-md border border-[#37003c] bg-[#37003c] px-3 py-2">
-                <span className="truncate text-green-500">{r.opponentTeam}</span>
-                <span className="font-semibold text-green-500 ">{r.w}-{r.l}-{r.d}</span>
-              </div>
-            ))}
-            {!worst.length && <div className="text-sm opacity-70">No data yet.</div>}
-          </div>
-        </div>
-      )}
 
       {!expanded && (
         <div className="overflow-x-auto">
@@ -89,6 +64,31 @@ export default function MatchupTrackerCard({ ownerName }: { ownerName: string })
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {expanded && (
+        <div className="mb-2 grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div>
+            <div className="mb-1 font-semibold text-[#38003c]">Most Beaten</div>
+            {best.map(r=> (
+              <div key={`b-${r.opponentTeamId}`} className="flex justify-between rounded-md border border-[#37003c] bg-[#37003c] px-3 py-2">
+                <span className="truncate text-green-500">{r.opponentTeam}</span>
+                <span className="font-semibold text-green-500 ">{r.w}-{r.l}-{r.d}</span>
+              </div>
+            ))}
+            {!best.length && <div className="text-sm opacity-70">No data yet.</div>}
+          </div>
+          <div>
+            <div className="mb-1 font-semibold text-[#38003c]">Toughest Opponents</div>
+            {worst.map(r=> (
+              <div key={`w-${r.opponentTeamId}`} className="flex justify-between rounded-md border border-[#37003c] bg-[#37003c] px-3 py-2">
+                <span className="truncate text-green-500">{r.opponentTeam}</span>
+                <span className="font-semibold text-green-500 ">{r.w}-{r.l}-{r.d}</span>
+              </div>
+            ))}
+            {!worst.length && <div className="text-sm opacity-70">No data yet.</div>}
+          </div>
         </div>
       )}
     </div>
