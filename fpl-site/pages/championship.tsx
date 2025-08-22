@@ -56,11 +56,11 @@ export default function Championship() {
   });
 
   const positionLabels: Record<string, string> = {
-    "1": "Champion $55",
+    "1": "Champion $65",
     "2": "Promotion $45",
     "3": "Promotion $40",
     "4": "Promotion $30",
-    "5": "Upper Mid $20",
+    "5": "Upper Mid $25",
     "6": "Upper Mid $20",
     "7": "Upper Mid $15",
     "8": "Battle of The Mid",

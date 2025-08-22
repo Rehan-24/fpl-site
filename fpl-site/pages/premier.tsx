@@ -59,10 +59,10 @@ export default function Premier() {
   });
 
   const positionLabels: Record<string, string> = {
-    "1": "Champion $225",
-    "2": "Champions League $105",
-    "3": "Champions League $90",
-    "4": "Champions League $80",
+    "1": "Champion $230",
+    "2": "Champions League $110",
+    "3": "Champions League $100",
+    "4": "Champions League $90",
     "5": "Europa League $55",
     "6": "Europa League $45",
     "7": "Conference League $35",
