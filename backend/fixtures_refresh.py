@@ -133,7 +133,9 @@ def refresh_h2h_fixtures_for_league(
 
                 kickoff = fx.get("kickoff_time") or fx.get("event_start_time")
                 kickoff_utc = datetime.fromisoformat(kickoff.replace("Z", "+00:00")) if kickoff else None
-                finished = bool(fx.get("finished"))
+                finished = False
+                if (int(fx.get("entry_1_total")) or int(fx.get("entry_1_total"))) > 0:
+                    finished = True  
                 home_score = fx.get("entry_1_points")
                 away_score = fx.get("entry_2_points")
                 
