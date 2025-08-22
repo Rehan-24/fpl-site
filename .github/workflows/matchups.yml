@@ -2,7 +2,7 @@ name: Rebuild Matchups
 
 on:
   schedule:
-    - cron: '30 18 * * *'  # 1030am pst
+    - cron: '30 17 * * *'  # 1030am pst
   workflow_dispatch: {}
 
 jobs:

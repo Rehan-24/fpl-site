@@ -1,7 +1,7 @@
 name: Refresh Fixtures Daily
 on:
   schedule:
-    - cron: '0 18 * * *'   # 10:00 during PST
+    - cron: '0 17 * * *'   # 10:00 during PST
   workflow_dispatch: {}
 
 jobs:
