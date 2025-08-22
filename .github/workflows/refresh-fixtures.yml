@@ -13,5 +13,5 @@ jobs:
           curl -sS -X POST "$BACKEND_URL/api/admin/refresh-fixtures-range?start_gw=1&end_gw=38" \
             -H "X-Api-Key: $API_KEY"
         env:
-          BACKEND_URL: tfpl.onrender.com
+          BACKEND_URL: https://tfpl.onrender.com
           API_KEY: wefbthneh9wf6cv23irj2f892e23fq23fn2309t24423t2fvawervweg234t

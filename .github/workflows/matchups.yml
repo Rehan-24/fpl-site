@@ -16,6 +16,4 @@ jobs:
         run: |
           set -euo pipefail
           echo "Calling $API_BASE/api/admin/rebuild-matchups ..."
-          curl -sS -X POST \
-            -H "X-Api-Key: wefbthneh9wf6cv23irj2f892e23fq23fn2309t24423t2fvawervweg234t" \
-            "$API_BASE/api/admin/rebuild-matchups"
+          curl -sS -X POST -H "X-Api-Key: wefbthneh9wf6cv23irj2f892e23fq23fn2309t24423t2fvawervweg234t" "$API_BASE/api/admin/rebuild-matchups"
