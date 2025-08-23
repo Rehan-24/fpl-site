@@ -107,7 +107,7 @@ export default function FixtureFDRCard({ ownerName }: { ownerName: string }) {
                 <div className="text-sm font-semibold text-[#38003c]">
                   GW{fx.gw} · {fx.is_home ? 'Home' : 'Away'} · {resultStr(fx)}
                 </div>
-                <div className="text-sm text-[#38003c] opacity-90">
+                <div className="text-sm text-[#38003c] opacity-90 no-underline hover:underline focus-visible:underline">
                   vs{" "}
                   <span className="font-semibold">
                     {fplUrl ? (
