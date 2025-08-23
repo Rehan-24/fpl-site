@@ -2,8 +2,8 @@ name: Refresh Premier & Championship
 
 on:
   schedule:
-    - cron: '25 12 * * *'  # 4:25 AM PT (PST, UTC-8). During PDT this runs 5:25 AM PT.
-    - cron: '25 2 * * *'   # 6:25 PM PT (PST). During PDT this runs 7:25 PM PT.
+    - cron: '25 12 * * *'  # 4:25 AM PT (PST, UTC-8).
+    - cron: '25 2 * * *'   # 6:25 PM PT (PST). 
   workflow_dispatch: {}
 
 jobs:

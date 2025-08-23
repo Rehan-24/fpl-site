@@ -371,27 +371,40 @@ def fixtures_stats():
     return {"by_season": by_season, "leagues": leagues, "sample_owner": sample_owner}
 
 @router.post("/admin/refresh-fpl-links")
-def refresh_fpl_links(x_api_key: str = Header(default="")):
+def refresh_fpl_links_endpoint(
+    gw: str = Query("current"),                         # accept query param (?gw=current or ?gw=12)
+    x_api_key: str = Header(default="", alias="X-Api-Key")
+):
     if x_api_key != ADMIN_KEY:
         raise HTTPException(status_code=401, detail="Unauthorized")
     if not DB_URL:
         raise HTTPException(status_code=500, detail="DB not configured")
 
-    gw = current_gw()
+    # resolve current GW if requested
+    if gw == "current":
+        gw = str(current_gw())
+    else:
+        gw = str(int(gw))  # normalize
 
     sql = """
-    update public.manager
-    set fpl_team_url =
-      case
-        when fpl_team_url ~ '/event/\\d+$' then regexp_replace(fpl_team_url, '/event/\\d+$', '/event/%s')
-        when fpl_team_url ~ '/history/?$'  then regexp_replace(fpl_team_url, '/history/?$', '/event/%s')
-        when fpl_team_url ~ '/entry/\\d+/?$' then regexp_replace(fpl_team_url, '/entry/(\\d+)/?$', '/entry/\\1/event/%s')
-        else fpl_team_url
-      end
+      update public.manager m
+      set fpl_team_url =
+        case
+          when m.fpl_team_url ~ '/entry/[0-9]+/event/[0-9]+' then
+            regexp_replace(m.fpl_team_url, '/event/[0-9]+', '/event/' || %s::text, 'g')
+          when m.fpl_team_url ~ '/entry/[0-9]+/history/?$' then
+            regexp_replace(m.fpl_team_url, '/history/?$', '/event/' || %s::text)
+          when m.fpl_team_url ~ '/entry/[0-9]+/?$' then
+            m.fpl_team_url || '/event/' || %s::text
+          else
+            'https://fantasy.premierleague.com/entry/' || m.fpl_entry_id::text || '/event/' || %s::text
+        end
+      where m.fpl_entry_id is not null
     """
     with psycopg.connect(DB_URL) as conn, conn.cursor() as cur:
-        cur.execute(sql, (str(gw), str(gw), str(gw)))
-        n = cur.rowcount
+        cur.execute(sql, (gw, gw, gw, gw))
+        updated = cur.rowcount
         conn.commit()
-    return {"ok": True, "gw": gw, "updated": n}
+
+    return {"ok": True, "gw": int(gw), "updated": updated}
 
