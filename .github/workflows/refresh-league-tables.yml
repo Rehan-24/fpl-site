@@ -1,0 +1,32 @@
+name: Refresh Premier & Championship
+
+on:
+  schedule:
+    - cron: '25 12 * * *'  # 4:25 AM PT (PST, UTC-8). During PDT this runs 5:25 AM PT.
+    - cron: '25 2 * * *'   # 6:25 PM PT (PST). During PDT this runs 7:25 PM PT.
+  workflow_dispatch: {}
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        league: [premier, championship]
+    steps:
+      - name: Trigger rebuild for ${{ matrix.league }}
+        run: |
+          set -e
+          URL="$BACKEND_BASE/api/admin/rebuild?league=${{ matrix.league }}&gw=current"
+          echo "POST $URL"
+          HTTP_STATUS=$(curl -sS -o /tmp/resp.json -w "%{http_code}" -X POST "$URL" -H "X-Api-Key: $ADMIN_API_KEY")
+          echo "Status: $HTTP_STATUS"
+          cat /tmp/resp.json || true
+          if [ "$HTTP_STATUS" -lt 200 ] || [ "$HTTP_STATUS" -ge 300 ]; then
+            echo "Admin endpoint failed; trying public fallback…"
+            F_URL="$BACKEND_BASE/api/rebuild?league=${{ matrix.league }}"
+            curl -sS -X POST "$F_URL" -o /tmp/fallback.json -w "HTTP %{http_code}\n" || true
+            cat /tmp/fallback.json || true
+          fi
+        env:
+          BACKEND_BASE: https://tfpl.onrender.com
+          ADMIN_API_KEY: ${{ secrets.ADMIN_API_KEY }}

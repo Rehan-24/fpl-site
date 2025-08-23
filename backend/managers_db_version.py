@@ -1,4 +1,4 @@
-import os, re, subprocess, sys, json
+import os, re, subprocess, sys, json, requests
 import psycopg
 from psycopg.rows import dict_row
 from datetime import datetime, timezone
@@ -18,8 +18,8 @@ from backend_db import get_matchups_for_owner as db_get_matchups_for_owner
 
 
 router = APIRouter()
-
 DB_URL = os.getenv("SUPABASE_DB_URL")
+ADMIN_KEY = os.getenv("ADMIN_API_KEY", "")
 ALLOWED_FIELDS = {"bio", "favorite_club", "social_url", "image_url"}
 
 HISTORY_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "results", "history"))
@@ -122,6 +122,17 @@ def _fixtures_payload(owner: str, show_all: bool, limit: int | None):
         limit_next=(None if show_all else (limit or 3)),
     )
     return {"season": season, "fixtures": rows}
+
+def current_gw():
+    r = requests.get("https://fantasy.premierleague.com/api/bootstrap-static/", timeout=10)
+    r.raise_for_status()
+    events = r.json().get("events", [])
+    # prefer next else current; when between deadlines, next is fine
+    nxt = next((e for e in events if e.get("is_next")), None)
+    cur = next((e for e in events if e.get("is_current")), None)
+    ev = nxt or cur
+    if not ev: raise RuntimeError("No event found")
+    return int(ev["id"])
 
 
 # --- Fixtures (DB-backed, supports ?all=1 & ?limit=3) ---
@@ -358,4 +369,29 @@ def fixtures_stats():
         cur.execute("SELECT home_owner AS owner FROM public.fixtures_h2h LIMIT 1;")
         sample_owner = (cur.fetchone() or {}).get("owner")
     return {"by_season": by_season, "leagues": leagues, "sample_owner": sample_owner}
+
+@router.post("/admin/refresh-fpl-links")
+def refresh_fpl_links(x_api_key: str = Header(default="")):
+    if x_api_key != ADMIN_KEY:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    if not DB_URL:
+        raise HTTPException(status_code=500, detail="DB not configured")
+
+    gw = current_gw()
+
+    sql = """
+    update public.manager
+    set fpl_team_url =
+      case
+        when fpl_team_url ~ '/event/\\d+$' then regexp_replace(fpl_team_url, '/event/\\d+$', '/event/%s')
+        when fpl_team_url ~ '/history/?$'  then regexp_replace(fpl_team_url, '/history/?$', '/event/%s')
+        when fpl_team_url ~ '/entry/\\d+/?$' then regexp_replace(fpl_team_url, '/entry/(\\d+)/?$', '/entry/\\1/event/%s')
+        else fpl_team_url
+      end
+    """
+    with psycopg.connect(DB_URL) as conn, conn.cursor() as cur:
+        cur.execute(sql, (str(gw), str(gw), str(gw)))
+        n = cur.rowcount
+        conn.commit()
+    return {"ok": True, "gw": gw, "updated": n}
 

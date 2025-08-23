@@ -1,0 +1,16 @@
+name: Refresh FPL Links
+on:
+  schedule:
+    - cron: '15 20 * * *'  # 12:15 AM PT (20:15 UTC)
+  workflow_dispatch: {}
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hit Admin Endpoint
+        run: |
+          curl -sS -X POST "$BACKEND_BASE/api/admin/refresh-fpl-links" \
+            -H "X-Api-Key: $ADMIN_API_KEY"
+        env:
+          BACKEND_BASE: https://tfpl.onrender.com
+          ADMIN_API_KEY: ${{ secrets.ADMIN_API_KEY }}
