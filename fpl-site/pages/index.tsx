@@ -79,7 +79,24 @@ export default function Home() {
               <th className="text-right px-2 py-1 w-10">Pts</th>
             </tr>
           </thead>
-          <tbody>{renderRows(bottom, 'bot')}</tbody>
+            <tbody>
+            {bottom.map((r, i) => (
+              <tr key={"bot" + i} className="border-b">
+                <td className="px-1 py-1 w-[15px] text-left">{r.Position}</td>
+                <td className="pr-2 py-1 text-left align-top">
+                  <div className="flex flex-col items-start justify-start leading-tight">
+                    <div className="px-2 text-sm m-0 p-0">{r.Team}</div>
+                    <div className="px-2 text-xs text-gray-600 m-0 p-0 no-underline hover:underline focus-visible:underline">
+                      <Link href={`/managers/${encodeURIComponent(r.Owner)}`}>
+                        {r.Owner}
+                      </Link>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-2 py-1 text-right">{r.Points}</td>
+              </tr>
+            ))}
+          </tbody>
         </table>
       </>
     );
@@ -131,11 +148,11 @@ export default function Home() {
         <div className="grid md:grid-cols-3 gap-6">
           <div className="bg-purple-100 p-4 rounded shadow-md">
             <h3 className="text-xl font-semibold mb-2">Premier League</h3>
-            {renderPreview((premierData ?? []), 6, 4, 'Title Chase', 'Relegation Battle')}
+            {renderPreview((premierData ?? []), 6, 5, 'Title Chase', 'Relegation Battle')}
           </div>
           <div className="bg-purple-100 p-4 rounded shadow-md">
             <h3 className="text-xl font-semibold mb-2">Championship</h3>
-            {renderPreview((championshipData ?? []), 4, 4, 'Promotion Hopes', 'Shameful Behavior')}
+            {renderPreview((championshipData ?? []), 6, 5, 'Promotion Hopes', 'Shameful Behavior')}
           </div>
           <div className="bg-purple-100 p-4 rounded shadow-md">
             <h3 className="text-xl font-semibold mb-2">FA Cup</h3>
