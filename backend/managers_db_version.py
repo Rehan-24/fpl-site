@@ -127,10 +127,10 @@ def current_gw():
     r = requests.get("https://fantasy.premierleague.com/api/bootstrap-static/", timeout=10)
     r.raise_for_status()
     events = r.json().get("events", [])
-    # prefer next else current; when between deadlines, next is fine
-    nxt = next((e for e in events if e.get("is_next")), None)
+    # prefer current over previous
+    prev = next((e for e in events if e.get("is_previous")), None)
     cur = next((e for e in events if e.get("is_current")), None)
-    ev = nxt or cur
+    ev = cur or prev
     if not ev: raise RuntimeError("No event found")
     return int(ev["id"])
 
