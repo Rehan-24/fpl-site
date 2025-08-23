@@ -1,4 +1,4 @@
-name: Refresh FPL URLs + Tables
+name: Refresh FPL URLs
 
 on:
   schedule:

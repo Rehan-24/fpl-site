@@ -397,9 +397,9 @@ def refresh_fpl_links_endpoint(
           when m.fpl_team_url ~ '/entry/[0-9]+/?$' then
             m.fpl_team_url || '/event/' || %s::text
           else
-            'https://fantasy.premierleague.com/entry/' || m.fpl_entry_id::text || '/event/' || %s::text
+            'https://fantasy.premierleague.com/entry/' || m.entry_id::text || '/event/' || %s::text
         end
-      where m.fpl_entry_id is not null
+      where m.entry_id is not null
     """
     with psycopg.connect(DB_URL) as conn, conn.cursor() as cur:
         cur.execute(sql, (gw, gw, gw, gw))
