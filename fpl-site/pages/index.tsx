@@ -31,7 +31,11 @@ export default function Home() {
           <td className="px-2 py-1 text-left align-top">
             <div className="leading-tight">
               <div className="text-sm">{r.Team}</div>
-              <div className="text-xs text-gray-600">{r.Owner}</div>
+              <div className="text-xs text-gray-600 text-left no-underline hover:underline focus-visible:underline">
+                <Link href={`/managers/${encodeURIComponent(r.Owner)}`}>
+                  {r.Owner}
+                </Link>
+              </div>
             </div>
           </td>
           <td className="px-2 py-1 text-right w-10">{r.Points}</td>
