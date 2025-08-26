@@ -4,8 +4,10 @@ Created by Carter Witmer-Gautsch
 TODO:
 - DONE populate historical season data for each manager + placements
 - have manager tables pull that information to sort out YoE/etc ?
+- add channel where bot posts predicted price changes
 - automate FPL Mundo Posts
     - waiting until GW2 to see how the link changes, but this might be possible
+    - have bot parse and isolate news and post to website itself
 - clean up code -> messy, could be better commented and organized
 - create actual documentation
     - how to use
