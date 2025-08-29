@@ -1,0 +1,14 @@
+{
+  "name": "THE Fantasy Premier League",
+  "short_name": "tFPL",
+  "description": "League tables, fixtures, and news.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#5b329e",
+  "icons": [
+    { "src": "/icon-192.png", "type": "image/png", "sizes": "192x192" },
+    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512" }
+  ]
+}
