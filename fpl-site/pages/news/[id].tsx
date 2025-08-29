@@ -6,7 +6,6 @@ import GWInfoBar from "@/components/GWInfoBar";
 
 function formatDate(s?: string | null) {
   if (!s) return "";
-  // Handle plain 'YYYY-MM-DD' as UTC so it doesn't timezone-shift
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
     const [y, m, d] = s.split("-").map(Number);
     const dt = new Date(Date.UTC(y, m - 1, d));
@@ -17,24 +16,77 @@ function formatDate(s?: string | null) {
   return new Date(t).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
 
+// ---- NEW: SSR (required for link preview bots) ----
+export async function getServerSideProps(ctx: any) {
+  const { id } = ctx.params || {};
+  const SITE_BASE = (process.env.NEXT_PUBLIC_SITE_BASE || "https://tfpl.vercel.app").replace(/\/+$/, "");
+  const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "https://tfpl.onrender.com").replace(/\/+$/, "");
 
-export default function NewsDetailPage() {
+  let initial: any = null;
+  try {
+    const res = await fetch(`${API_BASE}/api/news/${encodeURIComponent(id)}`, { headers: { Accept: "application/json" } });
+    if (res.ok) initial = await res.json();
+  } catch { /* ignore */ }
+
+  const canonicalUrl = `${SITE_BASE}/news/${encodeURIComponent(id || "")}`;
+  return { props: { initial, canonicalUrl, siteBase: SITE_BASE } };
+}
+
+type NewsDetailProps = {
+  initial: any | null;
+  canonicalUrl: string;
+  siteBase: string;
+};
+
+export default function NewsDetailPage({ initial, canonicalUrl, siteBase }: NewsDetailProps) {
   const router = useRouter();
   const { id } = router.query as { id?: string };
   const { data, loading, error } = useNewsDetail(id);
-  const tags: string[] = (data?.tags ?? []) as string[];
+  const article = data || initial || null;
 
+  // ensure absolute image URL for crawlers
+  const defaultImg = "https://fantasy.premierleague.com/static/media/share.58c0c2b0.png";
+  const imgRaw = article?.image_url || defaultImg;
+  const ogImage = /^https?:\/\//i.test(imgRaw) ? imgRaw : `${siteBase.replace(/\/+$/,"")}${imgRaw.startsWith("/") ? "" : "/"}${imgRaw}`;
+
+  const title = article?.title ? `${article.title} | tFPL` : "News | tFPL";
+  const ogTitle = article?.title || "tFPL News";
+  const ogDesc = article?.excerpt || "League updates and announcements.";
+  const ogDate = article?.date || null;
+  const tags: string[] = (article?.tags ?? []) as string[];
 
   return (
     <>
       <Head>
-        <title>{data?.title ? `${data.title} | tFPL` : "News | tFPL"}</title>
-        <meta property="og:title" content={data?.title ?? "tFPL News"} />
-        <meta property="og:description" content={data?.excerpt ?? "League updates and announcements."} />
-        <meta property="og:image" content={data?.image_url ?? "https://fantasy.premierleague.com/static/media/share.58c0c2b0.png"} />
-        <meta property="og:url" content={`https://tfpl.vercel.app/news/${id ?? ""}`} />
+        {/* Basic */}
+        <title>{title}</title>
+        <meta name="description" content={ogDesc} />
+
+        {/* Open Graph (used by iMessage) */}
+        <meta property="og:title" content={ogTitle} />
+        <meta property="og:description" content={ogDesc} />
+        <meta property="og:image" content={ogImage} />
+        <meta property="og:url" content={canonicalUrl} />
         <meta property="og:type" content="article" />
         <meta property="og:site_name" content="THE Fantasy Premier League" />
+        {/* Helpful (optional) OG extras */}
+        <meta property="og:image:secure_url" content={ogImage} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content={ogTitle} />
+        {ogDate && <meta property="article:published_time" content={new Date(ogDate).toISOString()} />}
+        {tags.slice(0, 4).map((t) => (
+          <meta key={t} property="article:tag" content={t} />
+        ))}
+
+        {/* Twitter Card (good cross-platform fallback) */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={ogTitle} />
+        <meta name="twitter:description" content={ogDesc} />
+        <meta name="twitter:image" content={ogImage} />
+
+        {/* Canonical */}
+        <link rel="canonical" href={canonicalUrl} />
       </Head>
 
       <main className="min-h-screen bg-gradient-to-b from-blue-200 via-white to-purple-100 text-[#37003c]">
@@ -49,17 +101,17 @@ export default function NewsDetailPage() {
         <GWInfoBar />
 
         <section className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          {loading && <p className="text-[#37003c]/80 mt-4">Loading…</p>}
-          {error && <p className="text-red-600 mt-4">Could not load article.</p>}
+          {loading && !article && <p className="text-[#37003c]/80 mt-4">Loading…</p>}
+          {error && !article && <p className="text-red-600 mt-4">Could not load article.</p>}
 
-          {data && (
+          {article && (
             <article className="mt-2">
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-[#37003c]">{data.title}</h1>
-              {!!formatDate(data?.date) && (
-                <time dateTime={data!.date!} className="block text-sm text-gray-600 mt-1">
-                  {formatDate(data!.date!)}
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-[#37003c]">{article.title}</h1>
+              {!!formatDate(article?.date) && (
+                <time dateTime={article!.date!} className="block text-sm text-gray-600 mt-1">
+                  {formatDate(article!.date!)}
                 </time>
-                )}
+              )}
               {tags.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2">
                   {tags.map((t) => (
@@ -72,12 +124,16 @@ export default function NewsDetailPage() {
                   ))}
                 </div>
               )}
-              {data.image_url && (
-                <img src={data.image_url} alt="" className="mt-4 w-full max-h-[420px] object-cover rounded-lg border border-gray-300" />
+              {article.image_url && (
+                <img
+                  src={ogImage}
+                  alt=""
+                  className="mt-4 w-full max-h-[420px] object-cover rounded-lg border border-gray-300"
+                />
               )}
               <div
                 className="prose prose-sm sm:prose max-w-none mt-6 prose-headings:text-[#37003c] prose-p:text-[#37003c] prose-a:text-[#37003c] prose-strong:text-[#37003c]"
-                dangerouslySetInnerHTML={{ __html: data?.content ?? (data as any)?.content_html ?? "" }}
+                dangerouslySetInnerHTML={{ __html: article?.content ?? (article as any)?.content_html ?? "" }}
               />
             </article>
           )}
