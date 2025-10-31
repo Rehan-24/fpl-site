@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from typing import Dict, Any, List, Tuple, Optional
 from backend_db import (
     upsert_fixtures, recent_form_score, fdr_from_composite, fetch_all_managers,
-    get_last_finish_for, fallback_fdr_from_finish
+    get_last_finish_for, fallback_fdr_from_finish, recompute_and_apply_fdrs_for_range
 )
 import re
 
@@ -182,4 +182,7 @@ def refresh_h2h_fixtures_for_league(
 
     if fixtures_rows:
         upsert_fixtures(fixtures_rows)
+        updated = recompute_and_apply_fdrs_for_range(season="2025-26", gw_start=start_gw, gw_end=end_gw)
+
+        
     return len(fixtures_rows)

@@ -2,11 +2,13 @@
 import os
 import psycopg
 import requests
-
+from typing import Tuple
+import math
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from psycopg.rows import dict_row
 from psycopg.types.json import Json
+
 
 
 
@@ -738,6 +740,330 @@ def get_matchups_for_owner(owner: str) -> list[dict]:
             "gf": gf, "ga": ga,
         })
     return out
+
+
+# updated code for fdr
+
+# Helper: robust percentile (p from 0.0..1.0) on a Python list
+def _percentile(sorted_vals: list, p: float) -> float:
+    if not sorted_vals:
+        return 0.0
+    n = len(sorted_vals)
+    # linear interpolation between ranks
+    rank = p * (n - 1)
+    lo = int(math.floor(rank))
+    hi = int(math.ceil(rank))
+    if lo == hi:
+        return sorted_vals[lo]
+    weight = rank - lo
+    return sorted_vals[lo] * (1 - weight) + sorted_vals[hi] * weight
+
+# Fetch last-N raw "for" scores for owner (most recent first)
+def _fetch_last_scores(owner: str, season: str, limit_matches: int = 5) -> list[float]:
+    rows = _fetch_recent_completed(owner, season, limit_matches)
+    if not rows:
+        return []
+    owner_norm = (owner or "").strip().lower()
+    scores = []
+    for r in rows:
+        is_home = (str(r["home_owner"] or "").strip().lower() == owner_norm)
+        for_ = r["home_score"] if is_home else r["away_score"]
+        if for_ is None:
+            continue
+        scores.append(float(for_))
+    return scores  # newest first (because query orders DESC)
+
+# Tiny slope/trend nudge from last-N scores (keeps effect small)
+def _tiny_slope_bonus(scores: list[float]) -> float:
+    k = len(scores)
+    if k < 3:
+        return 0.0
+    xs = list(range(k))
+    xbar = sum(xs) / k
+    ybar = sum(scores) / k
+    num = sum((xs[i] - xbar) * (scores[i] - ybar) for i in range(k))
+    den = sum((xs[i] - xbar) ** 2 for i in range(k)) or 1.0
+    slope = num / den  # points per index
+    # scale to small interval; tune denominator if your score magnitudes differ a lot
+    return max(-0.05, min(0.05, slope / 100.0))
+
+# Compression toward middle so extremes are harder to reach
+def _compress_mid(x: float) -> float:
+    # smooth compression preserving 0..1
+    return 0.5 + (x - 0.5) * 0.85
+
+# Normalize helper
+def _norm01(x: float, lo: float, hi: float) -> float:
+    if hi <= lo:
+        return 0.5
+    return max(0.0, min(1.0, (x - lo) / (hi - lo)))
+
+# Get the latest standings positions for a league (returns list of (owner, position))
+def _latest_positions_for_league(league: str) -> list[Tuple[str, int]]:
+    league_in = (league or "").strip()
+    with _conn() as conn, conn.cursor() as cur:
+        # find latest gameweek recorded for that league in standings_row
+        cur.execute("""
+            SELECT MAX(gameweek) AS max_gw
+            FROM public.standings_row
+            WHERE lower(league) = lower(%s)
+        """, (league_in,))
+        r = cur.fetchone()
+        max_gw = (r or {}).get("max_gw")
+        if max_gw is None:
+            # no standings rows found
+            return []
+        cur.execute("""
+            SELECT owner, position
+            FROM public.standings_row
+            WHERE lower(league) = lower(%s) AND gameweek = %s
+            ORDER BY position ASC NULLS LAST
+        """, (league_in, int(max_gw)))
+        rows = cur.fetchall()
+        out = []
+        for row in rows:
+            owner = row.get("owner")
+            pos = row.get("position") if row.get("position") is not None else None
+            if owner:
+                out.append((owner, int(pos) if pos is not None else None))
+        return out
+
+# Main: compute strengths & FDR for a league
+def build_fdr_table_for_league(league: str, season: str, limit_matches: int = 5):
+    """
+    Compute refined opponent strength and guarded 1..5 FDR for each owner in a league.
+    Returns dict: { owner_name (str) : {
+                        'position': int or None,
+                        'avg_points_for': float,
+                        'wl_score': float,
+                        'raw_last_scores': [...],
+                        'strength': float,   # 0..1 higher = stronger/harder
+                        'fdr': int (1..5)
+                      } }
+    """
+    owners_pos = _latest_positions_for_league(league)
+    if not owners_pos:
+        return {}
+
+    teams = [o for o, _ in owners_pos]
+    N = len(teams)
+
+    # gather raw features
+    avg_scores = {}
+    wl_scores = {}
+    raw_scores_map = {}
+    positions = {}
+    for owner, pos in owners_pos:
+        recent = recent_form_score(owner, season, limit_matches=limit_matches)
+        avg_scores[owner] = float(recent.get("avg_points_for", 0.0))
+        wl_scores[owner] = float(recent.get("wl_score", 0.5))  # 0..1 (win fraction)
+        raw_scores = _fetch_last_scores(owner, season, limit_matches)
+        raw_scores_map[owner] = raw_scores
+        positions[owner] = int(pos) if pos is not None else None
+
+    # league-level mins/maxes for normalization
+    vals_avg = [v for v in avg_scores.values()]
+    lo_avg, hi_avg = (min(vals_avg), max(vals_avg)) if vals_avg else (0.0, 1.0)
+    vals_form = [v for v in wl_scores.values()]
+    lo_form, hi_form = (0.0, 1.0)  # wl_scores already 0..1
+
+    # weights (tuned to prefer last-5 scoring, modest table influence)
+    W_AVG, W_FORM, W_POS = 0.55, 0.30, 0.15
+
+    # compute raw continuous strengths
+    S_map = {}
+    for owner in teams:
+        a_raw = _norm01(avg_scores[owner], lo_avg, hi_avg)   # 0..1
+        f_raw = _norm01(wl_scores[owner], lo_form, hi_form)  # 0..1
+        pos = positions[owner]
+        if pos is None:
+            p_raw = 0.5
+        else:
+            p_raw = 1.0 - (pos - 1) / max(1, (N - 1))  # 1.0 top, 0.0 bottom
+
+        # compress extremes slightly
+        a_c = _compress_mid(a_raw)
+        f_c = _compress_mid(f_raw)
+        p_c = _compress_mid(p_raw)
+
+        # tiny trend from raw scores
+        trend = _tiny_slope_bonus(raw_scores_map[owner])
+
+        S = W_AVG * a_c + W_FORM * f_c + W_POS * p_c + trend
+        S_map[owner] = max(0.0, min(1.0, S))
+
+    # compute skewed cutpoints (10/35/65/90)
+    sorted_S = sorted(S_map.values())
+    c10 = _percentile(sorted_S, 0.10)
+    c35 = _percentile(sorted_S, 0.35)
+    c65 = _percentile(sorted_S, 0.65)
+    c90 = _percentile(sorted_S, 0.90)
+
+    # build final mapping with rarity guards
+    out = {}
+    for owner in teams:
+        S = S_map[owner]
+        if S <= c10:
+            base = 1
+        elif S <= c35:
+            base = 2
+        elif S <= c65:
+            base = 3
+        elif S <= c90:
+            base = 4
+        else:
+            base = 5
+
+        # agreement counts to make 1/5 rarer: check component thresholds
+        # compute components on normalized scale for these checks
+        a = _norm01(avg_scores[owner], lo_avg, hi_avg)
+        f = wl_scores[owner]  # already 0..1
+        p = 1.0 - (positions[owner] - 1) / max(1, (N - 1)) if positions[owner] is not None else 0.5
+
+        low_agree = int(a <= 0.15) + int(f <= 0.20) + int(p <= 0.25)
+        high_agree = int(a >= 0.85) + int(f >= 0.80) + int(p >= 0.75)
+
+        # Demote casual 1s/5s unless at least 2 components agree
+        if base == 1 and low_agree < 2:
+            base = 2
+        if base == 5 and high_agree < 2:
+            base = 4
+
+        out[owner] = {
+            "position": positions[owner],
+            "avg_points_for": avg_scores[owner],
+            "wl_score": wl_scores[owner],
+            "raw_last_scores": raw_scores_map[owner],
+            "strength": S,
+            "fdr": int(base),
+        }
+
+    return out
+
+# ---------- APPLY FDRS TO A GW RANGE (post-refresh) ----------
+
+def _latest_standing_for_owner(owner: str) -> dict | None:
+    # You already have this utility; reuse if it exists under same name/signature.
+    return latest_standing_for_owner(owner)  # returns {league, gameweek, position, ...}
+
+def recompute_and_apply_fdrs_for_range(season: str, gw_start: int, gw_end: int, limit_matches: int = 5) -> int:
+    """
+    Recompute FDRs using recent form + results + table position, then apply them
+    to fixtures in [gw_start, gw_end] for the given season.
+    Returns number of fixture rows updated.
+    """
+    # 1) Pull fixtures in range (don’t touch finished matches)
+    sql = """
+      SELECT season, league_id, gw, fixture_id, finished,
+             home_owner, away_owner
+      FROM public.fixtures_h2h
+      WHERE season = %s AND gw BETWEEN %s AND %s
+    """
+    with psycopg.connect(DB_URL, row_factory=dict_row) as conn, conn.cursor() as cur:
+        cur.execute(sql, (season, gw_start, gw_end))
+        rows = cur.fetchall()
+
+    if not rows:
+        return 0
+
+    # 2) Build per-league owner sets by inferring each owner's current league name
+    owners = set()
+    for r in rows:
+        owners.add((r["home_owner"] or "").strip())
+        owners.add((r["away_owner"] or "").strip())
+
+    owner_league: dict[str, str] = {}
+    for owner in owners:
+        info = _latest_standing_for_owner(owner)
+        if info and info.get("league"):
+            owner_league[owner] = (info["league"] or "").strip().lower()
+
+    # Group owners by league string
+    league_to_owners: dict[str, set[str]] = {}
+    for owner, lg in owner_league.items():
+        league_to_owners.setdefault(lg, set()).add(owner)
+
+    # 3) For each league present, compute FDR map using refined method
+    #    We rely on standings_row positions being keyed by league string.
+    fdr_map_by_league: dict[str, dict] = {}
+    for league_str in league_to_owners.keys():
+        try:
+            fdr_map_by_league[league_str] = build_fdr_table_for_league(league_str, season, limit_matches)
+        except Exception:
+            # If anything goes wrong, skip this league; we won't update its rows
+            fdr_map_by_league[league_str] = {}
+
+    # 4) Prepare updates for rows in range
+    updates = []
+    for r in rows:
+        home = (r["home_owner"] or "").strip()
+        away = (r["away_owner"] or "").strip()
+
+        # Infer league from the home owner (all owners in a fixture should be in same league)
+        lg = owner_league.get(home) or owner_league.get(away)
+        fdr_map = fdr_map_by_league.get((lg or "").lower(), {})
+
+        h_op = fdr_map.get(away, {})
+        a_op = fdr_map.get(home, {})
+
+        home_fdr = h_op.get("fdr")
+        away_fdr = a_op.get("fdr")
+
+        # Only apply if both sides have a computed FDR
+        if home_fdr is None or away_fdr is None:
+            continue
+
+        # If a fixture is already finished, leave existing FDRs as-is
+        if r.get("finished") is True:
+            continue
+
+        updates.append({
+            "season": r["season"],
+            "league_id": r["league_id"],
+            "gw": r["gw"],
+            "fixture_id": r["fixture_id"],
+            "home_fdr": int(home_fdr),
+            "away_fdr": int(away_fdr),
+        })
+
+    if not updates:
+        return 0
+
+    # 5) Batch UPDATE
+    with psycopg.connect(DB_URL) as conn, conn.cursor() as cur:
+        try:
+            conn.prepare_threshold = None
+        except Exception:
+            pass
+
+        try:
+            cur.execute("DEALLOCATE ALL;")
+        except Exception:
+            pass
+
+        sql_upd = """
+          UPDATE public.fixtures_h2h
+             SET home_fdr = %s,
+                 away_fdr = %s,
+                 updated_at = now()
+           WHERE season = %s
+             AND league_id = %s
+             AND gw = %s
+             AND fixture_id = %s
+        """
+
+        BATCH = 1000
+        for i in range(0, len(updates), BATCH):
+            batch = updates[i:i+BATCH]
+            cur.executemany(
+                sql_upd,
+                [(u["home_fdr"], u["away_fdr"], u["season"], u["league_id"], u["gw"], u["fixture_id"]) for u in batch]
+            )
+        conn.commit()
+
+    return len(updates)
+
+
 
 
 
