@@ -84,7 +84,7 @@ def refresh_h2h_fixtures_for_league(
     def owner_comp(owner: str) -> float:
         v = comp_cache.get(owner)
         if v is None:
-            v = recent_form_score(owner, season, limit_matches=5)["composite"]
+            v = recent_form_score(owner, season, limit_matches=8)["composite"]
             comp_cache[owner] = v
         return v
 
