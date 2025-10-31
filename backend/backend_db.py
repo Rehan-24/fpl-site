@@ -887,9 +887,9 @@ def build_fdr_table_for_league(league: str, season: str, limit_matches: int = 9)
         p_c = _compress_mid(p_raw)
 
         # tiny trend from raw scores
-        trend = _tiny_slope_bonus(raw_scores_map[owner])
+        #trend = _tiny_slope_bonus(raw_scores_map[owner])
 
-        S = W_AVG * a_c + W_FORM * f_c + W_POS * p_c + trend
+        S = W_AVG * a_c + W_FORM * f_c + W_POS * p_c #+ trend
         S_map[owner] = max(0.0, min(1.0, S))
 
     # compute skewed cutpoints (10/35/65/90)
