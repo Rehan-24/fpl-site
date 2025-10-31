@@ -829,7 +829,7 @@ def _latest_positions_for_league(league: str) -> list[Tuple[str, int]]:
         return out
 
 # Main: compute strengths & FDR for a league
-def build_fdr_table_for_league(league: str, season: str, limit_matches: int = 5):
+def build_fdr_table_for_league(league: str, season: str, limit_matches: int = 9):
     """
     Compute refined opponent strength and guarded 1..5 FDR for each owner in a league.
     Returns dict: { owner_name (str) : {
