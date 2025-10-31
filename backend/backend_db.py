@@ -884,7 +884,7 @@ def build_fdr_table_for_league(league: str, season: str, limit_matches: int = 9)
         # compress extremes slightly
         a_c = _compress_mid(a_raw)
         f_c = _compress_mid(f_raw)
-        p_c = _compress_mid(p_raw)
+        p_c = p_raw
 
         # tiny trend from raw scores
         #trend = _tiny_slope_bonus(raw_scores_map[owner])
