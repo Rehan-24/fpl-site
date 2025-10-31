@@ -141,21 +141,21 @@ def refresh_h2h_fixtures_for_league(
                 away_score = fx.get("entry_2_points")
                 
                 # TODO after the first 4 gws are over, comment this out
-                home_fdr = seed_fdr_for(away_owner)  # difficulty vs opponent
-                away_fdr = seed_fdr_for(home_owner)
+                #home_fdr = seed_fdr_for(away_owner)  # difficulty vs opponent
+                #away_fdr = seed_fdr_for(home_owner)
 
                 # --- FDR logic ---
                 # TODO
-                #if gw <= 5:
+                if gw <= 5:
                     # Strictly use last season’s finish for the first 4 GWs
-                    #home_fdr = seed_fdr_for(away_owner)  # difficulty vs opponent
-                    #away_fdr = seed_fdr_for(home_owner)
-                #else:
+                    home_fdr = seed_fdr_for(away_owner)  # difficulty vs opponent
+                    away_fdr = seed_fdr_for(home_owner)
+                else:
                     # After GW4, use recent form
-                    #hc = owner_comp(home_owner)
-                    #ac = owner_comp(away_owner)
-                    #home_fdr = fdr_from_composite(ac)
-                    #away_fdr = fdr_from_composite(hc)
+                    hc = owner_comp(home_owner)
+                    ac = owner_comp(away_owner)
+                    home_fdr = fdr_from_composite(ac)
+                    away_fdr = fdr_from_composite(hc)
 
                 fixtures_rows.append({
                     "season": season,
