@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "C:\Users\rikha\Documents\FPL\FPL Website\Website Code\backend\mundo_scraper.py", line 221, in <module>
+    main()
+  File "C:\Users\rikha\Documents\FPL\FPL Website\Website Code\backend\mundo_scraper.py", line 217, in main
+    cmds = scrape(args.url, dump=args.dump)
+  File "C:\Users\rikha\Documents\FPL\FPL Website\Website Code\backend\mundo_scraper.py", line 159, in scrape
+    ctx = p.chromium.new_context(storage_state=STATE_PATH)
+AttributeError: 'BrowserType' object has no attribute 'new_context'

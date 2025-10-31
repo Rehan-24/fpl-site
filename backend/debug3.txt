@@ -1,0 +1,2 @@
+Error: Could not extract league stories from DOM or JSON (consent/homepage may still be active).
+Saved final DOM to mundo_dump.html (and mundo_json_*.txt if any).
