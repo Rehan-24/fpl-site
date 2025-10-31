@@ -409,7 +409,7 @@ def _fetch_recent_completed(owner: str, season: str, limit_matches: int) -> List
         return cur.fetchall()
 
 
-def recent_form_score(owner: str, season: str, limit_matches: int = 5) -> Dict[str, float]:
+def recent_form_score(owner: str, season: str, limit_matches: int = 9) -> Dict[str, float]:
     rows = _fetch_recent_completed(owner, season, limit_matches)
     if not rows:
         return {"avg_points_for": 0.0, "wl_score": 0.5, "composite": 0.5}
@@ -759,7 +759,7 @@ def _percentile(sorted_vals: list, p: float) -> float:
     return sorted_vals[lo] * (1 - weight) + sorted_vals[hi] * weight
 
 # Fetch last-N raw "for" scores for owner (most recent first)
-def _fetch_last_scores(owner: str, season: str, limit_matches: int = 5) -> list[float]:
+def _fetch_last_scores(owner: str, season: str, limit_matches: int = 9) -> list[float]:
     rows = _fetch_recent_completed(owner, season, limit_matches)
     if not rows:
         return []
@@ -946,7 +946,7 @@ def _latest_standing_for_owner(owner: str) -> dict | None:
     # You already have this utility; reuse if it exists under same name/signature.
     return latest_standing_for_owner(owner)  # returns {league, gameweek, position, ...}
 
-def recompute_and_apply_fdrs_for_range(season: str, gw_start: int, gw_end: int, limit_matches: int = 5) -> int:
+def recompute_and_apply_fdrs_for_range(season: str, gw_start: int, gw_end: int, limit_matches: int = 9) -> int:
     """
     Recompute FDRs using recent form + results + table position, then apply them
     to fixtures in [gw_start, gw_end] for the given season.
