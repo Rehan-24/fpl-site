@@ -280,8 +280,8 @@ def upsert_fixtures(fixtures_rows: list[dict]) -> int:
       away_team_name = EXCLUDED.away_team_name,
       away_owner = EXCLUDED.away_owner,
       away_score = EXCLUDED.away_score,
-      home_fdr = EXCLUDED.home_fdr,
-      away_fdr = EXCLUDED.away_fdr,
+      home_fdr = COALESCE(EXCLUDED.home_fdr, public.fixtures_h2h.home_fdr),
+      away_fdr = COALESCE(EXCLUDED.away_fdr, public.fixtures_h2h.away_fdr),
       updated_at = now();
     """
 
