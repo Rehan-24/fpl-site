@@ -143,6 +143,8 @@ def refresh_h2h_fixtures_for_league(
                 # TODO after the first 4 gws are over, comment this out
                 #home_fdr = seed_fdr_for(away_owner)  # difficulty vs opponent
                 #away_fdr = seed_fdr_for(home_owner)
+                home_fdr = None
+                away_fdr = None
 
                 # --- FDR logic ---
                 ## TODO
