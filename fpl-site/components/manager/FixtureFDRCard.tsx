@@ -63,7 +63,7 @@ export default function FixtureFDRCard({ ownerName }: { ownerName: string }) {
     const base = "inline-flex h-6 w-6 items-center justify-center rounded-md font-semibold";
     if (n == null || n < 1 || n > 5) return base + " bg-gray-300 text-gray-700";
     const map: Record<number, string> = {
-      1: "bg-[#00f28a] text-white",
+      1: "bg-[#395c2b] text-white",
       2: "bg-[#00f28a] text-white",
       3: "bg-[#e5e5e5] text-gray-700",
       4: "bg-[#ff2a5c] text-white",
