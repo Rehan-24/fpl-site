@@ -436,9 +436,9 @@ def fdr_from_composite(opponent_composite: float) -> int:
     """
     s = opponent_composite  # 0 (cold) → 1 (hot)
     if s >= 0.95: return 5
-    if s >= 0.85: return 4
-    if s >= 0.50: return 3
-    if s >= 0.30: return 2
+    if s >= 0.90: return 4
+    if s >= 0.57: return 3
+    if s >= 0.40: return 2
     return 1
 
 def detect_next_gw(season: str) -> Optional[int]:
