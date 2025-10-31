@@ -868,7 +868,7 @@ def build_fdr_table_for_league(league: str, season: str, limit_matches: int = 5)
     lo_form, hi_form = (0.0, 1.0)  # wl_scores already 0..1
 
     # weights
-    W_AVG, W_FORM, W_POS = 1.0, 0.0, 0.0
+    W_AVG, W_FORM, W_POS = 0.3, 0.2, 0.5
 
     # compute raw continuous strengths
     S_map = {}
