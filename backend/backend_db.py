@@ -435,10 +435,10 @@ def fdr_from_composite(opponent_composite: float) -> int:
     Tuned buckets; feel free to tweak.
     """
     s = opponent_composite  # 0 (cold) → 1 (hot)
-    if s >= 0.80: return 5
+    if s >= 0.80: return 4
     if s >= 0.65: return 4
-    if s >= 0.50: return 3
-    if s >= 0.35: return 2
+    if s >= 0.50: return 4
+    if s >= 0.35: return 4
     return 1
 
 def detect_next_gw(season: str) -> Optional[int]:
