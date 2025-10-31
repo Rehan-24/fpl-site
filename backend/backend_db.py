@@ -1014,7 +1014,7 @@ def recompute_and_apply_fdrs_for_range(season: str, gw_start: int, gw_end: int, 
             continue
 
         # If a fixture is already finished, leave existing FDRs as-is
-        if r.get("finished") is True:
+        if r.get("finished") is True and r["gw"] < detect_next_gw(season):
             continue
 
         updates.append({
