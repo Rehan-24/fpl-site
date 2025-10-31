@@ -435,8 +435,8 @@ def fdr_from_composite(opponent_composite: float) -> int:
     Tuned buckets; feel free to tweak.
     """
     s = opponent_composite  # 0 (cold) → 1 (hot)
-    if s >= 0.93: return 5
-    if s >= 0.75: return 4
+    if s >= 0.95: return 5
+    if s >= 0.85: return 4
     if s >= 0.50: return 3
     if s >= 0.30: return 2
     return 1
