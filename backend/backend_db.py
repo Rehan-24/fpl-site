@@ -436,7 +436,7 @@ def fdr_from_composite(opponent_composite: float) -> int:
     """
     s = opponent_composite  # 0 (cold) → 1 (hot)
     if s >= 0.95: return 5
-    if s >= 0.87: return 4
+    if s >= 0.86: return 4
     if s >= 0.57: return 3
     if s >= 0.45: return 2
     return 1
