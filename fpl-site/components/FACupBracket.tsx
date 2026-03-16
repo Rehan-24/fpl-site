@@ -542,8 +542,8 @@ export default function FACupBracket() {
                         matchup={m} isLive={live(m)}
                         matchNum={matchNums["final-0"]}
                         extraCls="gold"
-                        label1={!m?.seed1 ? lLabel("sf", 0) : undefined}
-                        label2={!m?.seed2 ? lLabel("sf", 1) : undefined}
+                        label1={!m?.seed1 ? wLabel("sf", 0) : undefined}
+                        label2={!m?.seed2 ? wLabel("sf", 1) : undefined}
                       />
                     );
                   })()}
