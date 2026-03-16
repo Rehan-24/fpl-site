@@ -199,6 +199,9 @@ export default function FACupBracket() {
   function wLabel(round: string, idx: number) {
     return `Winner of M${matchNums[`${round}-${idx}`] ?? "?"}`;
   }
+  function lLabel(round: string, idx: number) {
+    return `Loser of M${matchNums[`${round}-${idx}`] ?? "?"}`;
+  }
 
   // Podium names
   const finalM = gm("final", 0);
@@ -539,8 +542,8 @@ export default function FACupBracket() {
                         matchup={m} isLive={live(m)}
                         matchNum={matchNums["final-0"]}
                         extraCls="gold"
-                        label1={!m?.seed1 ? wLabel("sf", 0) : undefined}
-                        label2={!m?.seed2 ? wLabel("sf", 1) : undefined}
+                        label1={!m?.seed1 ? lLabel("sf", 0) : undefined}
+                        label2={!m?.seed2 ? lLabel("sf", 1) : undefined}
                       />
                     );
                   })()}
@@ -554,8 +557,8 @@ export default function FACupBracket() {
                         matchup={m} isLive={live(m)}
                         matchNum={matchNums["3rd-0"]}
                         extraCls="bronze"
-                        label1={!m?.seed1 ? wLabel("sf", 0) : undefined}
-                        label2={!m?.seed2 ? wLabel("sf", 1) : undefined}
+                        label1={!m?.seed1 ? lLabel("sf", 0) : undefined}
+                        label2={!m?.seed2 ? lLabel("sf", 1) : undefined}
                       />
                     );
                   })()}
