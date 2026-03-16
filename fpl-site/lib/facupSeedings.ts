@@ -20,7 +20,7 @@ export interface Seed {
 export const SEEDS: Seed[] = [
   { seed: 1,  team: "Klopp's Resurgence",  owner: "Chanse Ashman",         league: "prem",  score: 1771, reason: "FA Cup Winner",              fplUrl: "https://fantasy.premierleague.com/entry/6679946/event/31" },
   { seed: 2,  team: "Cheeks FC",            owner: "Rehan Khan",            league: "prem",  score: 1740, reason: "Premier League Winner",       fplUrl: "https://fantasy.premierleague.com/entry/3577847/event/31" },
-  { seed: 3,  team: "Cincy Til I Cry",      owner: "Tyler Quedens",         league: "champ", score: 1695, reason: "Championship Winner",         fplUrl: "https://fantasy.premierleague.com/entry/4141448/event/31" },
+  { seed: 3,  team: "Cincy Til I Cry",      owner: "Tyler Quedens",         league: "prem", score: 1695, reason: "Championship Winner",         fplUrl: "https://fantasy.premierleague.com/entry/4141448/event/31" },
   { seed: 4,  team: "FC Wincinnati",        owner: "Alex Quedens",          league: "champ", score: 1753, reason: "Highest Champ Scorer",        fplUrl: "https://fantasy.premierleague.com/entry/5252413/event/31" },
   { seed: 5,  team: "Noni to be upset",     owner: "Joel Matthew",          league: "prem",  score: 1825, reason: "Highest Prem Scorer",         fplUrl: "https://fantasy.premierleague.com/entry/4087698/event/31" },
   { seed: 6,  team: "Shege FC",             owner: "Segun Tytler",          league: "champ", score: 1713, reason: "2nd Highest Champ",           fplUrl: "https://fantasy.premierleague.com/entry/6683423/event/31" },
@@ -54,9 +54,9 @@ export const SEEDS: Seed[] = [
   { seed: 34, team: "livin saliba loca",    owner: "JD Garcia",             league: "prem",  score: 1531, reason: "Remaining (by score)",         fplUrl: "https://fantasy.premierleague.com/entry/4286391/event/31" },
   { seed: 35, team: "hands",                owner: "Casey Manos",           league: "champ", score: 1462, reason: "Remaining (by score)",         fplUrl: "https://fantasy.premierleague.com/entry/4285068/event/31" },
   { seed: 36, team: "ur dads fav team",     owner: "Brynn Miller",          league: "champ", score: 1446, reason: "Remaining (by score)",         fplUrl: "https://fantasy.premierleague.com/entry/6542694/event/31" },
-  { seed: 37, team: "Mandem FC",            owner: "Kamil Sacha",           league: "champ", score: 1421, reason: "Remaining (by score)",         fplUrl: "https://fantasy.premierleague.com/entry/4088389/event/31" },
-  { seed: 38, team: "Cheeks Fc",            owner: "Tim Davis",             league: "prem",  score: 1331, reason: "Remaining (by score)",         fplUrl: "https://fantasy.premierleague.com/entry/6527451/event/31" },
-  { seed: 39, team: "Soccer Team",          owner: "John Saunders",         league: "prem",  score: 1247, reason: "Remaining (by score)",         fplUrl: "https://fantasy.premierleague.com/entry/5356734/event/31" },
+  { seed: 37, team: "Mandem FC",            owner: "Kamil Sacha",           league: "prem", score: 1421, reason: "Remaining (by score)",         fplUrl: "https://fantasy.premierleague.com/entry/4088389/event/31" },
+  { seed: 38, team: "Cheeks Fc",            owner: "Tim Davis",             league: "champ",  score: 1331, reason: "Remaining (by score)",         fplUrl: "https://fantasy.premierleague.com/entry/6527451/event/31" },
+  { seed: 39, team: "Soccer Team",          owner: "John Saunders",         league: "champ",  score: 1247, reason: "Remaining (by score)",         fplUrl: "https://fantasy.premierleague.com/entry/5356734/event/31" },
   { seed: 40, team: "Red_Devils",           owner: "Ken Okine",             league: "champ", score: 1223, reason: "Remaining (by score)",         fplUrl: "https://fantasy.premierleague.com/entry/7977200/event/31" },
 ];
 

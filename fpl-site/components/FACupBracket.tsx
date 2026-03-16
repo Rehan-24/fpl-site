@@ -171,9 +171,26 @@ export default function FACupBracket() {
 
   // SVG connectors
   useEffect(() => {
-    const t = setTimeout(draw, 300);
+    // Multiple passes: early pass catches most, later passes catch bottom cards
+    // that finish painting after initial layout settles.
+    const t1 = setTimeout(draw, 100);
+    const t2 = setTimeout(draw, 400);
+    const t3 = setTimeout(draw, 900);
     window.addEventListener("resize", draw);
-    return () => { clearTimeout(t); window.removeEventListener("resize", draw); };
+    // ResizeObserver catches late layout shifts (fonts, reflow, etc.)
+    let ro: ResizeObserver | null = null;
+    const bkt = document.getElementById("bkt");
+    if (bkt && typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver(() => draw());
+      ro.observe(bkt);
+    }
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      window.removeEventListener("resize", draw);
+      ro?.disconnect();
+    };
   }, [bracket]);
 
   function mid(el: Element, ref: Element) {

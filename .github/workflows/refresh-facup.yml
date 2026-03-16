@@ -1,0 +1,47 @@
+name: Refresh FA Cup Scores
+
+on:
+  schedule:
+    # During gameweek days, run every 30 min from 10am–11pm PT (18:00–07:00 UTC)
+    # These cover Saturday and Sunday afternoon/evening kickoffs (main FA Cup days)
+    - cron: '0,30 18,19,20,21,22,23 * * 5,6'   # Fri–Sat 10am–3:30pm PT
+    - cron: '0,30 0,1,2,3,4,5,6,7 * * 0,6'     # Sat–Sun overnight into morning PT
+    - cron: '0,30 18,19,20,21,22,23 * * 0'      # Sun 10am–3:30pm PT
+    # Also run once daily at 6:30 AM PT (14:30 UTC) to catch midweek GWs
+    - cron: '30 14 * * 1,2,3,4'                 # Mon–Thu 6:30am PT
+  workflow_dispatch:
+    inputs:
+      gw:
+        description: 'Gameweek number (leave blank for current)'
+        required: false
+        default: 'current'
+
+jobs:
+  refresh-facup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wake backend (ping first)
+        run: |
+          echo "Pinging backend..."
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://tfpl.onrender.com/ping" || echo "000")
+          echo "Ping status: $STATUS"
+          # If sleeping, give it a moment
+          if [ "$STATUS" != "200" ]; then
+            echo "Backend may be cold — waiting 15s..."
+            sleep 15
+          fi
+
+      - name: Trigger FA Cup score refresh
+        run: |
+          set -e
+          GW_PARAM="${{ github.event.inputs.gw || 'current' }}"
+          URL="https://tfpl.onrender.com/api/cron/trigger-facup?token=${{ secrets.CRON_TOKEN }}&gw=${GW_PARAM}"
+          echo "POST $URL"
+          HTTP_STATUS=$(curl -sS -o /tmp/facup_resp.json -w "%{http_code}" -X POST "$URL")
+          echo "Status: $HTTP_STATUS"
+          cat /tmp/facup_resp.json || true
+          if [ "$HTTP_STATUS" -lt 200 ] || [ "$HTTP_STATUS" -ge 300 ]; then
+            echo "❌ FA Cup refresh failed with HTTP $HTTP_STATUS"
+            exit 1
+          fi
+          echo "✅ FA Cup refresh triggered successfully"
