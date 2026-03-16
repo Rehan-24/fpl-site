@@ -706,3 +706,99 @@ def health():
 def ping():
     return {"status": "ok"}
 
+# ── FA Cup imports + lock ──────────────────────────────────────────────────────
+from facup_db import get_bracket, get_gw_scores, SEASON as FACUP_SEASON
+from facup_scores import refresh_facup_scores, SEED_ENTRY_MAP
+
+_FACUP_LOCK = threading.Lock()
+
+@app.get("/api/facup/bracket", tags=["facup"])
+def get_facup_bracket(season: str = Query(FACUP_SEASON)):
+    """Return the full bracket state. Called by the frontend hook."""
+    try:
+        rows = get_bracket(season)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    for row in rows:
+        if hasattr(row.get("updated_at"), "isoformat"):
+            row["updated_at"] = row["updated_at"].isoformat()
+
+    resp = JSONResponse({"season": season, "bracket": rows})
+    resp.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=120"
+    return resp
+ 
+@app.get("/api/facup/scores", tags=["facup"])
+def get_facup_scores(gw: int = Query(...)):
+    """
+    Return stored GW scores for all FA Cup managers for a given GW.
+    Frontend uses this to show live scores on matchup cards.
+    """
+    try:
+        rows = get_gw_scores(gw)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+ 
+    for row in rows:
+        if hasattr(row.get("fetched_at"), "isoformat"):
+            row["fetched_at"] = row["fetched_at"].isoformat()
+ 
+    resp = JSONResponse({"gw": gw, "scores": rows})
+    resp.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=120"
+    return resp
+ 
+ 
+@app.post("/api/facup/refresh", tags=["facup"])
+def trigger_facup_refresh(
+    background: BackgroundTasks,
+    gw: str = Query("current"),
+    _: bool = Depends(_require_api_key),
+):
+    """
+    Admin-protected manual trigger to refresh FA Cup scores for a GW.
+    The cron job calls this automatically — you can also hit it from the
+    admin panel or curl to force an update.
+    """
+    if _FACUP_LOCK.locked():
+        return {"status": "already-running"}
+ 
+    def _worker():
+        with _FACUP_LOCK:
+            resolved = resolve_gw_param(gw)
+            refresh_facup_scores(resolved)
+ 
+    background.add_task(_worker)
+    return {"status": "started", "gw": gw}
+ 
+ 
+@app.post("/api/cron/trigger-facup", tags=["facup"])
+def cron_facup(
+    background: BackgroundTasks,
+    token: str = Query(""),
+    gw: str = Query("current"),
+):
+    """
+    Lightweight cron endpoint for cron-job.org.
+    Add a second cron job pointing here — same schedule as your league cron.
+    Auth: ?token=<CRON_TOKEN>  (same env var you already use)
+    """
+    if token != os.environ.get("CRON_TOKEN", ""):
+        raise HTTPException(status_code=403, detail="forbidden")
+ 
+    if _FACUP_LOCK.locked():
+        return {"status": "already-running"}
+ 
+    _FACUP_LOCK.acquire()
+ 
+    def _worker():
+        try:
+            resolved = resolve_gw_param(gw)
+            refresh_facup_scores(resolved)
+        finally:
+            if _FACUP_LOCK.locked():
+                _FACUP_LOCK.release()
+ 
+    background.add_task(_worker)
+    return {"status": "started", "gw": gw}
+ 
+
