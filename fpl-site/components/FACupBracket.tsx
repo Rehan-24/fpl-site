@@ -2,7 +2,7 @@
 // (full file — replaces the static mockup version)
 
 import { useEffect, useRef } from "react";
-import { SEEDS, R1_MATCHUPS, R32_MATCHUPS, BYE_SEEDS, Seed } from "@/lib/facupSeedings";
+import { SEEDS, R1_MATCHUPS, R32_SLOTS, BYE_SEEDS, Seed } from "@/lib/facupSeedings";
 import { useFACupBracket, BracketMatchup } from "@/public/hooks/useFACupBracket";
 
 function getSeed(s: number | null | undefined): Seed | null {
@@ -60,7 +60,9 @@ function PlayerRow({ seed, score, goals, showGoals, isWinner, isLive, isBye, lab
       </span>
     )
   ) : (
-    <span className="flex-1 truncate italic text-purple-300">{label ?? "TBD"}</span>
+    <span className="flex-1 truncate font-bold text-[10px] tracking-wide text-purple-400 bg-purple-100 rounded px-1.5 py-0.5">
+        {label ?? "TBD"}
+      </span>
   );
 
   return (
@@ -98,9 +100,9 @@ function PlayerRow({ seed, score, goals, showGoals, isWinner, isLive, isBye, lab
 // ── MatchupCard ───────────────────────────────────────────────────────────────
 
 function MatchupCard({
-  matchup, isLive, isByeCard, extraCls = "",
+  matchup, isLive, isByeCard, extraCls = "", r1Label,
 }: {
-  matchup: BracketMatchup | null; isLive: boolean; isByeCard: boolean; extraCls?: string;
+  matchup: BracketMatchup | null; isLive: boolean; isByeCard: boolean; extraCls?: string; r1Label?: string;
 }) {
   const s1   = getSeed(matchup?.seed1);
   const s2   = getSeed(matchup?.seed2);
@@ -125,7 +127,7 @@ function MatchupCard({
       <PlayerRow
         seed={s2} score={matchup?.score2 ?? null} goals={matchup?.goals2 ?? null}
         showGoals={!!tied} isWinner={win2} isLive={isLive && !isByeCard}
-        label={isByeCard ? "R1 Winner" : undefined}
+        label={r1Label ?? (isByeCard ? "R1 Winner" : undefined)}
       />
     </div>
   );
@@ -323,13 +325,15 @@ export default function FACupBracket() {
           <ConnCol id="cn-r1-r32" />
 
           <RoundCol title="Round of 32" gw={32} id="col-r32">
-            {BYE_SEEDS.map((_, i) => {
+            {R32_SLOTS.map((slot, i) => {
               const m = gm("r32", i);
-              return <div key={i} className="mu-card"><MatchupCard matchup={m} isLive={live(m)} isByeCard /></div>;
-            })}
-            {R32_MATCHUPS.map(([,], i) => {
-              const m = gm("r32", i + 4);
-              return <div key={i} className="mu-card"><MatchupCard matchup={m} isLive={live(m)} isByeCard={false} /></div>;
+              // For bye slots (seed2 is null), show "W M1" style label for opponent
+              const r1Label = slot.r1Label ? `W ${slot.r1Label}` : undefined;
+              return (
+                <div key={i} className="mu-card">
+                  <MatchupCard matchup={m} isLive={live(m)} isByeCard={false} r1Label={r1Label} />
+                </div>
+              );
             })}
           </RoundCol>
           <ConnCol id="cn-r32-r16" />
