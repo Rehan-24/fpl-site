@@ -46,7 +46,7 @@ function PlayerRow({ seed, score, goals, showGoals, isWinner, isLive, label, cur
   const nameEl = seed ? (
     seed.fplUrl ? (
       <a
-        href={currentGw ? `${seed.fplUrl}/event/${currentGw}` : seed.fplUrl}
+        href={currentGw ? `${seed.fplUrl}/event/${currentGw-1}` : seed.fplUrl}
         target="_blank"
         rel="noopener noreferrer"
         title={`Open ${seed.team} on FPL`}

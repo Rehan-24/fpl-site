@@ -3,8 +3,214 @@ import { useEffect, useState } from 'react';
 import NavBar from '../components/NavBar';
 import { useStandings } from '@/public/hooks/useStandings';
 import useGWDeadline from '@/public/hooks/useGWDeadline';
+import { useFACupBracket, BracketMatchup } from '@/public/hooks/useFACupBracket';
+import { SEEDS } from '@/lib/facupSeedings';
 import Head from 'next/head';
 
+
+
+// ── FA Cup preview helpers ────────────────────────────────────────────────────
+
+const ROUND_LABELS: Record<string, string> = {
+  r1: "Round 1", r32: "Round of 32", r16: "Round of 16",
+  qf: "Quarterfinals", sf: "Semifinals", final: "Final", "3rd": "3rd Place",
+};
+
+const ROUND_GW: Record<string, number> = {
+  r1: 31, r32: 32, r16: 33, qf: 34, sf: 35, final: 36, "3rd": 36,
+};
+
+// Round ordering for finding "current" round
+const ROUND_ORDER = ["r1","r32","r16","qf","sf","final","3rd"];
+
+function getSeedName(seed: number | null | undefined): string {
+  if (!seed) return "TBD";
+  return SEEDS.find(s => s.seed === seed)?.team ?? `Seed ${seed}`;
+}
+
+function FACupPreview() {
+  const { bracket, currentGw } = useFACupBracket();
+
+  // Find the active round: most advanced round with at least one matchup without a winner
+  const activeRound = (() => {
+    for (let i = ROUND_ORDER.length - 1; i >= 0; i--) {
+      const r = ROUND_ORDER[i];
+      const roundMatchups = bracket.filter(m => m.round === r);
+      if (roundMatchups.length > 0 && roundMatchups.some(m => m.winner_seed == null && m.seed1 != null)) {
+        return r;
+      }
+    }
+    return null;
+  })();
+
+  // Active matchups: no winner yet, seed1 set
+  const activeMatchups = bracket.filter(
+    m => m.round === activeRound && m.winner_seed == null && m.seed1 != null
+  );
+
+  // Pick 3 randomly (stable across renders using sort by matchup_idx)
+  const featured = activeMatchups
+    .slice()
+    .sort(() => 0) // keep natural order from backend
+    .slice(0, 3);
+
+  const roundLabel = activeRound ? ROUND_LABELS[activeRound] ?? activeRound : null;
+  const roundGw    = activeRound ? ROUND_GW[activeRound] : null;
+
+  // Between rounds: find the most recently completed round
+  const lastCompletedRound = (() => {
+    for (let i = ROUND_ORDER.length - 1; i >= 0; i--) {
+      const r = ROUND_ORDER[i];
+      const roundMatchups = bracket.filter(m => m.round === r);
+      if (roundMatchups.length > 0 && roundMatchups.every(m => m.winner_seed != null)) {
+        return r;
+      }
+    }
+    return null;
+  })();
+
+  // Champion (if final is done)
+  const finalMatchup = bracket.find(m => m.round === "final");
+  const champion = finalMatchup?.winner_seed ? getSeedName(finalMatchup.winner_seed) : null;
+
+  // Count remaining teams
+  const eliminated = new Set(
+    bracket
+      .filter(m => m.winner_seed != null)
+      .flatMap(m => [
+        m.winner_seed === m.seed1 ? m.seed2 : m.seed1,
+      ])
+      .filter(Boolean)
+  );
+  const remaining = 40 - eliminated.size;
+
+  const isLive = (m: BracketMatchup) =>
+    !!currentGw && m.gw === currentGw && m.winner_seed == null && m.score1 != null;
+
+  return (
+    <>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-xl font-semibold">FA Cup</h3>
+        {roundLabel && roundGw && (
+          <span className="text-[11px] font-bold px-2 py-0.5 rounded"
+            style={{ background: "#37003c", color: "#32FF6A" }}>
+            {roundLabel} · GW{roundGw}
+          </span>
+        )}
+      </div>
+
+      {/* Active round: show featured matchups */}
+      {featured.length > 0 && (
+        <>
+          <div className="text-xs uppercase font-bold text-gray-500 mb-2">Featured Matchups</div>
+          <div className="flex flex-col gap-1.5 mb-3">
+            {featured.map(m => {
+              const live = isLive(m);
+              const t1 = getSeedName(m.seed1);
+              const t2 = m.seed2 ? getSeedName(m.seed2) : (m.round === "r32" ? "W R1" : "TBD");
+              return (
+                <div key={`${m.round}-${m.matchup_idx}`}
+                  className="rounded overflow-hidden text-xs"
+                  style={{
+                    border: live ? "1px solid #32FF6A" : "0.5px solid #ddd6fe",
+                    boxShadow: live ? "0 0 0 2px rgba(50,255,106,.15)" : "none",
+                  }}>
+                  {/* Match header */}
+                  <div className="flex items-center justify-between px-2 py-0.5"
+                    style={{ background: live ? "#37003c" : "#f3f0ff" }}>
+                    <span className="font-bold tracking-widest uppercase"
+                      style={{ fontSize: 9, color: live ? "#32FF6A" : "#7c3aed" }}>
+                      {roundLabel}
+                    </span>
+                    {live && (
+                      <span className="font-bold rounded px-1"
+                        style={{ fontSize: 8, background: "#32FF6A", color: "#37003c" }}>
+                        LIVE
+                      </span>
+                    )}
+                  </div>
+                  {/* Row 1 */}
+                  <div className="flex items-center justify-between px-2 py-1"
+                    style={{ borderBottom: "0.5px solid #ddd6fe" }}>
+                    <span className="truncate" style={{ maxWidth: 130 }}>
+                      <span className="text-gray-400 mr-1" style={{ fontSize: 9 }}>
+                        {m.seed1 ?? ""}
+                      </span>
+                      {t1}
+                    </span>
+                    <span className="font-semibold ml-2" style={{ color: "#37003c", minWidth: 20, textAlign: "right" }}>
+                      {m.score1 != null ? m.score1 : "—"}
+                    </span>
+                  </div>
+                  {/* Row 2 */}
+                  <div className="flex items-center justify-between px-2 py-1">
+                    <span className="truncate" style={{ maxWidth: 130 }}>
+                      <span className="text-gray-400 mr-1" style={{ fontSize: 9 }}>
+                        {m.seed2 ?? ""}
+                      </span>
+                      <span className={m.seed2 ? "" : "italic text-gray-400"}>{t2}</span>
+                    </span>
+                    <span className="font-semibold ml-2" style={{ color: "#37003c", minWidth: 20, textAlign: "right" }}>
+                      {m.score2 != null ? m.score2 : "—"}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {/* Between rounds: bracket progress summary */}
+      {featured.length === 0 && (
+        <div className="mb-3">
+          <div className="text-xs uppercase font-bold text-gray-500 mb-2">Bracket Progress</div>
+          <div className="flex flex-col gap-1.5 text-sm">
+            {champion ? (
+              <div className="rounded p-2 text-center font-semibold"
+                style={{ background: "#fef9c3", border: "1px solid #eab308", color: "#92400e" }}>
+                🏆 Champion: {champion}
+              </div>
+            ) : (
+              <>
+                <div className="flex justify-between py-1" style={{ borderBottom: "0.5px solid #ddd6fe" }}>
+                  <span className="text-gray-600">Teams remaining</span>
+                  <span className="font-semibold">{remaining} / 40</span>
+                </div>
+                {lastCompletedRound && (
+                  <div className="flex justify-between py-1" style={{ borderBottom: "0.5px solid #ddd6fe" }}>
+                    <span className="text-gray-600">Last completed</span>
+                    <span className="font-semibold">{ROUND_LABELS[lastCompletedRound]}</span>
+                  </div>
+                )}
+                {/* Show next round */}
+                {lastCompletedRound && ROUND_ORDER.indexOf(lastCompletedRound) < ROUND_ORDER.length - 1 && (() => {
+                  const nextIdx = ROUND_ORDER.indexOf(lastCompletedRound) + 1;
+                  const nextRound = ROUND_ORDER[nextIdx];
+                  const nextGw = ROUND_GW[nextRound];
+                  return (
+                    <div className="flex justify-between py-1">
+                      <span className="text-gray-600">Next up</span>
+                      <span className="font-semibold">{ROUND_LABELS[nextRound]} · GW{nextGw}</span>
+                    </div>
+                  );
+                })()}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* View bracket link */}
+      <Link href="/facup"
+        className="block text-center text-xs font-semibold py-1.5 rounded transition-colors"
+        style={{ border: "0.5px solid #5b329e", color: "#5b329e" }}>
+        View full bracket →
+      </Link>
+    </>
+  );
+}
 
 export default function Home() {
   const {data: premierData, usingCache} = useStandings('premier');
@@ -155,8 +361,7 @@ export default function Home() {
             {renderPreview((championshipData ?? []), 6, 5, 'Promotion Hopes', 'Shameful Behavior')}
           </div>
           <div className="bg-purple-100 p-4 rounded shadow-md">
-            <h3 className="text-xl font-semibold mb-2">FA Cup</h3>
-            <p className="text-sm">Seeding – begins January</p>
+            <FACupPreview />
           </div>
         </div>
       </section>
