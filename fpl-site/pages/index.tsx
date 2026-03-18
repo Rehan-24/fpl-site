@@ -28,6 +28,11 @@ function getSeedName(seed: number | null | undefined): string {
   return SEEDS.find(s => s.seed === seed)?.team ?? `Seed ${seed}`;
 }
 
+function getSeedOwner(seed: number | null | undefined): string | null {
+  if (!seed) return null;
+  return SEEDS.find(s => s.seed === seed)?.owner ?? null;
+}
+
 function FACupPreview() {
   const { bracket, currentGw } = useFACupBracket();
 
@@ -125,11 +130,20 @@ function FACupPreview() {
                   {/* Row 1 */}
                   <div className="flex items-center justify-between px-2 py-1.5"
                     style={{ borderBottom: "0.5px solid #ddd6fe" }}>
-                    <div className="flex items-center gap-1 truncate">
-                      <span className="text-gray-400 flex-shrink-0" style={{ fontSize: 9, minWidth: 14 }}>
-                        {m.seed1}
-                      </span>
-                      <span className="text-sm truncate">{t1}</span>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1">
+                        <span className="text-gray-400 flex-shrink-0" style={{ fontSize: 9, minWidth: 14 }}>
+                          {m.seed1}
+                        </span>
+                        <span className="text-sm truncate">{t1}</span>
+                      </div>
+                      {getSeedOwner(m.seed1) && (
+                        <div className="text-xs text-gray-600 no-underline hover:underline focus-visible:underline" style={{ paddingLeft: 18 }}>
+                          <Link href={`/managers/${encodeURIComponent(getSeedOwner(m.seed1)!)}`}>
+                            {getSeedOwner(m.seed1)}
+                          </Link>
+                        </div>
+                      )}
                     </div>
                     <span className="font-semibold ml-2 flex-shrink-0" style={{ color: "#37003c" }}>
                       {m.score1 != null ? m.score1 : "—"}
@@ -137,13 +151,22 @@ function FACupPreview() {
                   </div>
                   {/* Row 2 */}
                   <div className="flex items-center justify-between px-2 py-1.5">
-                    <div className="flex items-center gap-1 truncate">
-                      <span className="text-gray-400 flex-shrink-0" style={{ fontSize: 9, minWidth: 14 }}>
-                        {m.seed2 ?? ""}
-                      </span>
-                      <span className={`text-sm truncate ${!m.seed2 ? "italic text-gray-400" : ""}`}>
-                        {t2}
-                      </span>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1">
+                        <span className="text-gray-400 flex-shrink-0" style={{ fontSize: 9, minWidth: 14 }}>
+                          {m.seed2 ?? ""}
+                        </span>
+                        <span className={`text-sm truncate ${!m.seed2 ? "italic text-gray-400" : ""}`}>
+                          {t2}
+                        </span>
+                      </div>
+                      {getSeedOwner(m.seed2) && (
+                        <div className="text-xs text-gray-600 no-underline hover:underline focus-visible:underline" style={{ paddingLeft: 18 }}>
+                          <Link href={`/managers/${encodeURIComponent(getSeedOwner(m.seed2)!)}`}>
+                            {getSeedOwner(m.seed2)}
+                          </Link>
+                        </div>
+                      )}
                     </div>
                     <span className="font-semibold ml-2 flex-shrink-0" style={{ color: "#37003c" }}>
                       {m.score2 != null ? m.score2 : "—"}
