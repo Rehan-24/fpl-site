@@ -317,45 +317,45 @@ class FileInteractor():
                     sheet.column_dimensions[column_letter].width = adjusted_width
             
             # highlight rules for chips
-            #styled_primary_df = primary_df.style.applymap(self.color_chip_background, subset=pd.IndexSlice[:, chip_labels_list])
+            #styled_primary_df = primary_df.style.map(self.color_chip_background, subset=pd.IndexSlice[:, chip_labels_list])
             
             # highlight rules for team value
-            #styled_primary_df = styled_primary_df.applymap(self.color_team_value_background, subset=pd.IndexSlice[:, 'Current Team Value'])
+            #styled_primary_df = styled_primary_df.map(self.color_team_value_background, subset=pd.IndexSlice[:, 'Current Team Value'])
             
             # highlight rules for change in team value
-            #styled_primary_df = styled_primary_df.applymap(self.color_delta_background, subset=pd.IndexSlice[:, 'Week Value Change'])
+            #styled_primary_df = styled_primary_df.map(self.color_delta_background, subset=pd.IndexSlice[:, 'Week Value Change'])
             
             # highlight rules for top 3 and bottom 3 scoring teams
-            #styled_primary_df = primary_df.style.applymap(lambda val: highlight_top_scores(val, 'Score'), subset=['Score'])
-            #styled_primary_df = primary_df.style.applymap(lambda val: highlight_top_scores(val, 'Score', top3_scores), subset=['Score'])
-            #styled_primary_df = primary_df.style.applymap(lambda val: highlight_bottom_scores(val, 'Score', bottom3_scores), subset=['Score'])
+            #styled_primary_df = primary_df.style.map(lambda val: highlight_top_scores(val, 'Score'), subset=['Score'])
+            #styled_primary_df = primary_df.style.map(lambda val: highlight_top_scores(val, 'Score', top3_scores), subset=['Score'])
+            #styled_primary_df = primary_df.style.map(lambda val: highlight_bottom_scores(val, 'Score', bottom3_scores), subset=['Score'])
 
             # apply all rules at once
             # Apply styles to DataFrame
             #styled_primary_df = primary_df.style \
-            #    .applymap(self.color_chip_background, subset=pd.IndexSlice[:, chip_labels_list]) \
-            #    .applymap(self.color_team_value_background, subset=pd.IndexSlice[:, 'Current Team Value']) \
-            #    .applymap(lambda val: highlight_top_scores(val, 'Score', top3_scores), subset=['Score']) \
-            #    .applymap(lambda val: highlight_bottom_scores(val, 'Score', bottom3_scores), subset=['Score'])
+            #    .map(self.color_chip_background, subset=pd.IndexSlice[:, chip_labels_list]) \
+            #    .map(self.color_team_value_background, subset=pd.IndexSlice[:, 'Current Team Value']) \
+            #    .map(lambda val: highlight_top_scores(val, 'Score', top3_scores), subset=['Score']) \
+            #    .map(lambda val: highlight_bottom_scores(val, 'Score', bottom3_scores), subset=['Score'])
                 
             highlight_columns = ['Score', 'Score Against' ,'Plus/Minus', 'GW Points on Bench', 'Season Points on Bench', 'GW Transfers', 'GW Transfer Hit', 'Total Transfers Made', 'Total Transfer Hit' ]  # Columns to highlight
 
             styled_primary_df = primary_df.style \
-                .applymap(self.color_chip_background, subset=pd.IndexSlice[:, chip_labels_list]) \
-                .applymap(self.color_team_value_background, subset=pd.IndexSlice[:, 'Current Team Value']) \
-                .applymap(lambda val: highlight_top_values(val, 'Score', primary_df, highlight_columns), subset=['Score']) \
-                .applymap(lambda val: highlight_top_values(val, 'Score Against', primary_df, highlight_columns), subset=['Score Against']) \
-                .applymap(lambda val: highlight_top_values(val, 'Plus/Minus', primary_df, highlight_columns), subset=['Plus/Minus']) \
-                .applymap(lambda val: highlight_top_values(val, 'GW Points on Bench', primary_df, highlight_columns), subset=['GW Points on Bench']) \
-                .applymap(lambda val: highlight_top_values(val, 'Season Points on Bench', primary_df, highlight_columns), subset=['Season Points on Bench']) \
-                .applymap(lambda val: highlight_top_values(val, 'GW Transfers', primary_df, highlight_columns), subset=['GW Transfers']) \
-                .applymap(lambda val: highlight_top_values(val, 'Total Transfers Made', primary_df, highlight_columns), subset=['Total Transfers Made']) \
-                .applymap(lambda val: highlight_top_values(val, 'Total Transfer Hit', primary_df, highlight_columns), subset=['Total Transfer Hit']) \
-                .applymap(lambda val: highlight_bottom_values(val, 'Score', primary_df, highlight_columns), subset=['Score']) \
-                .applymap(lambda val: highlight_bottom_values(val, 'Score Against', primary_df, highlight_columns), subset=['Score Against']) \
-                .applymap(lambda val: highlight_bottom_values(val, 'Plus/Minus', primary_df, highlight_columns), subset=['Plus/Minus']) \
-                .applymap(lambda val: highlight_bottom_values(val, 'Season Points on Bench', primary_df, highlight_columns), subset=['Season Points on Bench']) \
-                .applymap(lambda val: highlight_bottom_values(val, 'Total Transfers Made', primary_df, highlight_columns), subset=['Total Transfers Made'])     
+                .map(self.color_chip_background, subset=pd.IndexSlice[:, chip_labels_list]) \
+                .map(self.color_team_value_background, subset=pd.IndexSlice[:, 'Current Team Value']) \
+                .map(lambda val: highlight_top_values(val, 'Score', primary_df, highlight_columns), subset=['Score']) \
+                .map(lambda val: highlight_top_values(val, 'Score Against', primary_df, highlight_columns), subset=['Score Against']) \
+                .map(lambda val: highlight_top_values(val, 'Plus/Minus', primary_df, highlight_columns), subset=['Plus/Minus']) \
+                .map(lambda val: highlight_top_values(val, 'GW Points on Bench', primary_df, highlight_columns), subset=['GW Points on Bench']) \
+                .map(lambda val: highlight_top_values(val, 'Season Points on Bench', primary_df, highlight_columns), subset=['Season Points on Bench']) \
+                .map(lambda val: highlight_top_values(val, 'GW Transfers', primary_df, highlight_columns), subset=['GW Transfers']) \
+                .map(lambda val: highlight_top_values(val, 'Total Transfers Made', primary_df, highlight_columns), subset=['Total Transfers Made']) \
+                .map(lambda val: highlight_top_values(val, 'Total Transfer Hit', primary_df, highlight_columns), subset=['Total Transfer Hit']) \
+                .map(lambda val: highlight_bottom_values(val, 'Score', primary_df, highlight_columns), subset=['Score']) \
+                .map(lambda val: highlight_bottom_values(val, 'Score Against', primary_df, highlight_columns), subset=['Score Against']) \
+                .map(lambda val: highlight_bottom_values(val, 'Plus/Minus', primary_df, highlight_columns), subset=['Plus/Minus']) \
+                .map(lambda val: highlight_bottom_values(val, 'Season Points on Bench', primary_df, highlight_columns), subset=['Season Points on Bench']) \
+                .map(lambda val: highlight_bottom_values(val, 'Total Transfers Made', primary_df, highlight_columns), subset=['Total Transfers Made'])     
 
 
 
@@ -367,12 +367,12 @@ class FileInteractor():
             sliced_df.sort_values(by=['Score', 'Plus/Minus'], ascending=[False, False], inplace=True)
             highlight_columns_2 = ['Score', 'Score Against' ,'Plus/Minus']  # Columns to highlight
             styled_secondary_df = sliced_df.style \
-                .applymap(lambda val: highlight_top_values(val, 'Score', sliced_df, highlight_columns_2), subset=['Score']) \
-                .applymap(lambda val: highlight_top_values(val, 'Score Against', sliced_df, highlight_columns_2), subset=['Score Against']) \
-                .applymap(lambda val: highlight_top_values(val, 'Plus/Minus', sliced_df, highlight_columns_2), subset=['Plus/Minus']) \
-                .applymap(lambda val: highlight_bottom_values(val, 'Score', sliced_df, highlight_columns_2), subset=['Score']) \
-                .applymap(lambda val: highlight_bottom_values(val, 'Score Against', sliced_df, highlight_columns_2), subset=['Score Against']) \
-                .applymap(lambda val: highlight_bottom_values(val, 'Plus/Minus', sliced_df, highlight_columns_2), subset=['Plus/Minus'])
+                .map(lambda val: highlight_top_values(val, 'Score', sliced_df, highlight_columns_2), subset=['Score']) \
+                .map(lambda val: highlight_top_values(val, 'Score Against', sliced_df, highlight_columns_2), subset=['Score Against']) \
+                .map(lambda val: highlight_top_values(val, 'Plus/Minus', sliced_df, highlight_columns_2), subset=['Plus/Minus']) \
+                .map(lambda val: highlight_bottom_values(val, 'Score', sliced_df, highlight_columns_2), subset=['Score']) \
+                .map(lambda val: highlight_bottom_values(val, 'Score Against', sliced_df, highlight_columns_2), subset=['Score Against']) \
+                .map(lambda val: highlight_bottom_values(val, 'Plus/Minus', sliced_df, highlight_columns_2), subset=['Plus/Minus'])
             
             styled_secondary_df.to_excel(excel_writer=writer, sheet_name=gameweek_str, startcol=3, startrow=32, index=False)
 
@@ -380,7 +380,7 @@ class FileInteractor():
             #print("fdr")
             #print(fdr_df.shape)  # This will give you (number_of_rows, number_of_columns)
             #print(fdr_df.head())  # This will show you the first few rows of the DataFrame
-            #styled_fdr = fdr_df.style.applymap(self.color_fdr_background)
+            #styled_fdr = fdr_df.style.map(self.color_fdr_background)
             #styled_fdr.to_excel(excel_writer=writer, sheet_name=gameweek_str, startcol=15, startrow=32, index=False)
 
         # TODO: Reach into the previous Gameweek sheet to find the difference in poll position
