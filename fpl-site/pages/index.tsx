@@ -178,17 +178,63 @@ function FACupPreview() {
           </div>
         </>
       ) : (
-        // Between rounds: bracket progress summary
+        // Between rounds or finished: podium if complete, bracket progress otherwise
         <div className="mb-3">
-          <div className="text-xs uppercase font-bold text-gray-500 mb-2">Bracket Progress</div>
-          <div className="flex flex-col gap-1.5 text-sm">
-            {champion ? (
-              <div className="rounded p-2 text-center font-semibold"
-                style={{ background: "#fef9c3", border: "1px solid #eab308", color: "#92400e" }}>
-                🏆 Champion: {champion}
+          {champion ? (
+            <>
+              <div className="text-xs uppercase font-bold text-gray-500 mb-2">2025/26 Results</div>
+              <div className="flex flex-col gap-2">
+                {/* Champion */}
+                {(() => {
+                  const thirdMatchup = bracket.find(m => m.round === "3rd");
+                  const runnerUp = finalMatchup?.winner_seed === finalMatchup?.seed1
+                    ? getSeedName(finalMatchup?.seed2)
+                    : getSeedName(finalMatchup?.seed1);
+                  const runnerUpSeed = finalMatchup?.winner_seed === finalMatchup?.seed1
+                    ? finalMatchup?.seed2 : finalMatchup?.seed1;
+                  const thirdPlace = thirdMatchup?.winner_seed
+                    ? getSeedName(thirdMatchup.winner_seed) : null;
+                  const thirdSeed = thirdMatchup?.winner_seed;
+                  const podium = [
+                    { label: "Champion",   emoji: "🥇", team: champion,    seed: finalMatchup?.winner_seed, bg: "#fefce8", border: "#eab308", badgeBg: "#fef3c7", badgeColor: "#92400e" },
+                    { label: "Runner-up",  emoji: "🥈", team: runnerUp,    seed: runnerUpSeed,              bg: "#f9fafb", border: "#d1d5db", badgeBg: "#f3f4f6", badgeColor: "#6b7280" },
+                    { label: "3rd Place",  emoji: "🥉", team: thirdPlace,  seed: thirdSeed,                 bg: "#fff7ed", border: "#d97706", badgeBg: "#ffedd5", badgeColor: "#92400e" },
+                  ];
+                  return podium.filter(p => p.team).map(p => (
+                    <div key={p.label} className="rounded overflow-hidden"
+                      style={{ border: `1.5px solid ${p.border}` }}>
+                      <div className="flex items-center gap-1.5 px-2 py-1"
+                        style={{ background: "#32FF6A" }}>
+                        <span style={{ fontSize: 14 }}>{p.emoji}</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wide"
+                          style={{ color: "#37003c" }}>{p.label}</span>
+                      </div>
+                      <div className="flex items-center justify-between px-2 py-2"
+                        style={{ background: p.bg }}>
+                        <div>
+                          <div className="text-sm font-medium" style={{ color: "#37003c" }}>{p.team}</div>
+                          {getSeedOwner(p.seed) && (
+                            <div className="text-xs text-gray-600 no-underline hover:underline focus-visible:underline mt-0.5">
+                              <Link href={`/managers/${encodeURIComponent(getSeedOwner(p.seed)!)}`}>
+                                {getSeedOwner(p.seed)}
+                              </Link>
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded flex-shrink-0"
+                          style={{ background: p.badgeBg, color: p.badgeColor }}>
+                          Seed {p.seed}
+                        </span>
+                      </div>
+                    </div>
+                  ));
+                })()}
               </div>
-            ) : (
-              <>
+            </>
+          ) : (
+            <>
+              <div className="text-xs uppercase font-bold text-gray-500 mb-2">Bracket Progress</div>
+              <div className="flex flex-col gap-1.5 text-sm">
                 <div className="flex justify-between py-1 border-b border-[#ddd6fe]">
                   <span className="text-gray-600">Teams remaining</span>
                   <span className="font-semibold">{remaining} / 40</span>
@@ -208,9 +254,9 @@ function FACupPreview() {
                     </div>
                   );
                 })()}
-              </>
-            )}
-          </div>
+              </div>
+            </>
+          )}
         </div>
       )}
 
