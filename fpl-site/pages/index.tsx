@@ -59,7 +59,7 @@ function FACupPreview() {
   const featured = bracket
     .filter(m => m.round === displayRound && m.winner_seed == null)
     .sort((a, b) => a.matchup_idx - b.matchup_idx)
-    .slice(0, 6);
+    .slice(0, 4);
 
   // Between-rounds summary data
   const lastCompletedRound = (() => {
