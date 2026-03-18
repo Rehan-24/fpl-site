@@ -188,8 +188,8 @@ def seed_standings(conn, path, league, gameweek=38):
     rows = json.load(open(path, 'r', encoding='utf-8'))
     with conn.cursor() as cur:
         cur.execute('delete from public.standings_row where league=%s and gameweek=%s', (league, gameweek))
-        cols = '(league, gameweek, position, title_reward, team, owner, points, wins, draws, losses, gp, games_left, score, score_against, plus_minus, gw_points_on_bench, season_points_on_bench, gw_transfers, gw_transfer_hit, total_transfers_made, total_transfer_hit, highest_point_total_possible, current_team_value, wildcard_1, wildcard_2, free_hit, triple_captain, bench_boost, assman)'
-        placeholders = '(' + ','.join(['%s']*29) + ')'
+        cols = '(league, gameweek, position, title_reward, team, owner, points, wins, draws, losses, gp, games_left, score, score_against, plus_minus, gw_points_on_bench, season_points_on_bench, gw_transfers, gw_transfer_hit, total_transfers_made, total_transfer_hit, highest_point_total_possible, current_team_value, triple_captain_1, bench_boost_1, free_hit_1, wildcard_1, triple_captain_2, bench_boost_2, free_hit_2, wildcard_2)'
+        placeholders = '(' + ','.join(['%s']*31) + ')'
         sql = 'insert into public.standings_row ' + cols + ' values ' + placeholders
         for r in rows:
             params = (
@@ -205,9 +205,10 @@ def seed_standings(conn, path, league, gameweek=38):
                 to_int(r.get('Total Transfers Made')), to_int(r.get('Total Transfer Hit')),
                 to_int(r.get('Highest Point Total Possible')),
                 to_num(r.get('Current Team Value')),
-                r.get('Wildcard 1'), r.get('Wildcard 2'),
-                r.get('Free Hit'), r.get('Triple Captain'),
-                r.get('Bench Boost'), r.get('AssMan'),
+                r.get('Triple Captain 1'), r.get('Bench Boost 1'),
+                r.get('Free Hit 1'), r.get('Wildcard 1'),
+                r.get('Triple Captain 2'), r.get('Bench Boost 2'),
+                r.get('Free Hit 2'), r.get('Wildcard 2'),
             )
             cur.execute(sql, params)
     conn.commit()

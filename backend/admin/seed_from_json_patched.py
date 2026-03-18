@@ -188,8 +188,8 @@ def seed_standings(conn, path, league, gameweek=38):
     rows = json.load(open(path, 'r', encoding='utf-8'))
     with conn.cursor() as cur:
         cur.execute('delete from public.standings_row where league=%s and gameweek=%s', (league, gameweek))
-        cols = '(league, gameweek, position, title_reward, team, owner, points, wins, draws, losses, gp, games_left, score, score_against, plus_minus, gw_points_on_bench, season_points_on_bench, gw_transfers, gw_transfer_hit, total_transfers_made, total_transfer_hit, highest_point_total_possible, current_team_value, wildcard_1, wildcard_2, free_hit, triple_captain, bench_boost, assman)'
-        placeholders = '(' + ','.join(['%s']*29) + ')'
+        cols = '(league, gameweek, position, title_reward, team, owner, points, wins, draws, losses, gp, games_left, score, score_against, plus_minus, gw_points_on_bench, season_points_on_bench, gw_transfers, gw_transfer_hit, total_transfers_made, total_transfer_hit, highest_point_total_possible, current_team_value, triple_captain_1, bench_boost_1, free_hit_1, wildcard_1, triple_captain_2, bench_boost_2, free_hit_2, wildcard_2)'
+        placeholders = '(' + ','.join(['%s']*31) + ')'
         sql = 'insert into public.standings_row ' + cols + ' values ' + placeholders
         for r in rows:
             params = (
