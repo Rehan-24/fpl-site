@@ -30,8 +30,9 @@ def save_standings_snapshot(league: str, gw: int, rows: list[dict]):
                 r.get("Total Transfers Made"), r.get("Total Transfer Hit"),
                 r.get("Highest Point Total Possible"),
                 r.get("Current Team Value"),
-                r.get("Wildcard 1"), r.get("Wildcard 2"),
-                r.get("Free Hit"), r.get("Triple Captain"),
-                r.get("Bench Boost"), r.get("AssMan"),
+                r.get("Triple Captain 1"), r.get("Bench Boost 1"),
+                r.get("Free Hit 1"), r.get("Wildcard 1"),
+                r.get("Triple Captain 2"), r.get("Bench Boost 2"),
+                r.get("Free Hit 2"), r.get("Wildcard 2"),
             ))
         conn.commit()

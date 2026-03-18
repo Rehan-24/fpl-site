@@ -324,8 +324,8 @@ def excel_to_latest_json(league: str, preferred_sheet: Optional[str] = None) -> 
         "Total Transfers Made", "Total Transfer Hit",
         "GW Points on Bench", "Season Points on Bench",
         "Highest Point Total Possible", "Current Team Value",
-        "Free Hit", "Wildcard 1", "Wildcard 2",
-        "Triple Captain", "Bench Boost", "AssMan",
+        "Triple Captain 1", "Bench Boost 1", "Free Hit 1", "Wildcard 1",
+        "Triple Captain 2", "Bench Boost 2", "Free Hit 2", "Wildcard 2",
     ]
     cols = [c for c in desired if c in df_sorted.columns] + \
         [c for c in df_sorted.columns if c not in desired and c not in ("Position","Team")]
@@ -706,7 +706,11 @@ def health():
 def ping():
     return {"status": "ok"}
 
-# ── FA Cup imports + lock ──────────────────────────────────────────────────────
+
+# ─────────────────────────────────────────────────────────────────────────────
+# FA CUP ROUTES
+# ─────────────────────────────────────────────────────────────────────────────
+
 from facup_db import get_bracket, get_gw_scores, SEASON as FACUP_SEASON
 from facup_scores import refresh_facup_scores, SEED_ENTRY_MAP
 
@@ -714,12 +718,16 @@ _FACUP_LOCK = threading.Lock()
 
 @app.get("/api/facup/bracket", tags=["facup"])
 def get_facup_bracket(season: str = Query(FACUP_SEASON)):
-    """Return the full bracket state. Called by the frontend hook."""
+    """
+    Return the full bracket state for a season.
+    Called by the frontend useFACupBracket hook — cached via Cache-Control.
+    """
     try:
         rows = get_bracket(season)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+    # Convert datetime fields to ISO strings for JSON serialisation
     for row in rows:
         if hasattr(row.get("updated_at"), "isoformat"):
             row["updated_at"] = row["updated_at"].isoformat()
@@ -727,7 +735,8 @@ def get_facup_bracket(season: str = Query(FACUP_SEASON)):
     resp = JSONResponse({"season": season, "bracket": rows})
     resp.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=120"
     return resp
- 
+
+
 @app.get("/api/facup/scores", tags=["facup"])
 def get_facup_scores(gw: int = Query(...)):
     """
@@ -738,16 +747,16 @@ def get_facup_scores(gw: int = Query(...)):
         rows = get_gw_scores(gw)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
- 
+
     for row in rows:
         if hasattr(row.get("fetched_at"), "isoformat"):
             row["fetched_at"] = row["fetched_at"].isoformat()
- 
+
     resp = JSONResponse({"gw": gw, "scores": rows})
     resp.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=120"
     return resp
- 
- 
+
+
 @app.post("/api/facup/refresh", tags=["facup"])
 def trigger_facup_refresh(
     background: BackgroundTasks,
@@ -761,16 +770,16 @@ def trigger_facup_refresh(
     """
     if _FACUP_LOCK.locked():
         return {"status": "already-running"}
- 
+
     def _worker():
         with _FACUP_LOCK:
             resolved = resolve_gw_param(gw)
             refresh_facup_scores(resolved)
- 
+
     background.add_task(_worker)
     return {"status": "started", "gw": gw}
- 
- 
+
+
 @app.post("/api/cron/trigger-facup", tags=["facup"])
 def cron_facup(
     background: BackgroundTasks,
@@ -784,12 +793,12 @@ def cron_facup(
     """
     if token != os.environ.get("CRON_TOKEN", ""):
         raise HTTPException(status_code=403, detail="forbidden")
- 
+
     if _FACUP_LOCK.locked():
         return {"status": "already-running"}
- 
+
     _FACUP_LOCK.acquire()
- 
+
     def _worker():
         try:
             resolved = resolve_gw_param(gw)
@@ -797,8 +806,6 @@ def cron_facup(
         finally:
             if _FACUP_LOCK.locked():
                 _FACUP_LOCK.release()
- 
+
     background.add_task(_worker)
     return {"status": "started", "gw": gw}
- 
-
