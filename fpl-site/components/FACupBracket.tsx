@@ -34,9 +34,10 @@ interface PlayerRowProps {
   isWinner:  boolean;
   isLive:    boolean;
   label?:    string; // "Winner of M5" style
+  currentGw: number | null;
 }
 
-function PlayerRow({ seed, score, goals, showGoals, isWinner, isLive, label }: PlayerRowProps) {
+function PlayerRow({ seed, score, goals, showGoals, isWinner, isLive, label, currentGw }: PlayerRowProps) {
   let bg = "";
   if (!seed)     bg = " bg-purple-50";
   else if (isWinner) bg = " bg-green-50";
@@ -45,7 +46,7 @@ function PlayerRow({ seed, score, goals, showGoals, isWinner, isLive, label }: P
   const nameEl = seed ? (
     seed.fplUrl ? (
       <a
-        href={seed.fplUrl}
+        href={currentGw ? `${seed.fplUrl}/event/${currentGw}` : seed.fplUrl}
         target="_blank"
         rel="noopener noreferrer"
         title={`Open ${seed.team} on FPL`}
@@ -107,9 +108,10 @@ interface MatchupCardProps {
   label1?:   string;          // override label for seed1 when TBD
   label2?:   string;          // override label for seed2 when TBD
   extraCls?: string;
+  currentGw: number | null;
 }
 
-function MatchupCard({ matchup, isLive, matchNum, label1, label2, extraCls = "" }: MatchupCardProps) {
+function MatchupCard({ matchup, isLive, matchNum, label1, label2, extraCls = "", currentGw }: MatchupCardProps) {
   const s1   = getSeed(matchup?.seed1);
   const s2   = getSeed(matchup?.seed2);
   const win1 = !!matchup?.winner_seed && matchup.winner_seed === matchup.seed1;
@@ -138,13 +140,13 @@ function MatchupCard({ matchup, isLive, matchNum, label1, label2, extraCls = "" 
       <PlayerRow
         seed={s1} score={matchup?.score1 ?? null} goals={matchup?.goals1 ?? null}
         showGoals={!!tied} isWinner={win1} isLive={false}
-        label={label1 ?? (s1 ? undefined : "TBD")}
+        label={label1 ?? (s1 ? undefined : "TBD")} currentGw={currentGw}
       />
       <div className="border-t border-purple-100" />
       <PlayerRow
         seed={s2} score={matchup?.score2 ?? null} goals={matchup?.goals2 ?? null}
         showGoals={!!tied} isWinner={win2} isLive={false}
-        label={label2 ?? (s2 ? undefined : "TBD")}
+        label={label2 ?? (s2 ? undefined : "TBD")} currentGw={currentGw}
       />
     </div>
   );
@@ -433,6 +435,7 @@ export default function FACupBracket() {
                     <MatchupCard
                       matchup={m} isLive={live(m)}
                       matchNum={matchNums[`r1-${i}`]}
+                    currentGw={currentGw}
                     />
                   </div>
                 );
@@ -457,6 +460,7 @@ export default function FACupBracket() {
                       matchup={m} isLive={live(m)}
                       matchNum={matchNums[`r32-${i}`]}
                       label2={label2}
+                    currentGw={currentGw}
                     />
                   </div>
                 );
@@ -478,6 +482,7 @@ export default function FACupBracket() {
                       matchNum={matchNums[`r16-${i}`]}
                       label1={!m?.seed1 ? wLabel("r32", r32a) : undefined}
                       label2={!m?.seed2 ? wLabel("r32", r32b) : undefined}
+                    currentGw={currentGw}
                     />
                   </div>
                 );
@@ -498,6 +503,7 @@ export default function FACupBracket() {
                       matchNum={matchNums[`qf-${i}`]}
                       label1={!m?.seed1 ? wLabel("r16", r16a) : undefined}
                       label2={!m?.seed2 ? wLabel("r16", r16b) : undefined}
+                    currentGw={currentGw}
                     />
                   </div>
                 );
@@ -518,6 +524,7 @@ export default function FACupBracket() {
                       matchNum={matchNums[`sf-${i}`]}
                       label1={!m?.seed1 ? wLabel("qf", qfa) : undefined}
                       label2={!m?.seed2 ? wLabel("qf", qfb) : undefined}
+                    currentGw={currentGw}
                     />
                   </div>
                 );
@@ -544,7 +551,8 @@ export default function FACupBracket() {
                         extraCls="gold"
                         label1={!m?.seed1 ? wLabel("sf", 0) : undefined}
                         label2={!m?.seed2 ? wLabel("sf", 1) : undefined}
-                      />
+                      currentGw={currentGw}
+                    />
                     );
                   })()}
                 </div>
@@ -559,7 +567,8 @@ export default function FACupBracket() {
                         extraCls="bronze"
                         label1={!m?.seed1 ? lLabel("sf", 0) : undefined}
                         label2={!m?.seed2 ? lLabel("sf", 1) : undefined}
-                      />
+                      currentGw={currentGw}
+                    />
                     );
                   })()}
                 </div>
