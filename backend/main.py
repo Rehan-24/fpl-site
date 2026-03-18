@@ -267,7 +267,18 @@ def run_management_script(league: str, gw: Optional[int] = None) -> None:
         cmd.append(str(gw))
     cmd.append("-o")
 
-    subprocess.run(cmd, check=True, cwd=os.path.join(BASE_DIR, "src"))
+    result = subprocess.run(
+        cmd,
+        cwd=os.path.join(BASE_DIR, "src"),
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        raise subprocess.CalledProcessError(
+            result.returncode, cmd,
+            output=result.stdout,
+            stderr=result.stderr,
+        )
 
 
 def excel_to_latest_json(league: str, preferred_sheet: Optional[str] = None) -> dict:
@@ -599,6 +610,9 @@ def admin_rebuild(
             "json_path": f"/backend/results/latest/{league}.json",
             "rows": len(data.get("rows", [])),
         }
+    except subprocess.CalledProcessError as e:
+        detail = f"script failed: {e.stderr or e.stdout or str(e)}"
+        raise HTTPException(status_code=500, detail=detail)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -666,6 +680,8 @@ def public_rebuild(league: str = Query("premier"), gw: Optional[str] = Query(Non
     # 2) run legacy script
     try:
         run_management_script(league, resolved_gw)
+    except subprocess.CalledProcessError as e:
+        _fail("script", f"{e.stderr or e.stdout or str(e)}")
     except Exception as e:
         _fail("script", e)
 
