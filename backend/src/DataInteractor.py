@@ -73,17 +73,23 @@ class DataInteractor():
                     manager_struct['campaign_data']['transfers_cost'] += event['event_transfers_cost']
 
                 # Fill in chip usage by gameweek | 0 means unused
+                # Chips are split into two halves: GW1-19 (half 1) and GW20-38 (half 2)
+                # WC always had two; TC/BB/FH are new doubles in 2025/26 season
+                HALF_SPLIT = 19  # GW <= 19 = first half, GW >= 20 = second half
                 wc_used = 0
                 for chip in manager_history_data['chips']:
                     chip_name = chip['name']
-                    
-                    # look for second wildcard event
+                    chip_event = chip['event']
+
                     if chip_name == 'wildcard':
                         wc_used += 1
-                        # store the gw which it was used
-                        manager_struct['chips'][f'wildcard_{wc_used}'] = chip['event']
+                        manager_struct['chips'][f'wildcard_{wc_used}'] = chip_event
+                    elif chip_name in ('3xc', 'bboost', 'freehit'):
+                        half = '1' if chip_event <= HALF_SPLIT else '2'
+                        manager_struct['chips'][f'{chip_name}_{half}'] = chip_event
                     else:
-                        manager_struct['chips'][chip_name] = chip['event']
+                        # manager chip etc — single instance
+                        manager_struct['chips'][chip_name] = chip_event
 
             # Fill in the data only retrievable in campaign data
             gameweek_count = 0
@@ -240,12 +246,14 @@ class DataInteractor():
                 'transfers_cost': 0,
             },
             'chips': {
+                '3xc_1': 0,
+                'bboost_1': 0,
+                'freehit_1': 0,
                 'wildcard_1': 0,
+                '3xc_2': 0,
+                'bboost_2': 0,
+                'freehit_2': 0,
                 'wildcard_2': 0,
-                'freehit': 0,
-                '3xc': 0,
-                'bboost': 0,
-                'manager': 0,
             },
             'fdr_list': [],
             'fdr_rating': 3,

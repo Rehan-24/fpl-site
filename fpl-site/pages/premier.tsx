@@ -170,16 +170,19 @@ export default function Premier() {
 
     if (
       key === "Chips Used" ||
-      key === "Free Hit" ||
+      key === "Triple Captain 1" ||
+      key === "Bench Boost 1" ||
+      key === "Free Hit 1" ||
       key === "Wildcard 1" ||
-      key === "Wildcard 2" ||
-      key === "Triple Captain" ||
-      key === "Bench Boost" ||
-      key === "AssMan"
+      key === "Triple Captain 2" ||
+      key === "Bench Boost 2" ||
+      key === "Free Hit 2" ||
+      key === "Wildcard 2"
     ) {
       if (String(val).includes("GW")) return "bg-red-200";
-      if (String(val).includes("Expired")) return "bg-orange-200";
-      if (String(val).includes("Available")) return "bg-green-200";
+      if (String(val) === "Expired") return "bg-orange-200";
+      if (String(val) === "Not Yet") return "bg-gray-100 text-gray-400";
+      if (String(val) === "Available") return "bg-green-200";
     }
 
     if (key === "Score" || key == "Plus/Minus" || key == "Current Team Value") {
@@ -283,8 +286,8 @@ export default function Premier() {
     "Total Transfers Made", "Total Transfer Hit",
     "GW Points on Bench", "Season Points on Bench",
     "Highest Point Total Possible", "Current Team Value",
-    "Free Hit", "Wildcard 1", "Wildcard 2",
-    "Triple Captain", "Bench Boost", "AssMan",
+    "Triple Captain 1", "Bench Boost 1", "Free Hit 1", "Wildcard 1",
+    "Triple Captain 2", "Bench Boost 2", "Free Hit 2", "Wildcard 2",
   ];
 
   const allKeys = Object.keys(first || {}).filter(

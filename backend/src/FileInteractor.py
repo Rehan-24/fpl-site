@@ -114,14 +114,14 @@ class FileInteractor():
                                 'Highest Point Total Possible',
                                 'Current Team Value',]
 
-        chip_labels_list = ['Wildcard 1', 'Wildcard 2', 'Free Hit', 'Triple Captain', 'Bench Boost', 'AssMan']
+        chip_labels_list = ['Triple Captain 1', 'Bench Boost 1', 'Free Hit 1', 'Wildcard 1', 'Triple Captain 2', 'Bench Boost 2', 'Free Hit 2', 'Wildcard 2']
         primary_column_names.extend(chip_labels_list)
 
         # Generate the dataframe for the primary table
         primary_df = pd.DataFrame(columns = primary_column_names)
         for datum_key in self.data.keys():
             datum = self.data[datum_key]
-            data_list = self.create_primary_data_list(datum)
+            data_list = self.create_primary_data_list(datum, gameweek)
             primary_df.loc[len(primary_df), :] = data_list
             
         # create a dataframe sorted by score
@@ -420,7 +420,7 @@ class FileInteractor():
         list_data.extend(list(chain.from_iterable(fdr_list)))
         return list_data
 
-    def create_primary_data_list(self, data: dict) -> List:
+    def create_primary_data_list(self, data: dict, current_gw: int = 38) -> List:
         list_data = []
         list_data.append(data['name'])
         list_data.append(data['owner'])
@@ -463,21 +463,38 @@ class FileInteractor():
         #team_value_delta = 0 #data['gameweek_data']['team_value_delta'] / 10
         #list_data.append(f'{team_value_delta:.1f}')
 
-        wc1 = self._get_chip_str(data['chips']['wildcard_1'])
-        wc2 = self._get_chip_str(data['chips']['wildcard_2'])
-        fh = self._get_chip_str(data['chips']['freehit'])
-        tc = self._get_chip_str(data['chips']['3xc'])
-        bb = self._get_chip_str(data['chips']['bboost'])
-        am = self._get_chip_str(data['chips']['manager'])
+        tc1 = self._get_chip_str(data['chips']['3xc_1'],     current_gw, half=1)
+        bb1 = self._get_chip_str(data['chips']['bboost_1'],  current_gw, half=1)
+        fh1 = self._get_chip_str(data['chips']['freehit_1'], current_gw, half=1)
+        wc1 = self._get_chip_str(data['chips']['wildcard_1'],current_gw, half=1)
+        tc2 = self._get_chip_str(data['chips']['3xc_2'],     current_gw, half=2)
+        bb2 = self._get_chip_str(data['chips']['bboost_2'],  current_gw, half=2)
+        fh2 = self._get_chip_str(data['chips']['freehit_2'], current_gw, half=2)
+        wc2 = self._get_chip_str(data['chips']['wildcard_2'],current_gw, half=2)
 
+        list_data.append(tc1)
+        list_data.append(bb1)
+        list_data.append(fh1)
         list_data.append(wc1)
+        list_data.append(tc2)
+        list_data.append(bb2)
+        list_data.append(fh2)
         list_data.append(wc2)
-        list_data.append(fh)
-        list_data.append(tc)
-        list_data.append(bb)
-        list_data.append(am)
 
         return list_data
 
-    def _get_chip_str(self, week_usage: int) -> str:
-        return 'Available' if week_usage == 0 else f'GW{week_usage}'
+    def _get_chip_str(self, week_usage: int, current_gw: int = 38, half: int = 0) -> str:
+        """
+        half=1 -> first-half chip (valid GW1-19)
+        half=2 -> second-half chip (valid GW20-38)
+        half=0 -> single chip (manager/assman), always available until used
+        """
+        HALF_SPLIT = 19
+        if week_usage != 0:
+            return f'GW{week_usage}'
+        # Unused chip
+        if half == 1 and current_gw > HALF_SPLIT:
+            return 'Expired'
+        if half == 2 and current_gw <= HALF_SPLIT:
+            return 'Not Yet'
+        return 'Available'

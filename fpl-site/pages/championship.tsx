@@ -168,17 +168,20 @@ export default function Championship() {
     // Chip usage
     if (
       key === "Chips Used" ||
-      key === "Free Hit" ||
+      key === "Triple Captain 1" ||
+      key === "Bench Boost 1" ||
+      key === "Free Hit 1" ||
       key === "Wildcard 1" ||
-      key === "Wildcard 2" ||
-      key === "Triple Captain" ||
-      key === "Bench Boost" ||
-      key === "AssMan"
+      key === "Triple Captain 2" ||
+      key === "Bench Boost 2" ||
+      key === "Free Hit 2" ||
+      key === "Wildcard 2"
     ) {
       const s = String(val || "");
       if (s.includes("GW")) return "bg-red-200";
-      if (s.includes("Expired")) return "bg-orange-200";
-      if (s.includes("Available")) return "bg-green-200";
+      if (s === "Expired") return "bg-orange-200";
+      if (s === "Not Yet") return "bg-gray-100 text-gray-400";
+      if (s === "Available") return "bg-green-200";
     }
 
     // Score / PlusMinus / Team Value => medals for top 3, red for bottom 3
@@ -280,8 +283,8 @@ export default function Championship() {
     "Total Transfers Made", "Total Transfer Hit",
     "GW Points on Bench", "Season Points on Bench",
     "Highest Point Total Possible", "Current Team Value",
-    "Free Hit", "Wildcard 1", "Wildcard 2",
-    "Triple Captain", "Bench Boost", "AssMan",
+    "Triple Captain 1", "Bench Boost 1", "Free Hit 1", "Wildcard 1",
+    "Triple Captain 2", "Bench Boost 2", "Free Hit 2", "Wildcard 2",
   ];
 
   const allKeys = Object.keys(first || {}).filter(
