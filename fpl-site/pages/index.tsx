@@ -96,53 +96,63 @@ function FACupPreview() {
       {featured.length > 0 ? (
         <>
           <div className="text-xs uppercase font-bold text-gray-500 mb-2">Matchups</div>
-          <table className="w-full text-sm mb-3 table-fixed">
-            <thead>
-              <tr className="bg-[#32FF6A] text-[#37003c] text-xs font-bold">
-                <th className="text-left px-2 py-1 w-6">#</th>
-                <th className="text-left px-2 py-1">Teams</th>
-                <th className="text-right px-2 py-1 w-10">Pts</th>
-              </tr>
-            </thead>
-            <tbody>
-              {featured.map((m, i) => {
-                const live = isLive(m);
-                const t1 = getSeedName(m.seed1);
-                const t2 = m.seed2 ? getSeedName(m.seed2) : "TBD";
-                const isEven = i % 2 === 0;
-                return (
-                  <tr key={`${m.round}-${m.matchup_idx}`}
-                    className="border-b border-[#37003c]"
-                    style={{ background: live ? "rgba(50,255,106,0.07)" : "transparent" }}>
-                    <td className="px-2 py-1 w-6 text-center align-top text-xs text-gray-400">
-                      {m.matchup_idx + 1}
-                    </td>
-                    <td className="px-2 py-1 text-left align-top">
-                      <div className="leading-tight">
-                        <div className="text-sm flex items-center gap-1">
-                          {live && <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#32FF6A]" />}
-                          <span className="text-xs text-gray-400 mr-0.5">{m.seed1}</span>
-                          {t1}
-                        </div>
-                        <div className="text-xs text-gray-500 mt-0.5">
-                          <span className="text-gray-400 mr-0.5">{m.seed2 ?? ""}</span>
-                          <span className={!m.seed2 ? "italic" : ""}>{t2}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-2 py-1 text-right align-top">
-                      <div className="text-sm font-semibold leading-tight">
-                        {m.score1 != null ? m.score1 : "—"}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {m.score2 != null ? m.score2 : "—"}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="flex flex-col gap-1.5 mb-3">
+            {featured.map(m => {
+              const live = isLive(m);
+              const t1 = getSeedName(m.seed1);
+              const t2 = m.seed2 ? getSeedName(m.seed2) : "TBD";
+              return (
+                <div key={`${m.round}-${m.matchup_idx}`}
+                  className="rounded overflow-hidden text-xs"
+                  style={{
+                    border: live ? "1px solid #32FF6A" : "0.5px solid #ddd6fe",
+                    boxShadow: live ? "0 0 0 2px rgba(50,255,106,.15)" : "none",
+                  }}>
+                  {/* Match header — green like table headers */}
+                  <div className="flex items-center justify-between px-2 py-1"
+                    style={{ background: "#32FF6A" }}>
+                    <span className="font-bold text-[10px] uppercase tracking-wide"
+                      style={{ color: "#37003c" }}>
+                      {roundLabel}
+                    </span>
+                    {live && (
+                      <span className="font-bold rounded px-1"
+                        style={{ fontSize: 8, background: "#37003c", color: "#32FF6A" }}>
+                        LIVE
+                      </span>
+                    )}
+                  </div>
+                  {/* Row 1 */}
+                  <div className="flex items-center justify-between px-2 py-1.5"
+                    style={{ borderBottom: "0.5px solid #ddd6fe" }}>
+                    <div className="flex items-center gap-1 truncate">
+                      <span className="text-gray-400 flex-shrink-0" style={{ fontSize: 9, minWidth: 14 }}>
+                        {m.seed1}
+                      </span>
+                      <span className="text-sm truncate">{t1}</span>
+                    </div>
+                    <span className="font-semibold ml-2 flex-shrink-0" style={{ color: "#37003c" }}>
+                      {m.score1 != null ? m.score1 : "—"}
+                    </span>
+                  </div>
+                  {/* Row 2 */}
+                  <div className="flex items-center justify-between px-2 py-1.5">
+                    <div className="flex items-center gap-1 truncate">
+                      <span className="text-gray-400 flex-shrink-0" style={{ fontSize: 9, minWidth: 14 }}>
+                        {m.seed2 ?? ""}
+                      </span>
+                      <span className={`text-sm truncate ${!m.seed2 ? "italic text-gray-400" : ""}`}>
+                        {t2}
+                      </span>
+                    </div>
+                    <span className="font-semibold ml-2 flex-shrink-0" style={{ color: "#37003c" }}>
+                      {m.score2 != null ? m.score2 : "—"}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </>
       ) : (
         // Between rounds: bracket progress summary
