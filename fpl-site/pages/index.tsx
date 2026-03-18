@@ -31,55 +31,48 @@ function getSeedName(seed: number | null | undefined): string {
 function FACupPreview() {
   const { bracket, currentGw } = useFACupBracket();
 
-  // Find the active round: most advanced round with at least one matchup without a winner
-  const activeRound = (() => {
-    for (let i = ROUND_ORDER.length - 1; i >= 0; i--) {
+  // Determine which round to show:
+  // 1. The earliest round with unplayed matchups (upcoming or in-progress)
+  //    — this handles the case where GW31 is next and R1 has no scores yet
+  // 2. If all rounds are complete, show progress summary
+  const displayRound = (() => {
+    for (let i = 0; i < ROUND_ORDER.length; i++) {
       const r = ROUND_ORDER[i];
       const roundMatchups = bracket.filter(m => m.round === r);
-      if (roundMatchups.length > 0 && roundMatchups.some(m => m.winner_seed == null && m.seed1 != null)) {
+      // Show this round if it has matchups and at least one has no winner
+      if (roundMatchups.length > 0 && roundMatchups.some(m => m.winner_seed == null)) {
         return r;
       }
     }
     return null;
   })();
 
-  // Active matchups: no winner yet, seed1 set
-  const activeMatchups = bracket.filter(
-    m => m.round === activeRound && m.winner_seed == null && m.seed1 != null
-  );
+  const roundLabel = displayRound ? ROUND_LABELS[displayRound] : null;
+  const roundGw    = displayRound ? ROUND_GW[displayRound] : null;
 
-  // Pick 3 randomly (stable across renders using sort by matchup_idx)
-  const featured = activeMatchups
-    .slice()
-    .sort(() => 0) // keep natural order from backend
-    .slice(0, 3);
+  // All matchups for the display round that haven't been decided yet
+  const featured = bracket
+    .filter(m => m.round === displayRound && m.winner_seed == null)
+    .sort((a, b) => a.matchup_idx - b.matchup_idx)
+    .slice(0, 6);
 
-  const roundLabel = activeRound ? ROUND_LABELS[activeRound] ?? activeRound : null;
-  const roundGw    = activeRound ? ROUND_GW[activeRound] : null;
-
-  // Between rounds: find the most recently completed round
+  // Between-rounds summary data
   const lastCompletedRound = (() => {
     for (let i = ROUND_ORDER.length - 1; i >= 0; i--) {
       const r = ROUND_ORDER[i];
       const roundMatchups = bracket.filter(m => m.round === r);
-      if (roundMatchups.length > 0 && roundMatchups.every(m => m.winner_seed != null)) {
-        return r;
-      }
+      if (roundMatchups.length > 0 && roundMatchups.every(m => m.winner_seed != null)) return r;
     }
     return null;
   })();
 
-  // Champion (if final is done)
   const finalMatchup = bracket.find(m => m.round === "final");
   const champion = finalMatchup?.winner_seed ? getSeedName(finalMatchup.winner_seed) : null;
 
-  // Count remaining teams
   const eliminated = new Set(
     bracket
       .filter(m => m.winner_seed != null)
-      .flatMap(m => [
-        m.winner_seed === m.seed1 ? m.seed2 : m.seed1,
-      ])
+      .map(m => m.winner_seed === m.seed1 ? m.seed2 : m.seed1)
       .filter(Boolean)
   );
   const remaining = 40 - eliminated.size;
@@ -89,8 +82,8 @@ function FACupPreview() {
 
   return (
     <>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
+      {/* Header — matches Premier/Championship style */}
+      <div className="flex items-center justify-between mb-2">
         <h3 className="text-xl font-semibold">FA Cup</h3>
         {roundLabel && roundGw && (
           <span className="text-[11px] font-bold px-2 py-0.5 rounded"
@@ -100,70 +93,59 @@ function FACupPreview() {
         )}
       </div>
 
-      {/* Active round: show featured matchups */}
-      {featured.length > 0 && (
+      {featured.length > 0 ? (
         <>
-          <div className="text-xs uppercase font-bold text-gray-500 mb-2">Featured Matchups</div>
-          <div className="flex flex-col gap-1.5 mb-3">
-            {featured.map(m => {
-              const live = isLive(m);
-              const t1 = getSeedName(m.seed1);
-              const t2 = m.seed2 ? getSeedName(m.seed2) : (m.round === "r32" ? "W R1" : "TBD");
-              return (
-                <div key={`${m.round}-${m.matchup_idx}`}
-                  className="rounded overflow-hidden text-xs"
-                  style={{
-                    border: live ? "1px solid #32FF6A" : "0.5px solid #ddd6fe",
-                    boxShadow: live ? "0 0 0 2px rgba(50,255,106,.15)" : "none",
-                  }}>
-                  {/* Match header */}
-                  <div className="flex items-center justify-between px-2 py-0.5"
-                    style={{ background: live ? "#37003c" : "#f3f0ff" }}>
-                    <span className="font-bold tracking-widest uppercase"
-                      style={{ fontSize: 9, color: live ? "#32FF6A" : "#7c3aed" }}>
-                      {roundLabel}
-                    </span>
-                    {live && (
-                      <span className="font-bold rounded px-1"
-                        style={{ fontSize: 8, background: "#32FF6A", color: "#37003c" }}>
-                        LIVE
-                      </span>
-                    )}
-                  </div>
-                  {/* Row 1 */}
-                  <div className="flex items-center justify-between px-2 py-1"
-                    style={{ borderBottom: "0.5px solid #ddd6fe" }}>
-                    <span className="truncate" style={{ maxWidth: 130 }}>
-                      <span className="text-gray-400 mr-1" style={{ fontSize: 9 }}>
-                        {m.seed1 ?? ""}
-                      </span>
-                      {t1}
-                    </span>
-                    <span className="font-semibold ml-2" style={{ color: "#37003c", minWidth: 20, textAlign: "right" }}>
-                      {m.score1 != null ? m.score1 : "—"}
-                    </span>
-                  </div>
-                  {/* Row 2 */}
-                  <div className="flex items-center justify-between px-2 py-1">
-                    <span className="truncate" style={{ maxWidth: 130 }}>
-                      <span className="text-gray-400 mr-1" style={{ fontSize: 9 }}>
-                        {m.seed2 ?? ""}
-                      </span>
-                      <span className={m.seed2 ? "" : "italic text-gray-400"}>{t2}</span>
-                    </span>
-                    <span className="font-semibold ml-2" style={{ color: "#37003c", minWidth: 20, textAlign: "right" }}>
-                      {m.score2 != null ? m.score2 : "—"}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <div className="text-xs uppercase font-bold text-gray-500 mb-2">Matchups</div>
+          <table className="w-full text-sm mb-3 table-fixed">
+            <thead>
+              <tr className="bg-[#32FF6A] text-[#37003c] text-xs font-bold">
+                <th className="text-left px-2 py-1 w-6">#</th>
+                <th className="text-left px-2 py-1">Teams</th>
+                <th className="text-right px-2 py-1 w-10">Pts</th>
+              </tr>
+            </thead>
+            <tbody>
+              {featured.map((m, i) => {
+                const live = isLive(m);
+                const t1 = getSeedName(m.seed1);
+                const t2 = m.seed2 ? getSeedName(m.seed2) : "TBD";
+                const isEven = i % 2 === 0;
+                return (
+                  <tr key={`${m.round}-${m.matchup_idx}`}
+                    className="border-b border-[#37003c]"
+                    style={{ background: live ? "rgba(50,255,106,0.07)" : "transparent" }}>
+                    <td className="px-2 py-1 w-6 text-center align-top text-xs text-gray-400">
+                      {m.matchup_idx + 1}
+                    </td>
+                    <td className="px-2 py-1 text-left align-top">
+                      <div className="leading-tight">
+                        <div className="text-sm flex items-center gap-1">
+                          {live && <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#32FF6A]" />}
+                          <span className="text-xs text-gray-400 mr-0.5">{m.seed1}</span>
+                          {t1}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-0.5">
+                          <span className="text-gray-400 mr-0.5">{m.seed2 ?? ""}</span>
+                          <span className={!m.seed2 ? "italic" : ""}>{t2}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-2 py-1 text-right align-top">
+                      <div className="text-sm font-semibold leading-tight">
+                        {m.score1 != null ? m.score1 : "—"}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {m.score2 != null ? m.score2 : "—"}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </>
-      )}
-
-      {/* Between rounds: bracket progress summary */}
-      {featured.length === 0 && (
+      ) : (
+        // Between rounds: bracket progress summary
         <div className="mb-3">
           <div className="text-xs uppercase font-bold text-gray-500 mb-2">Bracket Progress</div>
           <div className="flex flex-col gap-1.5 text-sm">
@@ -174,25 +156,22 @@ function FACupPreview() {
               </div>
             ) : (
               <>
-                <div className="flex justify-between py-1" style={{ borderBottom: "0.5px solid #ddd6fe" }}>
+                <div className="flex justify-between py-1 border-b border-[#ddd6fe]">
                   <span className="text-gray-600">Teams remaining</span>
                   <span className="font-semibold">{remaining} / 40</span>
                 </div>
                 {lastCompletedRound && (
-                  <div className="flex justify-between py-1" style={{ borderBottom: "0.5px solid #ddd6fe" }}>
+                  <div className="flex justify-between py-1 border-b border-[#ddd6fe]">
                     <span className="text-gray-600">Last completed</span>
                     <span className="font-semibold">{ROUND_LABELS[lastCompletedRound]}</span>
                   </div>
                 )}
-                {/* Show next round */}
                 {lastCompletedRound && ROUND_ORDER.indexOf(lastCompletedRound) < ROUND_ORDER.length - 1 && (() => {
-                  const nextIdx = ROUND_ORDER.indexOf(lastCompletedRound) + 1;
-                  const nextRound = ROUND_ORDER[nextIdx];
-                  const nextGw = ROUND_GW[nextRound];
+                  const nextRound = ROUND_ORDER[ROUND_ORDER.indexOf(lastCompletedRound) + 1];
                   return (
                     <div className="flex justify-between py-1">
                       <span className="text-gray-600">Next up</span>
-                      <span className="font-semibold">{ROUND_LABELS[nextRound]} · GW{nextGw}</span>
+                      <span className="font-semibold">{ROUND_LABELS[nextRound]} · GW{ROUND_GW[nextRound]}</span>
                     </div>
                   );
                 })()}
@@ -202,7 +181,6 @@ function FACupPreview() {
         </div>
       )}
 
-      {/* View bracket link */}
       <Link href="/facup"
         className="block text-center text-xs font-semibold py-1.5 rounded transition-colors"
         style={{ border: "0.5px solid #5b329e", color: "#5b329e" }}>
