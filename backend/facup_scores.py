@@ -183,66 +183,126 @@ def refresh_facup_scores(gw: int) -> dict:
             logger.error(f"[facup] Error fetching {msg}")
             summary["errors"].append(msg)
 
-    # Step 4 + 5: resolve winners for all matchups in this GW
+    # Step 4 + 5: resolve winners for ALL unresolved matchups (including past GWs).
+    # This handles the case where a previous GW's round was never resolved — e.g.
+    # if the cron missed GW31 (Round 1) and now GW32 is current, we still pick up
+    # the unresolved R1 matchups and backfill their scores from the FPL API if needed.
     bracket = get_bracket(SEASON)
-    gw_matchups = [m for m in bracket if m["gw"] == gw]
 
-    for matchup in gw_matchups:
-        round_name = matchup["round"]
-        idx = matchup["matchup_idx"]
-        eid1 = matchup.get("entry_id1")
-        eid2 = matchup.get("entry_id2")
+    # Group unresolved matchups by GW (both slots must be filled to resolve).
+    # If entry_id1/entry_id2 are NULL but seed1/seed2 are set, resolve from SEED_ENTRY_MAP
+    # so bracket rows that were seeded with only seeds (not entry_ids) still work.
+    unresolved_by_gw: dict[int, list] = {}
+    for m in bracket:
+        if m["winner_entry"] is not None:
+            continue
+        # Resolve missing entry_ids from seed map
+        if not m.get("entry_id1") and m.get("seed1"):
+            m = dict(m)
+            m["entry_id1"] = SEED_ENTRY_MAP.get(m["seed1"])
+        if not m.get("entry_id2") and m.get("seed2"):
+            m = dict(m)
+            m["entry_id2"] = SEED_ENTRY_MAP.get(m["seed2"])
+        if m.get("entry_id1") and m.get("entry_id2"):
+            unresolved_by_gw.setdefault(m["gw"], []).append(m)
 
-        if not eid1 or not eid2:
-            continue  # TBD slot — can't resolve yet
-
-        s1, g1 = score_map.get(eid1, (None, None))
-        s2, g2 = score_map.get(eid2, (None, None))
-
-        if s1 is None or s2 is None:
-            continue  # scores not fetched yet
-
-        # Determine winner
-        if s1 > s2:
-            winner_entry, winner_seed = eid1, matchup["seed1"]
-        elif s2 > s1:
-            winner_entry, winner_seed = eid2, matchup["seed2"]
-        elif g1 is not None and g2 is not None:
-            # Tiebreaker: goals
-            if g1 > g2:
-                winner_entry, winner_seed = eid1, matchup["seed1"]
-            elif g2 > g1:
-                winner_entry, winner_seed = eid2, matchup["seed2"]
-            else:
-                # Perfect tie on goals too — no winner yet (rare, handle manually)
-                winner_entry, winner_seed = None, None
+    for matchup_gw, gw_matchups in unresolved_by_gw.items():
+        if matchup_gw == gw:
+            # Current GW: use the score_map we already built above
+            gw_score_map = score_map
         else:
-            winner_entry, winner_seed = None, None
+            # Past GW: load whatever scores we already stored, then backfill any gaps
+            db_rows = get_gw_scores(matchup_gw)
+            gw_score_map: dict[int, tuple[int, int]] = {
+                row["entry_id"]: (row["gw_points"], row["gw_goals"]) for row in db_rows
+            }
 
-        update_bracket_scores(
-            SEASON, round_name, idx,
-            eid1, eid2,
-            s1, s2, g1, g2,
-            winner_seed, winner_entry,
-        )
+            # Find entries whose scores we still need
+            needed_eids = {
+                eid
+                for m in gw_matchups
+                for eid in (m["entry_id1"], m["entry_id2"])
+                if eid not in gw_score_map
+            }
+            if needed_eids:
+                logger.info(f"[facup] Backfilling {len(needed_eids)} scores for GW{matchup_gw}")
+                try:
+                    past_goals = fetch_live_goals(matchup_gw)
+                except Exception:
+                    past_goals = {}
+                from facup_seedings_map import SEED_TEAM_MAP
+                for eid in needed_eids:
+                    seed = ENTRY_SEED_MAP.get(eid)
+                    if seed is None:
+                        continue
+                    try:
+                        pts, goals = fetch_manager_gw(eid, matchup_gw, past_goals)
+                        display_name = SEED_TEAM_MAP.get(seed, f"Seed {seed}")
+                        upsert_gw_score(matchup_gw, eid, display_name, pts, goals)
+                        gw_score_map[eid] = (pts, goals)
+                        summary["fetched"] += 1
+                        logger.info(f"[facup] Backfill GW{matchup_gw} seed {seed} (entry {eid}): {pts}pts, {goals}gls")
+                        time.sleep(0.3)
+                    except Exception as e:
+                        msg = f"Backfill GW{matchup_gw} seed {seed} (entry {eid}): {e}"
+                        logger.error(f"[facup] {msg}")
+                        summary["errors"].append(msg)
 
-        if winner_entry:
-            advance_winner_to_next_round(SEASON, round_name, idx, winner_seed, winner_entry)
+        for matchup in gw_matchups:
+            round_name = matchup["round"]
+            idx = matchup["matchup_idx"]
+            eid1 = matchup.get("entry_id1")
+            eid2 = matchup.get("entry_id2")
 
-            # Special case: SF losers → 3rd place
-            if round_name == "sf":
-                loser_seed  = matchup["seed2"] if winner_seed == matchup["seed1"] else matchup["seed1"]
-                loser_entry = eid2 if winner_entry == eid1 else eid1
-                slot = "1" if idx == 0 else "2"
-                _slot_sf_loser(SEASON, slot, loser_seed, loser_entry)
+            s1_data = gw_score_map.get(eid1)
+            s2_data = gw_score_map.get(eid2)
+            s1, g1 = s1_data if s1_data else (None, None)
+            s2, g2 = s2_data if s2_data else (None, None)
 
-            summary["winners_resolved"].append({
-                "round": round_name,
-                "matchup": idx,
-                "winner_seed": winner_seed,
-                "scores": f"{s1}-{s2}",
-            })
-            logger.info(f"[facup] {round_name}[{idx}] winner: seed {winner_seed} ({s1} vs {s2})")
+            if s1 is None or s2 is None:
+                continue  # scores still not available
+
+            # Determine winner
+            if s1 > s2:
+                winner_entry, winner_seed = eid1, matchup["seed1"]
+            elif s2 > s1:
+                winner_entry, winner_seed = eid2, matchup["seed2"]
+            elif g1 is not None and g2 is not None:
+                # Tiebreaker: goals
+                if g1 > g2:
+                    winner_entry, winner_seed = eid1, matchup["seed1"]
+                elif g2 > g1:
+                    winner_entry, winner_seed = eid2, matchup["seed2"]
+                else:
+                    # Perfect tie on goals too — no winner yet (rare, handle manually)
+                    winner_entry, winner_seed = None, None
+            else:
+                winner_entry, winner_seed = None, None
+
+            update_bracket_scores(
+                SEASON, round_name, idx,
+                eid1, eid2,
+                s1, s2, g1, g2,
+                winner_seed, winner_entry,
+            )
+
+            if winner_entry:
+                advance_winner_to_next_round(SEASON, round_name, idx, winner_seed, winner_entry)
+
+                # Special case: SF losers → 3rd place
+                if round_name == "sf":
+                    loser_seed  = matchup["seed2"] if winner_seed == matchup["seed1"] else matchup["seed1"]
+                    loser_entry = eid2 if winner_entry == eid1 else eid1
+                    slot = "1" if idx == 0 else "2"
+                    _slot_sf_loser(SEASON, slot, loser_seed, loser_entry)
+
+                summary["winners_resolved"].append({
+                    "round": round_name,
+                    "matchup": idx,
+                    "winner_seed": winner_seed,
+                    "scores": f"{s1}-{s2}",
+                })
+                logger.info(f"[facup] {round_name}[{idx}] winner: seed {winner_seed} ({s1} vs {s2})")
 
     logger.info(f"[facup] Refresh complete: {summary}")
     return summary
