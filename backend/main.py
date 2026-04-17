@@ -796,6 +796,106 @@ def trigger_facup_refresh(
     return {"status": "started", "gw": gw}
 
 
+@app.post("/api/admin/facup-repair-r32", tags=["facup"])
+def admin_facup_repair_r32(_: None = Depends(require_admin)):
+    """
+    One-time data repair for the GW32 bracket corruption where R1 winners
+    were advanced to wrong R32 slots (r32[1,2,3] instead of r32[15,8,7]).
+
+    This endpoint:
+      1. Seeds r32[7], r32[8], r32[15] with the correct R1 winners.
+      2. Clears stale interim-score winners from r32[2] and r32[3] so they
+         get re-resolved with final GW32 scores on the next refresh.
+      3. Clears the wrong r16[1] entries (hands/ur-dads-fav-team) that were
+         advanced from those interim winners.
+
+    After calling this, trigger POST /api/facup/refresh?gw=32 to re-resolve
+    the affected matchups and advance the correct winners into R16.
+
+    NOTE: r32[1] (M6) ran with Soccer Team (39) as the wrong participant and
+    Soccer Team won — that result stands.  Soccer Team therefore also appears
+    as seed2 in r32[15] (M20); if they win there too the admin should
+    manually rule on the duplicate (e.g. give Cheeks FC a walkover).
+    """
+    import psycopg as pg
+    from facup_db import DB_URL, SEASON as FS
+
+    ops = []
+    with pg.connect(DB_URL) as conn, conn.cursor() as cur:
+
+        # ── 1. Slot correct R1 winners into empty R32 seed2 slots ────────────
+        # r32[7]  (M12): FC Wincinnati (4) vs ur dads fav team (36, entry 6542694)
+        cur.execute("""
+            UPDATE public.facup_bracket
+               SET seed2 = 36, entry_id2 = 6542694, updated_at = now()
+             WHERE season = %s AND round = 'r32' AND matchup_idx = 7
+               AND seed2 IS NULL
+        """, (FS,))
+        ops.append({"slot": "r32[7] seed2", "rows": cur.rowcount})
+
+        # r32[8]  (M13): Cincy Til I Cry (3) vs hands (35, entry 4285068)
+        cur.execute("""
+            UPDATE public.facup_bracket
+               SET seed2 = 35, entry_id2 = 4285068, updated_at = now()
+             WHERE season = %s AND round = 'r32' AND matchup_idx = 8
+               AND seed2 IS NULL
+        """, (FS,))
+        ops.append({"slot": "r32[8] seed2", "rows": cur.rowcount})
+
+        # r32[15] (M20): Cheeks FC (2) vs Soccer Team (39, entry 5356734)
+        cur.execute("""
+            UPDATE public.facup_bracket
+               SET seed2 = 39, entry_id2 = 5356734, updated_at = now()
+             WHERE season = %s AND round = 'r32' AND matchup_idx = 15
+               AND seed2 IS NULL
+        """, (FS,))
+        ops.append({"slot": "r32[15] seed2", "rows": cur.rowcount})
+
+        # ── 2. Clear interim winners from r32[2] and r32[3] ──────────────────
+        # The cron captured scores mid-GW32 and stored the wrong winner.
+        # Only clear if winner_seed still matches the expected wrong value.
+
+        # r32[2] (M7): 2026 Champions (16) beat hands (35) on final scores 49-48
+        #              but interim run stored hands (35) as winner.
+        cur.execute("""
+            UPDATE public.facup_bracket
+               SET winner_seed = NULL, winner_entry = NULL, updated_at = now()
+             WHERE season = %s AND round = 'r32' AND matchup_idx = 2
+               AND winner_seed = 35
+        """, (FS,))
+        ops.append({"slot": "r32[2] winner cleared", "rows": cur.rowcount})
+
+        # r32[3] (M8): wizards (8) beat ur dads fav team (36) 64-44
+        #              but interim run stored ur dads fav team (36) as winner.
+        cur.execute("""
+            UPDATE public.facup_bracket
+               SET winner_seed = NULL, winner_entry = NULL, updated_at = now()
+             WHERE season = %s AND round = 'r32' AND matchup_idx = 3
+               AND winner_seed = 36
+        """, (FS,))
+        ops.append({"slot": "r32[3] winner cleared", "rows": cur.rowcount})
+
+        # ── 3. Clear wrong r16[1] entries (hands 35, ur dads fav team 36) ────
+        cur.execute("""
+            UPDATE public.facup_bracket
+               SET seed1 = NULL, entry_id1 = NULL,
+                   seed2 = NULL, entry_id2 = NULL,
+                   winner_seed = NULL, winner_entry = NULL,
+                   score1 = NULL, score2 = NULL,
+                   goals1 = NULL, goals2 = NULL,
+                   updated_at = now()
+             WHERE season = %s AND round = 'r16' AND matchup_idx = 1
+               AND seed1 = 35
+        """, (FS,))
+        ops.append({"slot": "r16[1] cleared", "rows": cur.rowcount})
+
+    return {
+        "status": "repaired",
+        "ops": ops,
+        "next_step": "POST /api/facup/refresh?gw=32 to re-resolve R32 and advance correct winners to R16",
+    }
+
+
 @app.post("/api/cron/trigger-facup", tags=["facup"])
 def cron_facup(
     background: BackgroundTasks,
