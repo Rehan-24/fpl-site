@@ -896,6 +896,93 @@ def admin_facup_repair_r32(_: None = Depends(require_admin)):
     }
 
 
+@app.get("/api/admin/facup-debug", tags=["facup"])
+def admin_facup_debug(_: None = Depends(require_admin)):
+    """
+    Inspect current DB state: bracket rows + gw_scores for rounds r32 and r16.
+    Useful for diagnosing 0-0 scores or missing entry_ids.
+    """
+    import psycopg as pg
+    from psycopg.rows import dict_row
+    from facup_db import DB_URL, SEASON as FS
+
+    with pg.connect(DB_URL, row_factory=dict_row) as conn, conn.cursor() as cur:
+        cur.execute("""
+            SELECT round, matchup_idx, gw,
+                   seed1, seed2, entry_id1, entry_id2,
+                   score1, score2, goals1, goals2,
+                   winner_seed, winner_entry
+            FROM public.facup_bracket
+            WHERE season = %s AND round IN ('r32','r16','qf','sf','final','3rd')
+            ORDER BY
+                CASE round WHEN 'r32' THEN 1 WHEN 'r16' THEN 2 WHEN 'qf' THEN 3
+                           WHEN 'sf' THEN 4 WHEN 'final' THEN 5 WHEN '3rd' THEN 6 END,
+                matchup_idx
+        """, (FS,))
+        bracket_rows = [dict(r) for r in cur.fetchall()]
+
+        cur.execute("""
+            SELECT gw, entry_id, display_name, gw_points, gw_goals, fetched_at
+            FROM public.facup_gw_scores
+            WHERE gw IN (32, 33, 34, 35, 36)
+            ORDER BY gw, entry_id
+        """)
+        score_rows = [dict(r) for r in cur.fetchall()]
+
+    return {"bracket": bracket_rows, "gw_scores": score_rows}
+
+
+@app.post("/api/admin/facup-fix-entry-ids", tags=["facup"])
+def admin_facup_fix_entry_ids(_: None = Depends(require_admin)):
+    """
+    For every bracket row where entry_id1/entry_id2 is NULL but the seed is known,
+    populate the entry_id from SEED_ENTRY_MAP. Then sync all bracket scores from
+    facup_gw_scores. Call this if resolved matches show 0-0 scores.
+    """
+    import psycopg as pg
+    from psycopg.rows import dict_row
+    from facup_db import DB_URL, SEASON as FS, sync_bracket_scores
+    from facup_scores import SEED_ENTRY_MAP
+
+    ops = []
+    with pg.connect(DB_URL, row_factory=dict_row) as conn, conn.cursor() as cur:
+        # Fix missing entry_id1
+        cur.execute("""
+            SELECT round, matchup_idx, seed1
+            FROM public.facup_bracket
+            WHERE season = %s AND entry_id1 IS NULL AND seed1 IS NOT NULL
+        """, (FS,))
+        for row in cur.fetchall():
+            eid = SEED_ENTRY_MAP.get(row["seed1"])
+            if eid:
+                cur.execute("""
+                    UPDATE public.facup_bracket
+                    SET entry_id1 = %s, updated_at = now()
+                    WHERE season = %s AND round = %s AND matchup_idx = %s
+                """, (eid, FS, row["round"], row["matchup_idx"]))
+                ops.append(f"set entry_id1={eid} (seed {row['seed1']}) on {row['round']}[{row['matchup_idx']}]")
+
+        # Fix missing entry_id2
+        cur.execute("""
+            SELECT round, matchup_idx, seed2
+            FROM public.facup_bracket
+            WHERE season = %s AND entry_id2 IS NULL AND seed2 IS NOT NULL
+        """, (FS,))
+        for row in cur.fetchall():
+            eid = SEED_ENTRY_MAP.get(row["seed2"])
+            if eid:
+                cur.execute("""
+                    UPDATE public.facup_bracket
+                    SET entry_id2 = %s, updated_at = now()
+                    WHERE season = %s AND round = %s AND matchup_idx = %s
+                """, (eid, FS, row["round"], row["matchup_idx"]))
+                ops.append(f"set entry_id2={eid} (seed {row['seed2']}) on {row['round']}[{row['matchup_idx']}]")
+
+    # Now sync scores
+    synced = sync_bracket_scores(FS)
+    return {"status": "done", "entry_id_fixes": ops, "scores_synced": synced}
+
+
 @app.post("/api/cron/trigger-facup", tags=["facup"])
 def cron_facup(
     background: BackgroundTasks,
