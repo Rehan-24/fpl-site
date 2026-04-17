@@ -896,6 +896,112 @@ def admin_facup_repair_r32(_: None = Depends(require_admin)):
     }
 
 
+@app.post("/api/admin/facup-repair-r32b", tags=["facup"])
+def admin_facup_repair_r32b(_: None = Depends(require_admin)):
+    """
+    Second-pass data repair for remaining R32 bracket issues:
+
+    1. R32[1]:  Soccer Team (39) was a wrong participant — should be somethimg (24).
+                Fix seed2/entry_id2, set correct winner (seed24 won 56-48).
+    2. R32[10]: I miss jamie vardy (14) was recorded as winner but Cech Mate (19)
+                actually had more points (73 vs 67). Fix winner.
+    3. R32[13]: Peps Lads (23) was recorded as winner but Beans and Rice (10)
+                actually had more points (58 vs 50). Fix winner.
+    4. R32[16] and R32[17]: Phantom rows that shouldn't exist — delete them.
+    5. R16[0].seed2:  Update from Soccer Team (39) → somethimg (24).
+    6. R16[5].seed1:  Update from I miss jamie vardy (14) → Cech Mate (19).
+    7. R16[6].seed2:  Update from Peps Lads (23) → Beans and Rice (10).
+    8. Sync all bracket scores from facup_gw_scores.
+    """
+    import psycopg as pg
+    from psycopg.rows import dict_row
+    from facup_db import DB_URL, SEASON as FS, sync_bracket_scores
+
+    ops = []
+    with pg.connect(DB_URL, row_factory=dict_row) as conn, conn.cursor() as cur:
+
+        # ── 1. Fix R32[1]: correct participant is somethimg (seed24, entry 4319478) ──
+        # Original bug placed Soccer Team (39) here instead.
+        # Correct match: Bend It Like Declan (seed9, 48pts) vs somethimg (seed24, 56pts)
+        # → somethimg wins
+        cur.execute("""
+            UPDATE public.facup_bracket
+               SET seed2        = 24,
+                   entry_id2    = 4319478,
+                   winner_seed  = 24,
+                   winner_entry = 4319478,
+                   updated_at   = now()
+             WHERE season = %s AND round = 'r32' AND matchup_idx = 1
+        """, (FS,))
+        ops.append(f"r32[1]: fixed seed2=24 (somethimg), winner=seed24; affected={cur.rowcount}")
+
+        # ── 2. Fix R32[10]: correct winner is Cech Mate (seed19, 73pts > 67pts) ──
+        # Early cron captured interim score 13-0 and resolved to wrong winner seed14.
+        cur.execute("""
+            UPDATE public.facup_bracket
+               SET winner_seed  = 19,
+                   winner_entry = 4350516,
+                   updated_at   = now()
+             WHERE season = %s AND round = 'r32' AND matchup_idx = 10
+        """, (FS,))
+        ops.append(f"r32[10]: fixed winner=seed19 (Cech Mate); affected={cur.rowcount}")
+
+        # ── 3. Fix R32[13]: correct winner is Beans and Rice (seed10, 58pts > 50pts) ──
+        # Early cron resolved tie as 0-0 but Peps Lads won goals tiebreaker (2 vs 0).
+        # Final scores show Beans and Rice clearly won.
+        cur.execute("""
+            UPDATE public.facup_bracket
+               SET winner_seed  = 10,
+                   winner_entry = 5596813,
+                   updated_at   = now()
+             WHERE season = %s AND round = 'r32' AND matchup_idx = 13
+        """, (FS,))
+        ops.append(f"r32[13]: fixed winner=seed10 (Beans and Rice); affected={cur.rowcount}")
+
+        # ── 4. Delete phantom R32[16] and R32[17] ──
+        cur.execute("""
+            DELETE FROM public.facup_bracket
+             WHERE season = %s AND round = 'r32' AND matchup_idx IN (16, 17)
+        """, (FS,))
+        ops.append(f"r32[16,17]: deleted phantom rows; affected={cur.rowcount}")
+
+        # ── 5. Fix R16[0].seed2: somethimg (24) beat Soccer Team in R32[1] ──
+        cur.execute("""
+            UPDATE public.facup_bracket
+               SET seed2        = 24,
+                   entry_id2    = 4319478,
+                   updated_at   = now()
+             WHERE season = %s AND round = 'r16' AND matchup_idx = 0
+        """, (FS,))
+        ops.append(f"r16[0]: fixed seed2=24 (somethimg); affected={cur.rowcount}")
+
+        # ── 6. Fix R16[5].seed1: Cech Mate (19) actually won R32[10] ──
+        cur.execute("""
+            UPDATE public.facup_bracket
+               SET seed1        = 19,
+                   entry_id1    = 4350516,
+                   updated_at   = now()
+             WHERE season = %s AND round = 'r16' AND matchup_idx = 5
+        """, (FS,))
+        ops.append(f"r16[5]: fixed seed1=19 (Cech Mate); affected={cur.rowcount}")
+
+        # ── 7. Fix R16[6].seed2: Beans and Rice (10) actually won R32[13] ──
+        cur.execute("""
+            UPDATE public.facup_bracket
+               SET seed2        = 10,
+                   entry_id2    = 5596813,
+                   updated_at   = now()
+             WHERE season = %s AND round = 'r16' AND matchup_idx = 6
+        """, (FS,))
+        ops.append(f"r16[6]: fixed seed2=10 (Beans and Rice); affected={cur.rowcount}")
+
+    # ── 8. Sync all bracket scores from facup_gw_scores ──
+    synced = sync_bracket_scores(FS)
+    ops.append(f"sync_bracket_scores: updated {synced} rows")
+
+    return {"status": "repaired", "ops": ops}
+
+
 @app.get("/api/admin/facup-debug", tags=["facup"])
 def admin_facup_debug(_: None = Depends(require_admin)):
     """

@@ -118,12 +118,13 @@ def sync_bracket_scores(season: str = SEASON) -> int:
         score2     = g2.gw_points,
         goals2     = g2.gw_goals,
         updated_at = now()
-    FROM public.facup_gw_scores g1
-    JOIN public.facup_gw_scores g2
-      ON g2.gw = b.gw AND g2.entry_id = b.entry_id2
+    FROM public.facup_gw_scores g1,
+         public.facup_gw_scores g2
     WHERE b.season    = %s
       AND g1.gw       = b.gw
       AND g1.entry_id = b.entry_id1
+      AND g2.gw       = b.gw
+      AND g2.entry_id = b.entry_id2
       AND b.entry_id1 IS NOT NULL
       AND b.entry_id2 IS NOT NULL
     """
