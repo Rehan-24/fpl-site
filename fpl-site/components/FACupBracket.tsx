@@ -186,7 +186,7 @@ export default function FACupBracket() {
     !!m && !!currentGw && m.gw === currentGw && !m.winner_seed && !!m.seed1;
 
   // Build match number map: "round-idx" → match number
-  // R1: M1-M4, R32: M5-M20, R16: M21-M28, QF: M29-M32, SF: M33-M34, Final: M35, 3rd: M36
+  // R1: M1-M8, R32: M9-M24, R16: M25-M32, QF: M33-M36, SF: M37-M38, Final: M39, 3rd: M40
   const matchNums: Record<string, number> = {};
   let mc = 0;
   R1_MATCHUPS.forEach((_, i)         => { matchNums[`r1-${i}`]    = ++mc; });
@@ -300,11 +300,12 @@ export default function FACupBracket() {
     }
 
     // ── R1 → R32 (purple: each R1 match feeds its matching bye slot) ──────────
-    // Bye slots are at R32 positions 0, 7, 8, 15
+    // Bye slots are at R32 positions 0, 3, 4, 7, 8, 11, 12, 15
+    // M1(R1[0])→R32[3], M2(R1[1])→R32[12], M3(R1[2])→R32[11], M4(R1[3])→R32[4]
+    // M5(R1[4])→R32[7], M6(R1[5])→R32[8],  M7(R1[6])→R32[15], M8(R1[7])→R32[0]
     const r1Cards  = Array.from(_wrap.querySelectorAll("#col-r1  .mu-card"));
     const r32Cards = Array.from(_wrap.querySelectorAll("#col-r32 .mu-card"));
-    // R1[0]→R32[0], R1[1]→R32[15], R1[2]→R32[8], R1[3]→R32[7]
-    connectPairs(r1Cards, r32Cards, [[0,0],[1,15],[2,8],[3,7]], "#a78bfa");
+    connectPairs(r1Cards, r32Cards, [[0,3],[1,12],[2,11],[3,4],[4,7],[5,8],[6,15],[7,0]], "#a78bfa");
 
     // ── R32 → R16 (standard 2-to-1 within each quadrant) ────────────────────
     // Q1: R32[0,1,2,3] → R16[0,1]    Q2: R32[4,5,6,7] → R16[2,3]
