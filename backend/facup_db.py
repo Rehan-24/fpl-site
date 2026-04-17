@@ -103,6 +103,35 @@ def update_bracket_scores(season: str, round_name: str, matchup_idx: int,
         ))
 
 
+def sync_bracket_scores(season: str = SEASON) -> int:
+    """
+    Update score1/score2/goals1/goals2 in facup_bracket from stored
+    facup_gw_scores for every row that has both entry_ids filled.
+    Does NOT touch winner_seed or winner_entry — safe to call every run.
+    Fixes stale interim scores on already-resolved matchups.
+    Returns the number of rows updated.
+    """
+    sql = """
+    UPDATE public.facup_bracket b
+    SET score1     = g1.gw_points,
+        goals1     = g1.gw_goals,
+        score2     = g2.gw_points,
+        goals2     = g2.gw_goals,
+        updated_at = now()
+    FROM public.facup_gw_scores g1
+    JOIN public.facup_gw_scores g2
+      ON g2.gw = b.gw AND g2.entry_id = b.entry_id2
+    WHERE b.season    = %s
+      AND g1.gw       = b.gw
+      AND g1.entry_id = b.entry_id1
+      AND b.entry_id1 IS NOT NULL
+      AND b.entry_id2 IS NOT NULL
+    """
+    with _conn() as conn, conn.cursor() as cur:
+        cur.execute(sql, (season,))
+        return cur.rowcount
+
+
 def advance_winner_to_next_round(season: str, round_name: str,
                                   matchup_idx: int,
                                   winner_seed: int, winner_entry: int) -> None:

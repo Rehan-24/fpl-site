@@ -27,6 +27,7 @@ from facup_db import (
     get_gw_scores,
     get_bracket,
     update_bracket_scores,
+    sync_bracket_scores,
     advance_winner_to_next_round,
     SEASON,
 )
@@ -303,6 +304,16 @@ def refresh_facup_scores(gw: int) -> dict:
                     "scores": f"{s1}-{s2}",
                 })
                 logger.info(f"[facup] {round_name}[{idx}] winner: seed {winner_seed} ({s1} vs {s2})")
+
+    # Step 6: sync scores for ALL bracket rows from facup_gw_scores.
+    # This ensures resolved matchups show final scores, not interim ones
+    # from a mid-GW cron run that happened to capture scores early.
+    try:
+        synced = sync_bracket_scores(SEASON)
+        summary["scores_synced"] = synced
+        logger.info(f"[facup] Synced final scores for {synced} bracket rows")
+    except Exception as e:
+        logger.error(f"[facup] Score sync failed: {e}")
 
     logger.info(f"[facup] Refresh complete: {summary}")
     return summary
