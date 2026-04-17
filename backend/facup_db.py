@@ -162,11 +162,15 @@ def advance_winner_to_next_round(season: str, round_name: str,
         if round_name == "r1":
             # R1 winners fill seed2 of the correct seeded R32 slot.
             # Mapping mirrors lib/facupSeedings.ts R32_SLOTS (r1Label fields):
-            #   R1[0] (M1: 33v40) → R32[0]  (seed 1's slot)
-            #   R1[1] (M2: 34v39) → R32[15] (seed 2's slot)
-            #   R1[2] (M3: 35v38) → R32[8]  (seed 3's slot)
-            #   R1[3] (M4: 36v37) → R32[7]  (seed 4's slot)
-            R1_TO_R32_IDX = {0: 0, 1: 15, 2: 8, 3: 7}
+            #   R1[0] (M1: 25v40) → R32[3]  (seed 8's slot)
+            #   R1[1] (M2: 26v39) → R32[12] (seed 7's slot)
+            #   R1[2] (M3: 27v38) → R32[11] (seed 6's slot)
+            #   R1[3] (M4: 28v37) → R32[4]  (seed 5's slot)
+            #   R1[4] (M5: 29v36) → R32[7]  (seed 4's slot)
+            #   R1[5] (M6: 30v35) → R32[8]  (seed 3's slot)
+            #   R1[6] (M7: 31v34) → R32[15] (seed 2's slot)
+            #   R1[7] (M8: 32v33) → R32[0]  (seed 1's slot)
+            R1_TO_R32_IDX = {0: 3, 1: 12, 2: 11, 3: 4, 4: 7, 5: 8, 6: 15, 7: 0}
             next_idx = R1_TO_R32_IDX.get(matchup_idx, matchup_idx)
             slot = "2"
         else:

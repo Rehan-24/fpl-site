@@ -68,13 +68,17 @@ export const SEEDS: Seed[] = [
   { seed: 40, team: "Red_Devils",           owner: "Ken Okine",             league: "champ", score: 1223, reason: "Remaining (by score)",    fplUrl: "https://fantasy.premierleague.com/entry/7977200" },
 ];
 
-// ── Round 1 matchups (GW31): seeds 33-40 ──────────────────────────────────────
-// Match labels used as FIFA-style TBD identifiers in R32
+// ── Round 1 matchups (GW31): seeds 25-40, 8 matches ──────────────────────────
+// Bottom 16 seeds play in — winners feed into R32 as seed2 opponents for seeds 1-8
 export const R1_MATCHUPS: [number, number][] = [
-  [33, 40],  // M1 → winner faces seed 1
-  [34, 39],  // M2 → winner faces seed 2
-  [35, 38],  // M3 → winner faces seed 3
-  [36, 37],  // M4 → winner faces seed 4
+  [25, 40],  // M1 → winner faces seed 8  (R32 slot 3)
+  [26, 39],  // M2 → winner faces seed 7  (R32 slot 12)
+  [27, 38],  // M3 → winner faces seed 6  (R32 slot 11)
+  [28, 37],  // M4 → winner faces seed 5  (R32 slot 4)
+  [29, 36],  // M5 → winner faces seed 4  (R32 slot 7)
+  [30, 35],  // M6 → winner faces seed 3  (R32 slot 8)
+  [31, 34],  // M7 → winner faces seed 2  (R32 slot 15)
+  [32, 33],  // M8 → winner faces seed 1  (R32 slot 0)
 ];
 
 // ── Round of 32 matchups (GW32): proper seeded bracket ───────────────────────
@@ -90,30 +94,30 @@ export const R1_MATCHUPS: [number, number][] = [
 export interface R32Slot {
   seed1: number;
   seed2: number | null;       // null = TBD (R1 winner)
-  r1Label: string | null;     // e.g. "M1" shown as "W M1" FIFA-style
+  r1Label: string | null;     // e.g. "M8" shown as "W M8" FIFA-style
 }
 
 export const R32_SLOTS: R32Slot[] = [
   // Quadrant 1
-  { seed1: 1,  seed2: null, r1Label: "M1" },  // slot 0
+  { seed1: 1,  seed2: null, r1Label: "M8" },  // slot 0  — seed 1 vs W(M8: 32v33)
   { seed1: 9,  seed2: 24,   r1Label: null },  // slot 1
   { seed1: 16, seed2: 17,   r1Label: null },  // slot 2
-  { seed1: 8,  seed2: 25,   r1Label: null },  // slot 3
+  { seed1: 8,  seed2: null, r1Label: "M1" },  // slot 3  — seed 8 vs W(M1: 25v40)
   // Quadrant 2
-  { seed1: 5,  seed2: 28,   r1Label: null },  // slot 4
+  { seed1: 5,  seed2: null, r1Label: "M4" },  // slot 4  — seed 5 vs W(M4: 28v37)
   { seed1: 13, seed2: 20,   r1Label: null },  // slot 5
   { seed1: 12, seed2: 21,   r1Label: null },  // slot 6
-  { seed1: 4,  seed2: null, r1Label: "M4" },  // slot 7
+  { seed1: 4,  seed2: null, r1Label: "M5" },  // slot 7  — seed 4 vs W(M5: 29v36)
   // Quadrant 3
-  { seed1: 3,  seed2: null, r1Label: "M3" },  // slot 8
+  { seed1: 3,  seed2: null, r1Label: "M6" },  // slot 8  — seed 3 vs W(M6: 30v35)
   { seed1: 11, seed2: 22,   r1Label: null },  // slot 9
   { seed1: 14, seed2: 19,   r1Label: null },  // slot 10
-  { seed1: 6,  seed2: 27,   r1Label: null },  // slot 11
+  { seed1: 6,  seed2: null, r1Label: "M3" },  // slot 11 — seed 6 vs W(M3: 27v38)
   // Quadrant 4
-  { seed1: 7,  seed2: 26,   r1Label: null },  // slot 12
+  { seed1: 7,  seed2: null, r1Label: "M2" },  // slot 12 — seed 7 vs W(M2: 26v39)
   { seed1: 10, seed2: 23,   r1Label: null },  // slot 13
   { seed1: 15, seed2: 18,   r1Label: null },  // slot 14
-  { seed1: 2,  seed2: null, r1Label: "M2" },  // slot 15
+  { seed1: 2,  seed2: null, r1Label: "M7" },  // slot 15 — seed 2 vs W(M7: 31v34)
 ];
 
 // Keep old export for any references that use it

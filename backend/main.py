@@ -1002,6 +1002,116 @@ def admin_facup_repair_r32b(_: None = Depends(require_admin)):
     return {"status": "repaired", "ops": ops}
 
 
+@app.post("/api/admin/facup-full-reset", tags=["facup"])
+def admin_facup_full_reset(_: None = Depends(require_admin)):
+    """
+    Full bracket reset implementing the corrected 40-team design:
+      R1  (GW31): 8 matches — seeds 25-40 play in
+      R32 (GW32): 16 matches — seeds 1-24 + 8 R1 winners
+      R16/QF/SF/Final/3rd: empty slots for future rounds
+
+    Wipes all existing 2025-26 bracket rows and re-inserts from scratch.
+    After calling this, run:
+      POST /api/facup/refresh?gw=31  → resolves R1 + advances to R32
+      POST /api/facup/refresh?gw=32  → resolves R32 + advances to R16
+    """
+    import psycopg as pg
+    from psycopg.rows import dict_row
+    from facup_db import DB_URL, SEASON as FS
+
+    # Seed → entry_id map (same as facup_scores.py SEED_ENTRY_MAP)
+    SEED_ENTRY: dict[int, int] = {
+        1:6679946, 2:3577847, 3:4141448, 4:5252413, 5:4087698, 6:6683423,
+        7:1520141, 8:7349746, 9:1270351, 10:5596813, 11:5361599, 12:5849758,
+        13:6790800, 14:4483868, 15:5066840, 16:7934939, 17:617475, 18:1906849,
+        19:4350516, 20:6197359, 21:3239682, 22:4342758, 23:4690925, 24:4319478,
+        25:5466499, 26:4080174, 27:4137251, 28:6802392, 29:1512563, 30:6921329,
+        31:7937084, 32:6812648, 33:5130249, 34:4286391, 35:4285068, 36:6542694,
+        37:4088389, 38:6527451, 39:5356734, 40:7977200,
+    }
+
+    # R1: 8 matches (GW31), seeds 25-40
+    # M1:25v40 M2:26v39 M3:27v38 M4:28v37 M5:29v36 M6:30v35 M7:31v34 M8:32v33
+    r1_rows = [
+        (FS, "r1", 0, 31, 25, 40, SEED_ENTRY[25], SEED_ENTRY[40]),
+        (FS, "r1", 1, 31, 26, 39, SEED_ENTRY[26], SEED_ENTRY[39]),
+        (FS, "r1", 2, 31, 27, 38, SEED_ENTRY[27], SEED_ENTRY[38]),
+        (FS, "r1", 3, 31, 28, 37, SEED_ENTRY[28], SEED_ENTRY[37]),
+        (FS, "r1", 4, 31, 29, 36, SEED_ENTRY[29], SEED_ENTRY[36]),
+        (FS, "r1", 5, 31, 30, 35, SEED_ENTRY[30], SEED_ENTRY[35]),
+        (FS, "r1", 6, 31, 31, 34, SEED_ENTRY[31], SEED_ENTRY[34]),
+        (FS, "r1", 7, 31, 32, 33, SEED_ENTRY[32], SEED_ENTRY[33]),
+    ]
+
+    # R32: 16 matches (GW32), seeds 1-24 pre-seeded; R1 winner slots have NULL seed2
+    # slot 0: seed1 vs WM8 | slot 3: seed8 vs WM1 | slot 4: seed5 vs WM4
+    # slot 7: seed4 vs WM5 | slot 8: seed3 vs WM6 | slot 11: seed6 vs WM3
+    # slot 12: seed7 vs WM2 | slot 15: seed2 vs WM7
+    def e(s): return SEED_ENTRY.get(s)
+    r32_rows = [
+        (FS, "r32",  0, 32,  1, None, e(1),  None),   # seed1 vs WM8
+        (FS, "r32",  1, 32,  9,   24, e(9),  e(24)),
+        (FS, "r32",  2, 32, 16,   17, e(16), e(17)),
+        (FS, "r32",  3, 32,  8, None, e(8),  None),   # seed8 vs WM1
+        (FS, "r32",  4, 32,  5, None, e(5),  None),   # seed5 vs WM4
+        (FS, "r32",  5, 32, 13,   20, e(13), e(20)),
+        (FS, "r32",  6, 32, 12,   21, e(12), e(21)),
+        (FS, "r32",  7, 32,  4, None, e(4),  None),   # seed4 vs WM5
+        (FS, "r32",  8, 32,  3, None, e(3),  None),   # seed3 vs WM6
+        (FS, "r32",  9, 32, 11,   22, e(11), e(22)),
+        (FS, "r32", 10, 32, 14,   19, e(14), e(19)),
+        (FS, "r32", 11, 32,  6, None, e(6),  None),   # seed6 vs WM3
+        (FS, "r32", 12, 32,  7, None, e(7),  None),   # seed7 vs WM2
+        (FS, "r32", 13, 32, 10,   23, e(10), e(23)),
+        (FS, "r32", 14, 32, 15,   18, e(15), e(18)),
+        (FS, "r32", 15, 32,  2, None, e(2),  None),   # seed2 vs WM7
+    ]
+
+    # R16/QF/SF/Final/3rd: empty placeholders
+    empty_rounds = (
+        [("r16", i, 33) for i in range(8)] +
+        [("qf",  i, 34) for i in range(4)] +
+        [("sf",  i, 35) for i in range(2)] +
+        [("final", 0, 36), ("3rd", 0, 36)]
+    )
+    empty_rows = [(FS, rnd, idx, gw) for rnd, idx, gw in empty_rounds]
+
+    with pg.connect(DB_URL, row_factory=dict_row) as conn, conn.cursor() as cur:
+        # Wipe existing bracket
+        cur.execute("DELETE FROM public.facup_bracket WHERE season = %s", (FS,))
+        deleted = cur.rowcount
+
+        # Insert R1
+        cur.executemany("""
+            INSERT INTO public.facup_bracket
+                (season, round, matchup_idx, gw, seed1, seed2, entry_id1, entry_id2)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """, r1_rows)
+
+        # Insert R32
+        cur.executemany("""
+            INSERT INTO public.facup_bracket
+                (season, round, matchup_idx, gw, seed1, seed2, entry_id1, entry_id2)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """, r32_rows)
+
+        # Insert empty future rounds
+        cur.executemany("""
+            INSERT INTO public.facup_bracket (season, round, matchup_idx, gw)
+            VALUES (%s, %s, %s, %s)
+        """, empty_rows)
+
+    return {
+        "status": "reset",
+        "deleted": deleted,
+        "inserted": {"r1": len(r1_rows), "r32": len(r32_rows), "future_rounds": len(empty_rows)},
+        "next_steps": [
+            "POST /api/facup/refresh?gw=31  → fetch R1 scores + advance winners to R32",
+            "POST /api/facup/refresh?gw=32  → fetch R32 scores + advance winners to R16",
+        ],
+    }
+
+
 @app.get("/api/admin/facup-debug", tags=["facup"])
 def admin_facup_debug(_: None = Depends(require_admin)):
     """
