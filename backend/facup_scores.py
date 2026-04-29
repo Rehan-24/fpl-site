@@ -102,6 +102,24 @@ def _fpl_get(url: str, retries: int = 3) -> dict:
     return {}
 
 
+def fetch_gw_data_checked() -> dict[int, bool]:
+    """
+    Return a map of {gw: data_checked} from bootstrap-static.
+    data_checked=True means bonus points have been applied and scores are final.
+    Winners must not be locked in until this is True for the matchup's GW.
+    """
+    try:
+        data = _fpl_get(f"{FPL_BASE}/bootstrap-static/")
+        return {
+            e["id"]: bool(e.get("data_checked", False))
+            for e in data.get("events", [])
+            if "id" in e
+        }
+    except Exception as e:
+        logger.warning(f"[facup] Could not fetch bootstrap-static for data_checked: {e}")
+        return {}
+
+
 def fetch_live_goals(gw: int) -> dict[int, int]:
     """
     Return a map of {element_id: goals_scored} for all players in the given GW.
@@ -149,7 +167,8 @@ def refresh_facup_scores(gw: int) -> dict:
     1. Fetch live goals for the GW once (one API call shared across all managers).
     2. For each seeded manager: fetch their GW score + squad goals.
     3. Upsert into facup_gw_scores.
-    4. Resolve match winners for any bracket matchups in this GW.
+    4. Resolve match winners for any bracket matchups in this GW — only when the
+       GW's data_checked flag is True (bonus points applied, scores are final).
     5. Advance winners to the next round.
 
     Returns a summary dict for logging / API response.
@@ -194,6 +213,12 @@ def refresh_facup_scores(gw: int) -> dict:
     # the unresolved R1 matchups and backfill their scores from the FPL API if needed.
     bracket = get_bracket(SEASON)
 
+    # Fetch GW data_checked status once. Winners are only locked in after a GW's
+    # data_checked=True, meaning bonus points have been applied and scores are final.
+    # This prevents a mid-GW cron run from prematurely declaring the wrong winner.
+    gw_data_checked = fetch_gw_data_checked()
+    logger.info(f"[facup] data_checked map fetched for {len(gw_data_checked)} GWs")
+
     # Group unresolved matchups by GW (both slots must be filled to resolve).
     # If entry_id1/entry_id2 are NULL but seed1/seed2 are set, resolve from SEED_ENTRY_MAP
     # so bracket rows that were seeded with only seeds (not entry_ids) still work.
@@ -212,6 +237,13 @@ def refresh_facup_scores(gw: int) -> dict:
             unresolved_by_gw.setdefault(m["gw"], []).append(m)
 
     for matchup_gw, gw_matchups in unresolved_by_gw.items():
+        # Only resolve winners once FPL has checked the GW data (bonus pts applied).
+        # Guards against locking in a wrong winner from mid-GW interim scores.
+        if not gw_data_checked.get(matchup_gw, False):
+            logger.info(f"[facup] GW{matchup_gw} not yet data_checked — skipping winner resolution")
+            summary.setdefault("skipped_gws", []).append(matchup_gw)
+            continue
+
         if matchup_gw == gw:
             # Current GW: use the score_map we already built above
             gw_score_map = score_map
