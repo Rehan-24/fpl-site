@@ -120,13 +120,17 @@ def fetch_manager_gw(entry_id: int, gw: int, live_goals: dict[int, int]) -> tupl
     Returns (gw_points, squad_goals).
 
     The picks endpoint returns:
-      entry_history.points  → GW score (after any deductions)
-      picks[]               → list of {element, position, multiplier, is_captain, ...}
-                              position 1-11 = active squad, 12-15 = bench
+      entry_history.points               → raw GW score (before transfer hit deduction)
+      entry_history.event_transfers_cost → hit penalty (0 or negative, e.g. -4, -8)
+      picks[]                            → list of {element, position, multiplier, ...}
+                                           position 1-11 = active squad, 12-15 = bench
     """
     data = _fpl_get(f"{FPL_BASE}/entry/{entry_id}/event/{gw}/picks/")
 
-    gw_points = data.get("entry_history", {}).get("points", 0)
+    entry_history = data.get("entry_history", {})
+    raw_points     = entry_history.get("points", 0)
+    transfer_cost  = entry_history.get("event_transfers_cost", 0)  # already negative
+    gw_points      = raw_points + transfer_cost
 
     # Count goals only from active squad (positions 1-11)
     squad_goals = 0
