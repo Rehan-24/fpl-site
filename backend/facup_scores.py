@@ -139,7 +139,7 @@ def fetch_manager_gw(entry_id: int, gw: int, live_goals: dict[int, int]) -> tupl
 
     The picks endpoint returns:
       entry_history.points               → raw GW score (before transfer hit deduction)
-      entry_history.event_transfers_cost → hit penalty (0 or negative, e.g. -4, -8)
+      entry_history.event_transfers_cost → hit penalty as a POSITIVE number (e.g. 4, 8)
       picks[]                            → list of {element, position, multiplier, ...}
                                            position 1-11 = active squad, 12-15 = bench
     """
@@ -147,8 +147,8 @@ def fetch_manager_gw(entry_id: int, gw: int, live_goals: dict[int, int]) -> tupl
 
     entry_history = data.get("entry_history", {})
     raw_points     = entry_history.get("points", 0)
-    transfer_cost  = entry_history.get("event_transfers_cost", 0)  # already negative
-    gw_points      = raw_points + transfer_cost
+    transfer_cost  = entry_history.get("event_transfers_cost", 0)  # positive, must subtract
+    gw_points      = raw_points - transfer_cost
 
     # Count goals only from active squad (positions 1-11)
     squad_goals = 0
