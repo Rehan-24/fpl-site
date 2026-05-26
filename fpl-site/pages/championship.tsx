@@ -5,6 +5,8 @@ import NavBar from "../components/NavBar";
 import { useStandings } from "../public/hooks/useStandings";
 import { useManagers } from "../public/hooks/useManagers";
 import useGWDeadline from "@/public/hooks/useGWDeadline";
+import { CHAMP_PRIZES } from "../utils/prizes";
+import PastSeasonsButton from "../components/PastSeasonsButton";
 
 type Row = Record<string, any>;
 
@@ -55,28 +57,7 @@ export default function Championship() {
     direction: "asc",
   });
 
-  const positionLabels: Record<string, string> = {
-    "1": "Champion $65",
-    "2": "Promotion $45",
-    "3": "Promotion $40",
-    "4": "Promotion $30",
-    "5": "Upper Mid $25",
-    "6": "Upper Mid $20",
-    "7": "Upper Mid $15",
-    "8": "Battle of The Mid",
-    "9": "Battle of The Mid",
-    "10": "Battle of The Mid",
-    "11": "Battle of The Mid",
-    "12": "Battle of The Mid",
-    "13": "Battle of The Mid",
-    "14": "Battle of The Mid",
-    "15": "Battle of The Mid",
-    "16": "Battle of The Mid",
-    "17": "Shame Battle",
-    "18": "Shame Battle",
-    "19": "Shame Battle",
-    "20": "Shame",
-  };
+  const positionLabels = CHAMP_PRIZES;
 
   // Fast map: team -> manager record
   //const managersByTeam = useMemo(() => {
@@ -314,9 +295,12 @@ export default function Championship() {
 
       <header className="relative bg-gradient-to-r from-blue-300 via-blue-400 to-[#5b329e] text-[#37003c] p-6 shadow-lg overflow-hidden">
         <div className="navbar-ripple pointer-events-none select-none absolute inset-0"></div>
-        <h1 className="text-center sm:text-left relative z-10 text-4xl font-bold text-[#37003c]">
-          Fantasy Championship League (v3)
-        </h1>
+        <div className="relative z-10 flex items-start justify-between gap-4 flex-wrap">
+          <h1 className="text-4xl font-bold text-[#37003c]">
+            Fantasy Championship League (v3)
+          </h1>
+          <PastSeasonsButton league="championship" />
+        </div>
         <div className="navbar-buttons relative z-20">
           <NavBar />
         </div>
