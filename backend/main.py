@@ -489,6 +489,124 @@ def get_table_latest(league: str, gw: int | None = None):
     return row
 
 
+# --------------- Season summary helpers ---------------
+
+_KNOWN_CHIP_KEYS = {
+    "Wildcard 1", "Wildcard 2",
+    "Triple Captain", "Triple Captain 1", "Triple Captain 2",
+    "Bench Boost", "Bench Boost 1", "Bench Boost 2",
+    "Free Hit", "Free Hit 1", "Free Hit 2",
+    "AssMan",
+}
+
+_PREMIER_PRIZES = {
+    1: "Champion $230", 2: "Champions League $110", 3: "Champions League $100",
+    4: "Champions League $90", 5: "Europa League $55", 6: "Europa League $45",
+    7: "Conference League $35",
+}
+_CHAMP_PRIZES = {
+    1: "Champion $65", 2: "Promotion $45", 3: "Promotion $40", 4: "Promotion $30",
+}
+
+
+@app.get("/api/season-summary", tags=["seasons"])
+def get_season_summary(league: str, season: Optional[str] = None):
+    from collections import Counter
+    row = get_latest_table_snapshot(league)
+    if not row:
+        raise HTTPException(status_code=404, detail="No snapshot found")
+
+    rows = row.get("payload", {}).get("rows", [])
+    if not rows:
+        raise HTTPException(status_code=404, detail="Empty snapshot")
+
+    total = len(rows)
+    prizes = _PREMIER_PRIZES if league.lower() == "premier" else _CHAMP_PRIZES
+    sorted_by_pos = sorted(rows, key=lambda r: int(r.get("Position") or 99))
+
+    # Top 7
+    top7 = []
+    for r in sorted_by_pos[:7]:
+        pos = int(r.get("Position") or 0)
+        top7.append({
+            "position": pos, "team": r.get("Team"), "owner": r.get("Owner"),
+            "wins": r.get("Wins"), "draws": r.get("Draws"), "losses": r.get("Losses"),
+            "points": r.get("Points"), "score": r.get("Score"),
+            "title_reward": prizes.get(pos, ""),
+        })
+
+    # Relegated / promoted
+    if league.lower() == "premier":
+        relegated = [
+            {"position": int(r.get("Position") or 0), "team": r.get("Team"),
+             "owner": r.get("Owner"), "points": r.get("Points")}
+            for r in sorted_by_pos if int(r.get("Position") or 0) >= 17
+        ]
+        promoted = []
+    else:
+        promoted = [
+            {"position": int(r.get("Position") or 0), "team": r.get("Team"),
+             "owner": r.get("Owner"), "points": r.get("Points"),
+             "title_reward": prizes.get(int(r.get("Position") or 0), "")}
+            for r in sorted_by_pos[:4]
+        ]
+        relegated = []
+
+    # Score movers
+    sorted_by_score = sorted(rows, key=lambda r: int(r.get("Score") or 0), reverse=True)
+    score_rank_map = {r.get("Team"): idx + 1 for idx, r in enumerate(sorted_by_score)}
+    deltas = []
+    for r in rows:
+        team = r.get("Team")
+        pts_rank = int(r.get("Position") or 0)
+        score_rank = score_rank_map.get(team, 0)
+        deltas.append({
+            "team": team, "owner": r.get("Owner"),
+            "pts_rank": pts_rank, "score_rank": score_rank,
+            "delta": pts_rank - score_rank,
+        })
+    biggest_up   = max(deltas, key=lambda x: x["delta"])
+    biggest_down = min(deltas, key=lambda x: x["delta"])
+
+    # Chip usage — discover columns dynamically
+    first_row = rows[0]
+    chip_keys = [k for k in first_row.keys() if k in _KNOWN_CHIP_KEYS]
+    chip_usage = []
+    for chip in chip_keys:
+        vals = [str(r.get(chip, "")) for r in rows]
+        used_gws = [int(v.replace("GW", "")) for v in vals if v.startswith("GW")]
+        used_count = len(used_gws)
+        peak_gw = f"GW{Counter(used_gws).most_common(1)[0][0]}" if used_gws else None
+        chip_usage.append({
+            "chip": chip, "used": used_count, "total": total,
+            "pct": round(used_count / total * 100) if total else 0,
+            "peak_gw": peak_gw,
+        })
+
+    return {
+        "season": season or "2025-26",
+        "league": league,
+        "top7": top7,
+        "relegated": relegated,
+        "promoted": promoted,
+        "score_movers": {"biggest_up": biggest_up, "biggest_down": biggest_down},
+        "chip_usage": chip_usage,
+        "overall_rank": None,
+        "all_rows": sorted_by_pos,
+    }
+
+
+@app.get("/api/seasons", tags=["seasons"])
+def get_seasons(league: str):
+    row = get_latest_table_snapshot(league)
+    if not row:
+        return {"seasons": []}
+    rows = row.get("payload", {}).get("rows", [])
+    sorted_rows = sorted(rows, key=lambda r: int(r.get("Position") or 99))
+    champion = next((r.get("Team") for r in sorted_rows if int(r.get("Position") or 99) == 1), None)
+    return {"seasons": [{"season": "2025-26", "champion": champion}]}
+
+
 @app.post("/api/cron/trigger-rebuild")
 def cron_trigger_rebuild(
     background: BackgroundTasks,
