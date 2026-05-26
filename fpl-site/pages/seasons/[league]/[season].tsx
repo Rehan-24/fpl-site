@@ -52,7 +52,6 @@ export default function SeasonArchivePage({ league, season, summary }: Props) {
   const title = `${season} ${isPremier ? "Premier League" : "Championship"} Season`;
   const allRows: Row[] = summary.all_rows ?? [];
 
-  // Detect which chip columns are present in this season's data
   const chipCols = allRows.length > 0
     ? Object.keys(allRows[0]).filter((k) => CHIP_KEYS.has(k))
     : [];
