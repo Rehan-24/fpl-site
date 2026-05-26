@@ -12,6 +12,26 @@ const BACKEND_BASE = (
 
 type Row = Record<string, any>;
 
+const CHIP_KEYS = new Set([
+  "Wildcard 1", "Wildcard 2",
+  "Triple Captain", "Triple Captain 1", "Triple Captain 2",
+  "Bench Boost", "Bench Boost 1", "Bench Boost 2",
+  "Free Hit", "Free Hit 1", "Free Hit 2",
+  "AssMan",
+]);
+
+const FIXED_COLS = [
+  "Points", "Wins", "Draws", "Losses",
+  "Score", "Score Against", "Plus/Minus",
+  "Season Points on Bench", "Total Transfer Hit", "Total Transfers Made",
+];
+
+function chipCellBg(val: string): string {
+  if (val.startsWith("GW")) return "bg-red-200";
+  if (val === "Expired" || val === "Available") return "bg-orange-200";
+  return "";
+}
+
 function rowBg(league: string, position: number): string {
   if (position === 1) return "bg-yellow-200";
   if (position === 2) return "bg-gray-300";
@@ -32,10 +52,9 @@ export default function SeasonArchivePage({ league, season, summary }: Props) {
   const title = `${season} ${isPremier ? "Premier League" : "Championship"} Season`;
   const allRows: Row[] = summary.all_rows ?? [];
 
-  const displayCols = [
-    "Points", "Wins", "Draws", "Losses", "GP",
-    "Score", "Score Against", "Plus/Minus",
-  ];
+  const chipCols = allRows.length > 0
+    ? Object.keys(allRows[0]).filter((k) => CHIP_KEYS.has(k))
+    : [];
 
   return (
     <main className="bg-gradient-to-b from-blue-200 via-white to-purple-100 min-h-screen text-[#37003c]">
@@ -77,7 +96,12 @@ export default function SeasonArchivePage({ league, season, summary }: Props) {
                   <th className="bg-[#37003c] text-white px-3 py-2 text-xs font-semibold text-left">
                     Team
                   </th>
-                  {displayCols.map((col) => (
+                  {FIXED_COLS.map((col) => (
+                    <th key={col} className="bg-[#37003c] text-white px-3 py-2 text-xs font-semibold text-center">
+                      {col}
+                    </th>
+                  ))}
+                  {chipCols.map((col) => (
                     <th key={col} className="bg-[#37003c] text-white px-3 py-2 text-xs font-semibold text-center">
                       {col}
                     </th>
@@ -112,11 +136,19 @@ export default function SeasonArchivePage({ league, season, summary }: Props) {
                           </Link>
                         </div>
                       </td>
-                      {displayCols.map((col) => (
+                      {FIXED_COLS.map((col) => (
                         <td key={col} className={`px-3 py-2 border-b border-gray-400 text-center ${bg}`}>
                           {row[col] ?? "—"}
                         </td>
                       ))}
+                      {chipCols.map((col) => {
+                        const val = String(row[col] ?? "");
+                        return (
+                          <td key={col} className={`px-3 py-2 border-b border-gray-400 text-center ${chipCellBg(val) || bg}`}>
+                            {val || "—"}
+                          </td>
+                        );
+                      })}
                     </tr>
                   );
                 })}

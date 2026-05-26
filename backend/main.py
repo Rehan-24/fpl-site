@@ -506,6 +506,7 @@ _PREMIER_PRIZES = {
 }
 _CHAMP_PRIZES = {
     1: "Champion $65", 2: "Promotion $45", 3: "Promotion $40", 4: "Promotion $30",
+    5: "Upper Mid $25", 6: "Upper Mid $20", 7: "Upper Mid $15",
 }
 
 
@@ -603,8 +604,8 @@ def get_seasons(league: str):
         return {"seasons": []}
     rows = row.get("payload", {}).get("rows", [])
     sorted_rows = sorted(rows, key=lambda r: int(r.get("Position") or 99))
-    champion = next((r.get("Team") for r in sorted_rows if int(r.get("Position") or 99) == 1), None)
-    return {"seasons": [{"season": "2025-26", "champion": champion}]}
+    top = next((r for r in sorted_rows if int(r.get("Position") or 99) == 1), None)
+    return {"seasons": [{"season": "2025-26", "champion": top.get("Team") if top else None, "manager": top.get("Owner") if top else None}]}
 
 
 @app.post("/api/cron/trigger-rebuild")

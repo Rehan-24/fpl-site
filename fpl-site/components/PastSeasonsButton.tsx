@@ -8,6 +8,7 @@ const BACKEND_BASE = (
 interface SeasonEntry {
   season: string;
   champion: string | null;
+  manager: string | null;
 }
 
 interface Props {
@@ -63,13 +64,16 @@ export default function PastSeasonsButton({ league, currentSeason }: Props) {
                   setOpen(false);
                   router.push(`/seasons/${league}/${s.season}`);
                 }}
-                className="w-full text-left px-3 py-2 text-sm text-[#37003c] hover:bg-purple-100 flex justify-between items-center"
+                className="w-full text-left px-3 py-2 text-sm text-[#37003c] hover:bg-purple-100"
               >
-                <span className="font-medium">{s.season}</span>
-                {s.champion && (
-                  <span className="text-xs text-gray-500 truncate max-w-[110px]">
-                    🥇 {s.champion}
-                  </span>
+                <div className="font-medium">{s.season}</div>
+                {(s.manager || s.champion) && (
+                  <div className="text-xs text-gray-500 truncate">
+                    🥇 {s.manager ?? s.champion}
+                    {s.champion && s.manager && (
+                      <span className="text-gray-400"> · {s.champion}</span>
+                    )}
+                  </div>
                 )}
               </button>
             ))
