@@ -9,6 +9,7 @@ interface SeasonEntry {
   season: string;
   champion: string | null;
   manager: string | null;
+  version: string | null;
 }
 
 interface Props {
@@ -66,13 +67,12 @@ export default function PastSeasonsButton({ league, currentSeason }: Props) {
                 }}
                 className="w-full text-left px-3 py-2 text-sm text-[#37003c] hover:bg-purple-100"
               >
-                <div className="font-medium">{s.season}</div>
+                <div className="font-medium">
+                  {s.season}{s.version ? ` (${s.version})` : ""}
+                </div>
                 {(s.manager || s.champion) && (
                   <div className="text-xs text-gray-500 truncate">
                     🥇 {s.manager ?? s.champion}
-                    {s.champion && s.manager && (
-                      <span className="text-gray-400"> · {s.champion}</span>
-                    )}
                   </div>
                 )}
               </button>

@@ -160,9 +160,6 @@ export default function SeasonSummaryCard({ data }: { data: SeasonSummaryData })
           <h3 className="font-bold text-[#37003c] text-lg mb-3 uppercase tracking-wide">
             If Ranked by Score…
           </h3>
-          <p className="text-xs text-gray-600 mb-4">
-            Points = match results. Score = raw FPL total. The gap reveals luck vs. skill.
-          </p>
 
           {data.score_movers.biggest_up.delta > 0 && (
             <div className="bg-green-100 border border-green-300 rounded p-3 mb-3">

@@ -509,31 +509,52 @@ _CHAMP_PRIZES = {
     5: "Upper Mid $25", 6: "Upper Mid $20", 7: "Upper Mid $15",
 }
 
+# League version labels per season
+_LEAGUE_VERSIONS = {
+    "premier":      {"2025-26": "v5", "2024-25": "v4"},
+    "championship": {"2025-26": "v3", "2024-25": "v2"},
+}
+
+DATA_DIR = os.path.join(BASE_DIR, "data")
+
+
+def _load_season_rows(league: str, season: Optional[str]) -> list:
+    """Return the rows list for the given league+season."""
+    if season == "2024-25":
+        path = os.path.join(DATA_DIR, f"{league}_gw38.json")
+        if not os.path.exists(path):
+            return []
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data.get("rows", data) if isinstance(data, dict) else data
+    # default: latest DB snapshot
+    row = get_latest_table_snapshot(league)
+    if not row:
+        return []
+    return row.get("payload", {}).get("rows", [])
+
 
 @app.get("/api/season-summary", tags=["seasons"])
 def get_season_summary(league: str, season: Optional[str] = None):
     from collections import Counter
-    row = get_latest_table_snapshot(league)
-    if not row:
-        raise HTTPException(status_code=404, detail="No snapshot found")
-
-    rows = row.get("payload", {}).get("rows", [])
+    rows = _load_season_rows(league, season)
     if not rows:
-        raise HTTPException(status_code=404, detail="Empty snapshot")
+        raise HTTPException(status_code=404, detail="No data found for this season")
 
     total = len(rows)
     prizes = _PREMIER_PRIZES if league.lower() == "premier" else _CHAMP_PRIZES
     sorted_by_pos = sorted(rows, key=lambda r: int(r.get("Position") or 99))
 
-    # Top 7
+    # Top 7 — use row's own Title Reward when present (2024-25), else prize dict
     top7 = []
     for r in sorted_by_pos[:7]:
         pos = int(r.get("Position") or 0)
+        row_reward = (r.get("Title Reward") or "").strip()
         top7.append({
             "position": pos, "team": r.get("Team"), "owner": r.get("Owner"),
             "wins": r.get("Wins"), "draws": r.get("Draws"), "losses": r.get("Losses"),
             "points": r.get("Points"), "score": r.get("Score"),
-            "title_reward": prizes.get(pos, ""),
+            "title_reward": row_reward or prizes.get(pos, ""),
         })
 
     # Relegated / promoted
@@ -548,7 +569,7 @@ def get_season_summary(league: str, season: Optional[str] = None):
         promoted = [
             {"position": int(r.get("Position") or 0), "team": r.get("Team"),
              "owner": r.get("Owner"), "points": r.get("Points"),
-             "title_reward": prizes.get(int(r.get("Position") or 0), "")}
+             "title_reward": (r.get("Title Reward") or "").strip() or prizes.get(int(r.get("Position") or 0), "")}
             for r in sorted_by_pos[:4]
         ]
         relegated = []
@@ -599,13 +620,22 @@ def get_season_summary(league: str, season: Optional[str] = None):
 
 @app.get("/api/seasons", tags=["seasons"])
 def get_seasons(league: str):
-    row = get_latest_table_snapshot(league)
-    if not row:
-        return {"seasons": []}
-    rows = row.get("payload", {}).get("rows", [])
-    sorted_rows = sorted(rows, key=lambda r: int(r.get("Position") or 99))
-    top = next((r for r in sorted_rows if int(r.get("Position") or 99) == 1), None)
-    return {"seasons": [{"season": "2025-26", "champion": top.get("Team") if top else None, "manager": top.get("Owner") if top else None}]}
+    league_key = league.lower()
+    versions = _LEAGUE_VERSIONS.get(league_key, {})
+    result = []
+    for season in ["2025-26", "2024-25"]:
+        rows = _load_season_rows(league_key, season)
+        if not rows:
+            continue
+        sorted_rows = sorted(rows, key=lambda r: int(r.get("Position") or 99))
+        top = next((r for r in sorted_rows if int(r.get("Position") or 99) == 1), None)
+        result.append({
+            "season": season,
+            "version": versions.get(season, ""),
+            "champion": top.get("Team") if top else None,
+            "manager": top.get("Owner") if top else None,
+        })
+    return {"seasons": result}
 
 
 @app.post("/api/cron/trigger-rebuild")
