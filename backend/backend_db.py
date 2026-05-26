@@ -532,6 +532,22 @@ def upsert_season_stats(rows: list[dict]) -> int:
         conn.commit()
     return len(rows)
 
+def get_overall_ranks_for_season(season: str, owner_names: list[str]) -> list[dict]:
+    """Return [{owner_name, overall_rank}] for the given season, filtered to owners with a rank."""
+    if not owner_names:
+        return []
+    lower_names = [n.lower() for n in owner_names]
+    q = """
+    SELECT owner_name, overall_rank
+    FROM public.season_stats
+    WHERE season = %s AND lower(owner_name) = ANY(%s)
+      AND overall_rank IS NOT NULL
+    """
+    with _conn() as conn, conn.cursor() as cur:
+        cur.execute(q, (season, lower_names))
+        return cur.fetchall()
+
+
 def get_season_stats_for_owner(owner_name: str) -> list[dict]:
     q = """
     SELECT owner_name, season, fpl_entry_id, team_name,
