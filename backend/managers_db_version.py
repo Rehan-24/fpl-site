@@ -154,18 +154,38 @@ def fixtures_owner_alias(owner: str, all: bool = Query(False), limit: int | None
 
 @router.get("/managers/{owner}/seasons")
 def seasons_for_owner(owner: str):
-    rows = list_manager_seasons(owner)
-    # normalize keys for frontend
-    out = []
-    for r in rows:
-        out.append({
-            "season": r.get("season"),
+    # Primary: manager_season_stats (has all historical data including league field)
+    primary_rows = list_manager_seasons(owner)
+    merged: dict[str, dict] = {}
+    for r in primary_rows:
+        season = r.get("season")
+        merged[season] = {
+            "season": season,
             "league": r.get("league"),
             "placement": r.get("placement"),
             "points": r.get("league_points"),
             "score": r.get("total_score"),
             "overallRank": r.get("overall_rank"),
-        })
+        }
+
+    # Overlay with season_stats (backfilled data — prefer non-null values over existing)
+    try:
+        stats_rows = get_season_stats_for_owner(owner)
+        for r in stats_rows:
+            season = r.get("season")
+            existing = merged.get(season, {"season": season, "league": None})
+            merged[season] = {
+                "season": season,
+                "league": existing.get("league"),
+                "placement": r.get("placement") or existing.get("placement"),
+                "points": r.get("league_points") or existing.get("points"),
+                "score": r.get("total_score") or existing.get("score"),
+                "overallRank": r.get("overall_rank") or existing.get("overallRank"),
+            }
+    except Exception:
+        pass
+
+    out = sorted(merged.values(), key=lambda x: x["season"] or "")
     return {"owner": owner, "seasons": out}
 
 # (optional) keep legacy path but serve real data now
