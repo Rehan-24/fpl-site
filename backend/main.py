@@ -8,7 +8,10 @@ from fastapi import BackgroundTasks
 #from admin.seed import router as seed_router
 from managers_db_version import router as managers_router
 from news_db_version import router as news_router
-from backend_db import insert_table_snapshot, get_latest_table_snapshot
+from backend_db import (
+    insert_table_snapshot, get_latest_table_snapshot,
+    upsert_season_stats, fetch_all_managers, get_overall_ranks_for_season,
+)
 from pydantic import BaseModel
 from typing import Optional, Any, Dict
 from datetime import datetime as _dt, timezone as _tz
@@ -605,6 +608,23 @@ def get_season_summary(league: str, season: Optional[str] = None):
             "peak_gw": peak_gw,
         })
 
+    # Overall FPL rank — look up from season_stats for all owners in this snapshot
+    owner_names = [r.get("Owner") for r in rows if r.get("Owner")]
+    owner_to_team = {r.get("Owner"): r.get("Team") for r in rows}
+    try:
+        rank_rows = get_overall_ranks_for_season(season or "2025-26", owner_names)
+        if rank_rows:
+            best = min(rank_rows, key=lambda x: x["overall_rank"])
+            worst = max(rank_rows, key=lambda x: x["overall_rank"])
+            overall_rank = {
+                "best":  {"team": owner_to_team.get(best["owner_name"]),  "owner": best["owner_name"],  "rank": best["overall_rank"]},
+                "worst": {"team": owner_to_team.get(worst["owner_name"]), "owner": worst["owner_name"], "rank": worst["overall_rank"]},
+            }
+        else:
+            overall_rank = None
+    except Exception:
+        overall_rank = None
+
     return {
         "season": season or "2025-26",
         "league": league,
@@ -613,7 +633,7 @@ def get_season_summary(league: str, season: Optional[str] = None):
         "promoted": promoted,
         "score_movers": {"biggest_up": biggest_up, "biggest_down": biggest_down},
         "chip_usage": chip_usage,
-        "overall_rank": None,
+        "overall_rank": overall_rank,
         "all_rows": sorted_by_pos,
     }
 
@@ -636,6 +656,83 @@ def get_seasons(league: str):
             "manager": top.get("Owner") if top else None,
         })
     return {"seasons": result}
+
+
+_FPL_ENTRY_RE = re.compile(r"/entry/(\d+)/")
+
+def _parse_fpl_entry_id(url: Optional[str]) -> Optional[int]:
+    if not url:
+        return None
+    m = _FPL_ENTRY_RE.search(url)
+    return int(m.group(1)) if m else None
+
+
+@app.post("/api/admin/backfill-season-stats", tags=["admin"])
+def admin_backfill_season_stats(
+    season: str = Query("2025-26"),
+    dry_run: bool = Query(False),
+    _: None = Depends(require_admin),
+):
+    """
+    Populate season_stats for the given season from the final table snapshots + FPL API.
+    Writes: placement, league_points, total_score, team_name, fpl_entry_id, overall_rank.
+    Set dry_run=true to preview without writing.
+    """
+    # Build owner -> fpl_entry_id map from the manager table
+    all_managers = fetch_all_managers()
+    owner_to_eid: dict[str, int] = {}
+    for m in all_managers:
+        name = (m.get("owner_name") or "").strip()
+        if not name:
+            continue
+        eid = _parse_fpl_entry_id(m.get("fpl_team_url"))
+        if eid:
+            owner_to_eid[name.lower()] = eid
+
+    rows_to_upsert = []
+    errors = []
+
+    for league in ["premier", "championship"]:
+        snapshot_rows = _load_season_rows(league, season)
+        for row in snapshot_rows:
+            owner = (row.get("Owner") or "").strip()
+            if not owner:
+                continue
+            eid = owner_to_eid.get(owner.lower())
+
+            overall_rank = None
+            if eid:
+                try:
+                    resp = requests.get(
+                        f"https://fantasy.premierleague.com/api/entry/{eid}/",
+                        timeout=10,
+                        headers={"User-Agent": "tFPL-site/1.0"},
+                    )
+                    if resp.ok:
+                        overall_rank = resp.json().get("summary_overall_rank")
+                except Exception as e:
+                    errors.append(f"{owner} (eid={eid}): {e}")
+
+            placement = int(row.get("Position") or 0) or None
+            league_points = int(row.get("Points") or 0) or None
+            total_score = int(row.get("Score") or 0) or None
+
+            rows_to_upsert.append({
+                "owner_name": owner,
+                "season": season,
+                "fpl_entry_id": eid,
+                "team_name": row.get("Team"),
+                "placement": placement,
+                "league_points": league_points,
+                "total_score": total_score,
+                "overall_rank": overall_rank,
+            })
+
+    if dry_run:
+        return {"dry_run": True, "would_upsert": rows_to_upsert, "errors": errors}
+
+    count = upsert_season_stats(rows_to_upsert)
+    return {"upserted": count, "season": season, "errors": errors}
 
 
 @app.post("/api/cron/trigger-rebuild")
