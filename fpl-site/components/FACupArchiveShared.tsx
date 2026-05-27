@@ -1,6 +1,10 @@
 // Shared types and components for FA Cup archive pages (/facup/[season])
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+const BACKEND_BASE = (
+  process.env.NEXT_PUBLIC_BACKEND_BASE || "https://tfpl.onrender.com"
+).replace(/\/$/, "");
 
 export interface ArchiveMatch {
   matchup_idx: number;
@@ -106,18 +110,29 @@ export function ArchivePodiumCard({ podium }: { podium: ArchivePodium }) {
 interface PastEntry {
   season: string;
   label: string;
-  champion?: string;
+  champion?: string | null;
   href: string;
 }
 
-const ALL_FA_CUP_SEASONS: PastEntry[] = [
-  { season: "2025-26", label: "2025-26 (v2)", href: "/facup/2025-26" },
+// Static fallback (also the initial render state before the fetch resolves)
+const STATIC_SEASONS: PastEntry[] = [
+  { season: "2025-26", label: "2025-26 (v2)", champion: "Peaky Reijnders",  href: "/facup/2025-26" },
   { season: "2024-25", label: "2024-25 (v1)", champion: "Chandler Ashman", href: "/facup/2024-25" },
 ];
 
 export function ArchivePastFACupsButton({ currentSeason }: { currentSeason: string }) {
-  const [open, setOpen] = useState(false);
-  const entries = ALL_FA_CUP_SEASONS.filter(e => e.season !== currentSeason);
+  const [open,    setOpen]    = useState(false);
+  const [seasons, setSeasons] = useState<PastEntry[]>(STATIC_SEASONS);
+
+  useEffect(() => {
+    fetch(`${BACKEND_BASE}/api/facup/seasons`)
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d.seasons)) setSeasons(d.seasons); })
+      .catch(() => {}); // keep static fallback on error
+  }, []);
+
+  const entries = seasons;
+
   return (
     <div className="relative inline-block">
       <button
@@ -131,7 +146,9 @@ export function ArchivePastFACupsButton({ currentSeason }: { currentSeason: stri
           <div className="px-3 py-2 text-xs font-bold text-[#37003c] border-b border-gray-200 uppercase tracking-wide">
             View a Past FA Cup
           </div>
-          {entries.map(e => (
+          {entries.length === 0 ? (
+            <div className="px-3 py-3 text-sm text-gray-500 italic">No archives yet</div>
+          ) : entries.map(e => (
             <Link
               key={e.season}
               href={e.href}

@@ -1445,6 +1445,56 @@ def admin_facup_fix_entry_ids(_: None = Depends(require_admin)):
     return {"status": "done", "entry_id_fixes": ops, "scores_synced": synced}
 
 
+@app.get("/api/facup/seasons", tags=["facup"])
+def get_facup_seasons():
+    """
+    Return all FA Cup seasons with champion info.
+    Champion name is read live from the DB final-round winner;
+    falls back to static metadata for seasons without DB records.
+    """
+    import psycopg as pg
+    from psycopg.rows import dict_row
+    from facup_db import DB_URL
+
+    # Static metadata — label and fallback champion for seasons not yet in DB
+    STATIC_META: dict[str, dict] = {
+        "2025-26": {"label": "2025-26 (v2)"},
+        "2024-25": {"label": "2024-25 (v1)", "champion": "Chandler Ashman"},
+    }
+
+    db_rows: dict[str, dict] = {}
+    try:
+        with pg.connect(DB_URL, row_factory=dict_row) as conn, conn.cursor() as cur:
+            cur.execute("""
+                SELECT b.season,
+                       (SELECT gs.display_name
+                          FROM public.facup_gw_scores gs
+                         WHERE gs.entry_id = b.winner_entry
+                         LIMIT 1) AS champion_team
+                FROM public.facup_bracket b
+                WHERE b.round = 'final'
+                  AND b.winner_seed IS NOT NULL
+                ORDER BY b.season DESC
+            """)
+            db_rows = {r["season"]: r for r in cur.fetchall()}
+    except Exception:
+        pass
+
+    result = []
+    for season in sorted(STATIC_META, reverse=True):
+        meta = STATIC_META[season]
+        db   = db_rows.get(season, {})
+        champion = meta.get("champion") or db.get("champion_team") or None
+        result.append({
+            "season":   season,
+            "label":    meta.get("label", season),
+            "champion": champion,
+            "href":     f"/facup/{season}",
+        })
+
+    return {"seasons": result}
+
+
 @app.post("/api/cron/trigger-facup", tags=["facup"])
 def cron_facup(
     background: BackgroundTasks,

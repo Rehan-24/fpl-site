@@ -39,7 +39,7 @@ export default function PastSeasonsButton({ league, currentSeason }: Props) {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const filtered = seasons.filter((s) => s.season !== currentSeason);
+  const filtered = seasons;
 
   return (
     <div ref={ref} className="relative inline-block">
