@@ -1,5 +1,6 @@
 // pages/facup.tsx
 import { useState } from "react";
+import Link from "next/link";
 import Head from "next/head";
 import NavBar from "../components/NavBar";
 import GWInfoBar from "../components/GWInfoBar";
@@ -7,6 +8,35 @@ import FACupBracket from "../components/FACupBracket";
 import FACupSeedings from "../components/FACupSeedings";
 
 type Tab = "bracket" | "seedings" | "rules";
+
+function PastFACupsButton() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative inline-block">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="bg-[#32FF6A] text-[#37003c] font-semibold px-4 py-2 rounded shadow text-sm whitespace-nowrap"
+      >
+        Past FA Cups {open ? "▲" : "▾"}
+      </button>
+      {open && (
+        <div className="absolute right-0 mt-1 w-52 bg-white border border-[#37003c] rounded shadow-lg z-50">
+          <div className="px-3 py-2 text-xs font-bold text-[#37003c] border-b border-gray-200 uppercase tracking-wide">
+            View a Past FA Cup
+          </div>
+          <Link
+            href="/facup/2024-25"
+            onClick={() => setOpen(false)}
+            className="block px-3 py-2 text-sm text-[#37003c] hover:bg-purple-100"
+          >
+            <div className="font-medium">2024-25 (v1)</div>
+            <div className="text-xs text-gray-500">🥇 Chandler Ashman</div>
+          </Link>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function FACup() {
   const [activeTab, setActiveTab] = useState<Tab>("bracket");
@@ -29,9 +59,10 @@ export default function FACup() {
       {/* Header — matches every other page exactly */}
       <header className="relative bg-gradient-to-r from-blue-300 via-blue-400 to-[#5b329e] text-[#37003c] p-6 shadow-lg overflow-hidden">
         <div className="navbar-ripple pointer-events-none select-none absolute inset-0" />
-        <h1 className="text-center sm:text-left relative z-10 text-4xl font-bold text-[#37003c]">
-          Fantasy FA Cup (v2)
-        </h1>
+        <div className="relative z-10 flex items-start justify-between gap-4 flex-wrap">
+          <h1 className="text-4xl font-bold text-[#37003c]">Fantasy FA Cup (v2)</h1>
+          <PastFACupsButton />
+        </div>
         <div className="navbar-buttons relative z-20">
           <NavBar />
         </div>
