@@ -131,11 +131,7 @@ export function ArchivePastFACupsButton({ currentSeason }: { currentSeason: stri
       .catch(() => {}); // keep static fallback on error
   }, []);
 
-  // On archive pages, filter out the page's own season from the dropdown.
-  // On the live /facup page pass currentSeason="" to show all.
-  const entries = currentSeason
-    ? seasons.filter(e => e.season !== currentSeason)
-    : seasons;
+  const entries = seasons;
 
   return (
     <div className="relative inline-block">
