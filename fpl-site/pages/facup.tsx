@@ -25,6 +25,13 @@ function PastFACupsButton() {
             View a Past FA Cup
           </div>
           <Link
+            href="/facup/2025-26"
+            onClick={() => setOpen(false)}
+            className="block px-3 py-2 text-sm text-[#37003c] hover:bg-purple-100"
+          >
+            <div className="font-medium">2025-26 (v2)</div>
+          </Link>
+          <Link
             href="/facup/2024-25"
             onClick={() => setOpen(false)}
             className="block px-3 py-2 text-sm text-[#37003c] hover:bg-purple-100"
