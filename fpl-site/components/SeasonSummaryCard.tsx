@@ -52,26 +52,49 @@ function PositionIcon({ pos }: { pos: number }) {
 }
 
 function ChipBar({ entry }: { entry: ChipUsage }) {
+  const filled = entry.used;
+  const empty  = entry.total - entry.used;
   return (
-    <div className="py-1.5">
-      <div className="flex items-center justify-between gap-2 mb-1">
-        <span className="text-[11px] font-medium text-[#37003c]">{entry.chip}</span>
-        <span className="text-[10px] text-gray-500 shrink-0">
-          {entry.used}/{entry.total}{entry.peak_gw ? ` · peak ${entry.peak_gw}` : ""}
-        </span>
-      </div>
-      <div className="flex items-center gap-2">
-        <div className="flex-1 bg-gray-200 rounded-full h-[6px] overflow-hidden">
-          <div
-            className="bg-[#32FF6A] h-[6px] rounded-full"
-            style={{ width: `${entry.pct}%` }}
-          />
+    <>
+      {/* ── Mobile: progress bar (no overflow) ── */}
+      <div className="py-1.5 sm:hidden">
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <span className="text-[11px] font-medium text-[#37003c]">{entry.chip}</span>
+          <span className="text-[10px] text-gray-500 shrink-0">
+            {entry.used}/{entry.total}{entry.peak_gw ? ` · peak ${entry.peak_gw}` : ""}
+          </span>
         </div>
-        <span className="text-[11px] font-bold text-[#37003c] w-7 text-right shrink-0">
-          {entry.pct}%
+        <div className="flex items-center gap-2">
+          <div className="flex-1 bg-gray-200 rounded-full h-[6px] overflow-hidden">
+            <div
+              className="bg-[#32FF6A] h-[6px] rounded-full"
+              style={{ width: `${entry.pct}%` }}
+            />
+          </div>
+          <span className="text-[11px] font-bold text-[#37003c] w-7 text-right shrink-0">
+            {entry.pct}%
+          </span>
+        </div>
+      </div>
+
+      {/* ── Desktop: individual squares ── */}
+      <div className="hidden sm:flex items-center gap-2 py-1">
+        <span className="text-xs text-[#37003c] w-32 shrink-0">{entry.chip}</span>
+        <div className="flex gap-[2px]">
+          {Array.from({ length: filled }).map((_, i) => (
+            <span key={`f${i}`} className="inline-block w-3 h-3 rounded-sm bg-[#32FF6A]" />
+          ))}
+          {Array.from({ length: empty }).map((_, i) => (
+            <span key={`e${i}`} className="inline-block w-3 h-3 rounded-sm bg-gray-300" />
+          ))}
+        </div>
+        <span className="text-xs text-[#37003c] font-semibold">{entry.pct}%</span>
+        <span className="text-xs text-gray-500">
+          {entry.used}/{entry.total}
+          {entry.peak_gw ? ` · peak ${entry.peak_gw}` : ""}
         </span>
       </div>
-    </div>
+    </>
   );
 }
 
