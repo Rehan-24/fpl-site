@@ -27,8 +27,9 @@ const STATIC_SEASONS: Record<string, SeasonEntry[]> = {
     { season: "2021-22", version: "v1", champion: "Cheeks FC",     manager: "Rehan Khan"     },
   ],
   championship: [
-    { season: "2025-26", version: "v3", champion: "wizards", manager: "Aaron Frank"    },
-    { season: "2024-25", version: "v2", champion: "TylerQ",  manager: "Tyler Quedens" },
+    { season: "2025-26", version: "v3", champion: "wizards",          manager: "Aaron Frank"      },
+    { season: "2024-25", version: "v2", champion: "TylerQ",           manager: "Tyler Quedens"    },
+    { season: "2023-24", version: "v1", champion: "MacAwoniyi Cheese", manager: "James Giles"     },
   ],
 };
 
