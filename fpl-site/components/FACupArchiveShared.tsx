@@ -142,7 +142,7 @@ export function ArchivePastFACupsButton({ currentSeason }: { currentSeason: stri
         Past FA Cups {open ? "▲" : "▾"}
       </button>
       {open && (
-        <div className="absolute right-0 mt-1 w-52 bg-white border border-[#37003c] rounded shadow-lg z-50">
+        <div className="absolute left-0 sm:left-auto sm:right-0 mt-1 w-52 bg-white border border-[#37003c] rounded shadow-lg z-50">
           <div className="px-3 py-2 text-xs font-bold text-[#37003c] border-b border-gray-200 uppercase tracking-wide">
             View a Past FA Cup
           </div>
