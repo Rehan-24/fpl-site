@@ -640,11 +640,21 @@ def get_season_summary(league: str, season: Optional[str] = None):
     }
 
 
+_STATIC_SEASON_META = {
+    "premier": {
+        "2023-24": {"version": "v3", "champion": "Maguire's Men", "manager": "Marvin Ling"},
+        "2022-23": {"version": "v2", "champion": "joel FC",       "manager": "Joel Matthew"},
+        "2021-22": {"version": "v1", "champion": "Cheeks FC",     "manager": "Rehan Khan"},
+    },
+    "championship": {},
+}
+
 @app.get("/api/seasons", tags=["seasons"])
 def get_seasons(league: str):
     league_key = league.lower()
     versions = _LEAGUE_VERSIONS.get(league_key, {})
     result = []
+    # Live seasons backed by DB/JSON snapshots
     for season in ["2025-26", "2024-25"]:
         rows = _load_season_rows(league_key, season)
         if not rows:
@@ -657,6 +667,9 @@ def get_seasons(league: str):
             "champion": top.get("Team") if top else None,
             "manager": top.get("Owner") if top else None,
         })
+    # Older static-only seasons
+    for season, meta in _STATIC_SEASON_META.get(league_key, {}).items():
+        result.append({"season": season, **meta})
     return {"seasons": result}
 
 

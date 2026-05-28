@@ -17,11 +17,14 @@ interface Props {
   currentSeason?: string;
 }
 
-// Static fallback so both seasons render immediately before the fetch resolves
+// Static fallback — renders immediately; backend fetch may add/update newer seasons
 const STATIC_SEASONS: Record<string, SeasonEntry[]> = {
   premier: [
-    { season: "2025-26", version: "v5", champion: "Slopeds FC",  manager: "Michael Giles" },
-    { season: "2024-25", version: "v4", champion: "Cheeks FC",   manager: "Rehan Khan"    },
+    { season: "2025-26", version: "v5", champion: "Slopeds FC",    manager: "Michael Giles"  },
+    { season: "2024-25", version: "v4", champion: "Cheeks FC",     manager: "Rehan Khan"     },
+    { season: "2023-24", version: "v3", champion: "Maguire's Men", manager: "Marvin Ling"    },
+    { season: "2022-23", version: "v2", champion: "joel FC",       manager: "Joel Matthew"   },
+    { season: "2021-22", version: "v1", champion: "Cheeks FC",     manager: "Rehan Khan"     },
   ],
   championship: [
     { season: "2025-26", version: "v3", champion: "wizards", manager: "Aaron Frank"    },
@@ -38,7 +41,15 @@ export default function PastSeasonsButton({ league, currentSeason }: Props) {
   useEffect(() => {
     fetch(`${BACKEND_BASE}/api/seasons?league=${league}`)
       .then((r) => r.json())
-      .then((d) => setSeasons(d.seasons || STATIC_SEASONS[league] || []))
+      .then((d) => {
+        if (!Array.isArray(d.seasons)) return;
+        // Merge: backend entries update champion/manager; static-only entries are kept
+        const merged = STATIC_SEASONS[league]?.map(s => {
+          const live = d.seasons.find((x: SeasonEntry) => x.season === s.season);
+          return live ? { ...s, ...live } : s;
+        }) ?? d.seasons;
+        setSeasons(merged);
+      })
       .catch(() => {}); // keep static fallback on error
   }, [league]);
 
