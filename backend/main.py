@@ -616,9 +616,11 @@ def get_season_summary(league: str, season: Optional[str] = None):
         if rank_rows:
             best = min(rank_rows, key=lambda x: x["overall_rank"])
             worst = max(rank_rows, key=lambda x: x["overall_rank"])
+            avg_rank = round(sum(r["overall_rank"] for r in rank_rows) / len(rank_rows))
             overall_rank = {
                 "best":  {"team": owner_to_team.get(best["owner_name"]),  "owner": best["owner_name"],  "rank": best["overall_rank"]},
                 "worst": {"team": owner_to_team.get(worst["owner_name"]), "owner": worst["owner_name"], "rank": worst["overall_rank"]},
+                "average": {"rank": avg_rank},
             }
         else:
             overall_rank = None

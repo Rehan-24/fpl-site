@@ -40,6 +40,7 @@ export interface SeasonSummaryData {
   overall_rank: {
     best: { team: string; rank: number } | null;
     worst: { team: string; rank: number } | null;
+    average?: { rank: number } | null;
   } | null;
   all_rows?: Record<string, any>[];
 }
@@ -252,6 +253,15 @@ export default function SeasonSummaryCard({ data }: { data: SeasonSummaryData })
                 #{data.overall_rank.worst?.rank?.toLocaleString() ?? "—"}
               </span>
             </div>
+            {data.overall_rank.average?.rank != null && (
+              <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-200">
+                <span className="text-xs font-bold text-gray-500 uppercase">League Avg</span>
+                <span className="bg-purple-100 text-[#37003c] px-2 py-0.5 rounded text-sm font-bold">
+                  #{data.overall_rank.average.rank.toLocaleString()}
+                </span>
+                <span className="text-xs text-gray-500 italic">League Average Position</span>
+              </div>
+            )}
           </div>
         ) : (
           <p className="text-sm text-gray-500 italic">— Not yet populated</p>
