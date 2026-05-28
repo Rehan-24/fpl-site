@@ -37,6 +37,7 @@ export interface SeasonSummaryData {
     biggest_down: ScoreMover;
   };
   chip_usage: ChipUsage[];
+  chip_note?: string;
   overall_rank: {
     best: { team: string; rank: number } | null;
     worst: { team: string; rank: number } | null;
@@ -99,7 +100,7 @@ function ChipBar({ entry }: { entry: ChipUsage }) {
   );
 }
 
-export default function SeasonSummaryCard({ data }: { data: SeasonSummaryData }) {
+export default function SeasonSummaryCard({ data, hideGlobalRank = false }: { data: SeasonSummaryData; hideGlobalRank?: boolean }) {
   const isPremier = data.league === "premier";
 
   return (
@@ -225,48 +226,54 @@ export default function SeasonSummaryCard({ data }: { data: SeasonSummaryData })
               <ChipBar key={c.chip} entry={c} />
             ))}
           </div>
+          {data.chip_note && (
+            <p className="text-xs text-gray-500 italic mt-2">⚠️ {data.chip_note}</p>
+          )}
         </div>
       )}
 
       {/* Global FPL rank */}
-      <div className="border-t border-gray-300 pt-4">
-        <h3 className="font-bold text-[#37003c] text-lg mb-2 uppercase tracking-wide">
-          Global FPL Rank
-        </h3>
-        {data.overall_rank ? (
-          <div className="flex gap-4 flex-wrap">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-gray-500 uppercase">Best</span>
-              <span className="bg-yellow-200 text-[#37003c] px-2 py-0.5 rounded text-sm font-bold">
-                {data.overall_rank.best?.team ?? "—"}
-              </span>
-              <span className="text-sm text-[#37003c]">
-                #{data.overall_rank.best?.rank?.toLocaleString() ?? "—"}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-gray-500 uppercase">Worst</span>
-              <span className="bg-red-200 text-[#37003c] px-2 py-0.5 rounded text-sm font-bold">
-                {data.overall_rank.worst?.team ?? "—"}
-              </span>
-              <span className="text-sm text-[#37003c]">
-                #{data.overall_rank.worst?.rank?.toLocaleString() ?? "—"}
-              </span>
-            </div>
-            {data.overall_rank.average?.rank != null && (
-              <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-200">
+      {!hideGlobalRank && (
+        <div className="border-t border-gray-300 pt-4">
+          <div className="flex items-center gap-3 flex-wrap mb-2">
+            <h3 className="font-bold text-[#37003c] text-lg uppercase tracking-wide">
+              Global FPL Rank
+            </h3>
+            {data.overall_rank?.average?.rank != null && (
+              <span className="flex items-center gap-1.5">
                 <span className="text-xs font-bold text-gray-500 uppercase">League Avg</span>
                 <span className="bg-purple-100 text-[#37003c] px-2 py-0.5 rounded text-sm font-bold">
                   #{data.overall_rank.average.rank.toLocaleString()}
                 </span>
-                <span className="text-xs text-gray-500 italic">League Average Position</span>
-              </div>
+              </span>
             )}
           </div>
-        ) : (
-          <p className="text-sm text-gray-500 italic">— Not yet populated</p>
-        )}
-      </div>
+          {data.overall_rank ? (
+            <div className="flex gap-4 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-gray-500 uppercase">Best</span>
+                <span className="bg-yellow-200 text-[#37003c] px-2 py-0.5 rounded text-sm font-bold">
+                  {data.overall_rank.best?.team ?? "—"}
+                </span>
+                <span className="text-sm text-[#37003c]">
+                  #{data.overall_rank.best?.rank?.toLocaleString() ?? "—"}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-gray-500 uppercase">Worst</span>
+                <span className="bg-red-200 text-[#37003c] px-2 py-0.5 rounded text-sm font-bold">
+                  {data.overall_rank.worst?.team ?? "—"}
+                </span>
+                <span className="text-sm text-[#37003c]">
+                  #{data.overall_rank.worst?.rank?.toLocaleString() ?? "—"}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 italic">Global rank data not available for this season</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

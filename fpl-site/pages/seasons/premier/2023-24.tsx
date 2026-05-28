@@ -4,6 +4,7 @@
 import Head from "next/head";
 import NavBar from "../../../components/NavBar";
 import PastSeasonsButton from "../../../components/PastSeasonsButton";
+import SeasonSummaryCard, { SeasonSummaryData } from "../../../components/SeasonSummaryCard";
 
 const SEASON = "2023-24";
 const TITLE  = "2023-24 Premier League Season (v3)";
@@ -39,6 +40,48 @@ const ROWS: Row[] = [
   { pos: 19, team: "ABCDE FC",               owner: "Emaly Vatne",          pts: 42, w: 14, d: 0, l: 24, score: 1984, scoreA: 2162, pm: -178, transfers:  9, hit:  0, relegated: true,                 wc1: "—",    fh: "—",    tc: "—",    bb: "—"       },
   { pos: 20, team: "Clifton FC",             owner: "Colin Thein",          pts: 38, w: 12, d: 2, l: 24, score: 2015, scoreA: 2254, pm: -239, transfers: 12, hit:  0, relegated: true,                 wc1: "—",    fh: "—",    tc: "—",    bb: "—"       },
 ];
+
+// Score-rank analysis (sorted by total FPL score):
+//   Biggest jump up:  Reece's Pieces  — 17th by pts → 10th by score (+7)
+//   Biggest drop:     Siuuuuu Later   —  2nd by pts → 12th by score (−10)
+//
+// Chip counts (20 real teams):
+//   Wildcard: 18/20 · peak GW21
+//   Free Hit: 14/20 · peak GW29
+//   Triple Captain: 15/20 · peak GW34
+//   Bench Boost: 13/20 · peak GW37
+const summary: SeasonSummaryData = {
+  season: SEASON,
+  league: "premier",
+  top7: [
+    { position: 1, team: "Maguire's Men",      owner: "Marvin Ling",          points: 76, title_reward: "Champion $220"         },
+    { position: 2, team: "Siuuuuu Later",      owner: "Ryan Gallagher",       points: 70, title_reward: "Champions League $100" },
+    { position: 3, team: "joel fc",            owner: "Joel Mathew",          points: 66, title_reward: "Champions League $85"  },
+    { position: 4, team: "Top Mug",            owner: "Aaron Frank",          points: 66, title_reward: "Champions League $75"  },
+    { position: 5, team: "Hale End Merchants", owner: "Avi Kumar",            points: 64, title_reward: "Europa League $50"     },
+    { position: 6, team: "The Merchants",      owner: "Chandler Ashman",      points: 63, title_reward: "Europa League $40"     },
+    { position: 7, team: "Carter's Angels",    owner: "Carter WitmerGautsch", points: 60, title_reward: "Conference League $30" },
+  ],
+  relegated: [
+    { position: 17, team: "Reece's Pieces", owner: "Charlie Mullen",  points: 43 },
+    { position: 18, team: "NK ISTRA",       owner: "Albert Medancic", points: 42 },
+    { position: 19, team: "ABCDE FC",       owner: "Emaly Vatne",     points: 42 },
+    { position: 20, team: "Clifton FC",     owner: "Colin Thein",     points: 38 },
+  ],
+  promoted: [],
+  score_movers: {
+    biggest_up:   { team: "Reece's Pieces", owner: "Charlie Mullen", pts_rank: 17, score_rank: 10, delta:   7 },
+    biggest_down: { team: "Siuuuuu Later",  owner: "Ryan Gallagher", pts_rank:  2, score_rank: 12, delta: -10 },
+  },
+  chip_usage: [
+    { chip: "Wildcard",       used: 18, total: 20, pct: 90, peak_gw: "GW21" },
+    { chip: "Free Hit",       used: 14, total: 20, pct: 70, peak_gw: "GW29" },
+    { chip: "Triple Captain", used: 15, total: 20, pct: 75, peak_gw: "GW34" },
+    { chip: "Bench Boost",    used: 13, total: 20, pct: 65, peak_gw: "GW37" },
+  ],
+  chip_note: "Wildcard data was incomplete this season — only the most recent wildcard usage per team is recorded",
+  overall_rank: null,
+};
 
 function rowBg(row: Row) {
   if (row.pos === 1) return "bg-yellow-200";
@@ -81,17 +124,22 @@ export default function PremierArchive2324() {
         </div>
       </header>
 
-      <section className="p-6 space-y-6">
+      <section className="p-6 space-y-8">
+
+        {/* Season Summary Card */}
+        <SeasonSummaryCard data={summary} hideGlobalRank={true} />
+
+        {/* Static final table */}
         <div>
-          <h2 className="font-bold text-2xl mb-1">{SEASON} Final Standings</h2>
+          <h2 className="font-bold text-2xl mb-4">{SEASON} Final Standings</h2>
           <p className="text-xs text-gray-500 mb-4">
-            Bottom 4 (positions 17–20) were relegated. Note: this season had no Wildcard 2.
+            Bottom 4 (positions 17–20) were relegated.
           </p>
           <div className="overflow-x-auto">
             <table className="bg-purple-100 border-separate border-spacing-x-[1px] rounded-md shadow-md text-sm">
               <thead>
                 <tr>
-                  {["Pos", "Team", "Owner", "Pts", "W", "D", "L", "Score", "Score Against", "+/−", "Transfers", "Hit", "WC1", "FH", "TC", "BB"].map(h => (
+                  {["Pos", "Team", "Owner", "Pts", "W", "D", "L", "Score", "Score Against", "+/−", "Transfers", "Hit", "WC", "FH", "TC", "BB"].map(h => (
                     <th key={h} className="bg-[#37003c] text-white px-3 py-2 text-xs font-semibold text-center whitespace-nowrap">
                       {h}
                     </th>

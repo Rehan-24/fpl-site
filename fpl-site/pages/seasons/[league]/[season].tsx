@@ -47,9 +47,15 @@ interface Props {
   summary: SeasonSummaryData;
 }
 
+const VERSIONS: Record<string, Record<string, string>> = {
+  premier:      { "2025-26": "v5", "2024-25": "v4" },
+  championship: { "2025-26": "v3", "2024-25": "v2" },
+};
+
 export default function SeasonArchivePage({ league, season, summary }: Props) {
   const isPremier = league === "premier";
-  const title = `${season} ${isPremier ? "Premier League" : "Championship"} Season`;
+  const version = VERSIONS[league]?.[season];
+  const title = `${season} ${isPremier ? "Premier League" : "Championship"} Season${version ? ` (${version})` : ""}`;
   const allRows: Row[] = summary.all_rows ?? [];
 
   const chipCols = allRows.length > 0

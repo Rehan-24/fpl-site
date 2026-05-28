@@ -4,6 +4,7 @@
 import Head from "next/head";
 import NavBar from "../../../components/NavBar";
 import PastSeasonsButton from "../../../components/PastSeasonsButton";
+import SeasonSummaryCard, { SeasonSummaryData } from "../../../components/SeasonSummaryCard";
 
 const SEASON = "2022-23";
 const TITLE  = "2022-23 Premier League Season (v2)";
@@ -14,11 +15,12 @@ interface Row {
   score: number; scoreA: number; pm: number;
   transfers: number; hit: number;
   worldRank: string;
-  reward?: string; relegated?: boolean;
+  reward?: string; relegated?: boolean; isBot?: boolean;
   wc1: string; wc2: string; fh: string; tc: string; bb: string;
 }
 
 // "Expired" chips → "—"; used chips show GW number
+// Position 19 (AVERAGE) was a bot team participating in the league.
 const ROWS: Row[] = [
   { pos:  1, team: "joel FC",             owner: "Joel Matthew",          pts: 85, w: 28, d: 1, l:  9, score: 2342, scoreA: 2023, pm:  319, transfers: 29, hit:  0, worldRank: "1,111,065", reward: "Champion $105",         wc1: "GW5",  wc2: "GW29", fh: "GW12",    tc: "GW32", bb: "GW38"    },
   { pos:  2, team: "Carter's Angels",     owner: "Carter Witmer-Gautsch", pts: 79, w: 26, d: 1, l: 11, score: 2348, scoreA: 2082, pm:  266, transfers: 34, hit:  0, worldRank: "1,058,091", reward: "Champions League $50",  wc1: "GW12", wc2: "GW36", fh: "GW8",     tc: "GW26", bb: "GW30"    },
@@ -38,6 +40,7 @@ const ROWS: Row[] = [
   { pos: 16, team: "Batana FC",           owner: "Albert Medancic",       pts: 58, w: 19, d: 1, l: 18, score: 2083, scoreA: 2091, pm:   -8, transfers: 16, hit:  0, worldRank: "4,194,992",                                 wc1: "—",    wc2: "—",    fh: "GW12",    tc: "—",    bb: "—"       },
   { pos: 17, team: "MySonisHeung",        owner: "Charlie Mullen",        pts: 56, w: 18, d: 2, l: 18, score: 2128, scoreA: 2134, pm:   -6, transfers:  8, hit: 16, worldRank: "3,613,954",                                 wc1: "—",    wc2: "—",    fh: "GW14",    tc: "GW37", bb: "—"       },
   { pos: 18, team: "Bits FC",             owner: "Will Franzoni",         pts: 54, w: 17, d: 3, l: 18, score: 2097, scoreA: 2140, pm:  -43, transfers: 34, hit: 24, worldRank: "4,020,650",                                 wc1: "—",    wc2: "—",    fh: "GW3",     tc: "GW32", bb: "—"       },
+  { pos: 19, team: "AVERAGE",             owner: "(bot)",                 pts: 49, w: 16, d: 1, l: 21, score: 2026, scoreA: 2112, pm:  -86, transfers: 23, hit:  8, worldRank: "—",         isBot: true,                    wc1: "—",    wc2: "—",    fh: "—",       tc: "—",    bb: "—"       },
   { pos: 20, team: "21iscoming",          owner: "Freddie Wilhelm",       pts: 49, w: 16, d: 1, l: 21, score: 1953, scoreA: 2128, pm: -175, transfers:  0, hit:  0, worldRank: "5,815,112",                                 wc1: "GW8",  wc2: "—",    fh: "GW17",    tc: "—",    bb: "—"       },
   { pos: 21, team: "One Kiss FC",         owner: "Indranshu Das",         pts: 46, w: 15, d: 1, l: 22, score: 1743, scoreA: 1934, pm: -191, transfers:  8, hit:  4, worldRank: "8,087,825", relegated: true,                wc1: "—",    wc2: "—",    fh: "—",       tc: "—",    bb: "—"       },
   { pos: 22, team: "Siguardson U9",       owner: "Linden Eberle",         pts: 41, w: 13, d: 2, l: 23, score: 2092, scoreA: 2147, pm:  -55, transfers: 17, hit:  4, worldRank: "4,080,082", relegated: true,                wc1: "GW8",  wc2: "—",    fh: "GW12",    tc: "—",    bb: "—"       },
@@ -48,6 +51,61 @@ const ROWS: Row[] = [
   { pos: 27, team: "KRPAN",               owner: "Alan Krpan",            pts: 22, w:  7, d: 1, l: 30, score: 1584, scoreA: 2164, pm: -580, transfers: 29, hit: 88, worldRank: "9,327,015", relegated: true,                wc1: "—",    wc2: "—",    fh: "—",       tc: "GW3",  bb: "—"       },
   { pos: 28, team: "Nottingham to Glory", owner: "Tim Davis",             pts: 20, w:  6, d: 2, l: 30, score: 1590, scoreA: 2057, pm: -467, transfers:  0, hit:  0, worldRank: "9,283,171", relegated: true,                wc1: "—",    wc2: "—",    fh: "—",       tc: "GW28", bb: "—"       },
 ];
+
+// Score-rank analysis (27 real teams + bot at pos 19 with score 2026):
+//   Bot's score 2026 sits between Batana FC (2083) and Justlike1961 (2022),
+//   pushing Justlike to score_rank 20.
+//   Biggest jump up:  Lotteries&Liberties — 12th by pts →  1st by score (+11)
+//   Biggest drop:     Justlike1961        — 13th by pts → 20th by score  (−7)
+//
+// Chip counts (27 real teams, bot excluded from total):
+//   Wildcard 1: 14/27 · peak GW8
+//   Wildcard 2: 12/27 · peak GW29
+//   Free Hit:   17/27 · peak GW12
+//   Triple Captain: 17/27 · peak GW37
+//   Bench Boost: 10/27 · peak GW37
+//
+// Global rank: best Lotteries&Liberties 894,262 · worst KRPAN 9,327,015 · avg 4,152,153
+const summary: SeasonSummaryData = {
+  season: SEASON,
+  league: "premier",
+  top7: [
+    { position: 1, team: "joel FC",            owner: "Joel Matthew",          points: 85, title_reward: "Champion $105"         },
+    { position: 2, team: "Carter's Angels",    owner: "Carter Witmer-Gautsch", points: 79, title_reward: "Champions League $50"  },
+    { position: 3, team: "DaddyDowski9",       owner: "Kamil Sacha",           points: 77, title_reward: "Champions League $40"  },
+    { position: 4, team: "USA 2022 WC Champs", owner: "Seth Gerus",            points: 74, title_reward: "Champions League $30"  },
+    { position: 5, team: "Siuuuuuu Later",     owner: "Ryan Gallagher",        points: 74, title_reward: "Europa League $20"     },
+    { position: 6, team: "Cheeks FC",          owner: "Rehan Khan",            points: 74, title_reward: "Europa League $15"     },
+    { position: 7, team: "Top Mug",            owner: "Aaron Frank",           points: 73, title_reward: "Conference League $10" },
+  ],
+  relegated: [
+    { position: 21, team: "One Kiss FC",         owner: "Indranshu Das",     points: 46 },
+    { position: 22, team: "Siguardson U9",       owner: "Linden Eberle",     points: 41 },
+    { position: 23, team: "The Tigers",          owner: "Hunter Stemple",    points: 35 },
+    { position: 24, team: "Change Name",         owner: "Tyler Thompson",    points: 34 },
+    { position: 25, team: "Picka City",          owner: "Ive Babic",         points: 34 },
+    { position: 26, team: "United4eva",          owner: "Ken Okine",         points: 32 },
+    { position: 27, team: "KRPAN",               owner: "Alan Krpan",        points: 22 },
+    { position: 28, team: "Nottingham to Glory", owner: "Tim Davis",         points: 20 },
+  ],
+  promoted: [],
+  score_movers: {
+    biggest_up:   { team: "Lotteries&Liberties", owner: "Behruz Bazarov",      pts_rank: 12, score_rank:  1, delta:  11 },
+    biggest_down: { team: "Justlike1961",        owner: "Gabe Neuenschwander", pts_rank: 13, score_rank: 20, delta:  -7 },
+  },
+  chip_usage: [
+    { chip: "Wildcard 1",     used: 14, total: 27, pct: 52, peak_gw: "GW8"  },
+    { chip: "Wildcard 2",     used: 12, total: 27, pct: 44, peak_gw: "GW29" },
+    { chip: "Free Hit",       used: 17, total: 27, pct: 63, peak_gw: "GW12" },
+    { chip: "Triple Captain", used: 17, total: 27, pct: 63, peak_gw: "GW37" },
+    { chip: "Bench Boost",    used: 10, total: 27, pct: 37, peak_gw: "GW37" },
+  ],
+  overall_rank: {
+    best:    { team: "Lotteries&Liberties", rank: 894262   },
+    worst:   { team: "KRPAN",               rank: 9327015  },
+    average: { rank: 4152153 },
+  },
+};
 
 function rowBg(row: Row) {
   if (row.pos === 1) return "bg-yellow-200";
@@ -90,11 +148,16 @@ export default function PremierArchive2223() {
         </div>
       </header>
 
-      <section className="p-6 space-y-6">
+      <section className="p-6 space-y-8">
+
+        {/* Season Summary Card */}
+        <SeasonSummaryCard data={summary} />
+
+        {/* Static final table */}
         <div>
-          <h2 className="font-bold text-2xl mb-1">{SEASON} Final Standings</h2>
+          <h2 className="font-bold text-2xl mb-4">{SEASON} Final Standings</h2>
           <p className="text-xs text-gray-500 mb-4">
-            Position 19 is omitted — it was an average row in the original spreadsheet, not a real team.
+            Position 19 (AVERAGE) was a bot team participating in the league.
             Bottom 8 (positions 21–28) were relegated.
           </p>
           <div className="overflow-x-auto">
@@ -117,8 +180,9 @@ export default function PremierArchive2223() {
                         <div className="font-bold text-lg">{row.pos}</div>
                         {row.reward && <div className="italic text-[10px] text-purple-700 leading-tight">{row.reward}</div>}
                         {row.relegated && <div className="text-[10px] text-red-700 font-bold">↓ Relegated</div>}
+                        {row.isBot && <div className="text-[10px] text-gray-500 italic">bot</div>}
                       </td>
-                      <td className={`px-3 py-2 border-b border-gray-400 font-medium whitespace-nowrap ${bg}`}>{row.team}</td>
+                      <td className={`px-3 py-2 border-b border-gray-400 font-medium whitespace-nowrap ${bg} ${row.isBot ? "italic text-gray-500" : ""}`}>{row.team}</td>
                       <td className={`px-3 py-2 border-b border-gray-400 text-xs text-gray-600 whitespace-nowrap ${bg}`}>{row.owner}</td>
                       <td className={`px-3 py-2 border-b border-gray-400 text-center font-bold ${bg}`}>{row.pts}</td>
                       <td className={`px-3 py-2 border-b border-gray-400 text-center ${bg}`}>{row.w}</td>
