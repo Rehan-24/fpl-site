@@ -42,6 +42,7 @@ export default function FACupArchive2526() {
         <meta property="og:description" content="2025-26 Fantasy FA Cup results and bracket" />
         <meta property="og:type"        content="website" />
         <meta property="og:site_name"   content="THE Fantasy Premier League" />
+        <meta property="og:image"       content="https://static.vecteezy.com/system/resources/previews/025/409/495/large_2x/emirates-fa-cup-logo-with-name-white-symbol-abstract-design-illustration-with-red-background-free-vector.jpg" />
       </Head>
 
       <header className="relative bg-gradient-to-r from-blue-300 via-blue-400 to-[#5b329e] text-[#37003c] p-6 shadow-lg">
