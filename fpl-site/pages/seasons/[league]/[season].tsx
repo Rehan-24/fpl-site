@@ -65,6 +65,14 @@ export default function SeasonArchivePage({ league, season, summary }: Props) {
         <meta property="og:url" content={`https://tfpl.vercel.app/seasons/${league}/${season}`} />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="THE Fantasy Premier League" />
+        <meta
+          property="og:image"
+          content={
+            isPremier
+              ? "https://gmkoutsi.com/wp-content/uploads/2023/08/fantasy-premier-league.webp"
+              : "https://4.bp.blogspot.com/-ilHxPtWB8FA/VkS9BiuUpAI/AAAAAAAAxAM/QNQtiFimLyE/s1600/English-Football-League%2B%25281%2529.jpg"
+          }
+        />
       </Head>
 
       <header className="relative bg-gradient-to-r from-blue-300 via-blue-400 to-[#5b329e] text-[#37003c] p-6 shadow-lg">
