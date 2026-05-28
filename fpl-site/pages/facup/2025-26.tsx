@@ -44,7 +44,7 @@ export default function FACupArchive2526() {
         <meta property="og:site_name"   content="THE Fantasy Premier League" />
       </Head>
 
-      <header className="relative bg-gradient-to-r from-blue-300 via-blue-400 to-[#5b329e] text-[#37003c] p-6 shadow-lg overflow-hidden">
+      <header className="relative bg-gradient-to-r from-blue-300 via-blue-400 to-[#5b329e] text-[#37003c] p-6 shadow-lg">
         <div className="navbar-ripple pointer-events-none select-none absolute inset-0" />
         <div className="relative z-10 flex items-start justify-between gap-4 flex-wrap">
           <h1 className="text-4xl font-bold text-[#37003c]">{TITLE}</h1>

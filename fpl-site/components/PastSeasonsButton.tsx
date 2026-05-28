@@ -17,17 +17,29 @@ interface Props {
   currentSeason?: string;
 }
 
+// Static fallback so both seasons render immediately before the fetch resolves
+const STATIC_SEASONS: Record<string, SeasonEntry[]> = {
+  premier: [
+    { season: "2025-26", version: "v5", champion: "Slopeds FC",  manager: "Michael Giles" },
+    { season: "2024-25", version: "v4", champion: "Cheeks FC",   manager: "Rehan Khan"    },
+  ],
+  championship: [
+    { season: "2025-26", version: "v3", champion: "wizards", manager: "Aaron Frank"    },
+    { season: "2024-25", version: "v2", champion: "TylerQ",  manager: "Tyler Quedens" },
+  ],
+};
+
 export default function PastSeasonsButton({ league, currentSeason }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [seasons, setSeasons] = useState<SeasonEntry[]>([]);
+  const [seasons, setSeasons] = useState<SeasonEntry[]>(STATIC_SEASONS[league] ?? []);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetch(`${BACKEND_BASE}/api/seasons?league=${league}`)
       .then((r) => r.json())
-      .then((d) => setSeasons(d.seasons || []))
-      .catch(() => {});
+      .then((d) => setSeasons(d.seasons || STATIC_SEASONS[league] || []))
+      .catch(() => {}); // keep static fallback on error
   }, [league]);
 
   // Close on outside click
