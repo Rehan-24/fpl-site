@@ -90,9 +90,9 @@ function RulesPanel() {
         <div>
           <p className="font-bold mb-1">Format</p>
           <ul className="list-disc ml-5 space-y-1">
-            <li>Seeds 33–40 compete in <strong>Round 1</strong> (GW31) — 4 matches, 8 players</li>
-            <li>The 4 R1 winners face seeds <strong>1–4</strong> in the Round of 32 (GW32) — seeds 1–4 receive first-round byes</li>
-            <li>Seeds 5–32 also enter in the Round of 32 — 14 seeded matchups (5v32, 6v31 … 18v19)</li>
+            <li>Seeds 25–40 compete in <strong>Round 1</strong> (GW31) — 8 matches, 16 players</li>
+            <li>The 8 R1 winners face seeds <strong>1–8</strong> in the Round of 32 (GW32) — seeds 1–8 receive first-round byes</li>
+            <li>Seeds 9–24 also enter in the Round of 32 — 8 seeded matchups</li>
             <li>Bracket proceeds: R16 → Quarterfinals → Semifinals</li>
             <li>
               <strong>Finals Week (GW36):</strong> SF winners play the <strong>Final</strong>;
