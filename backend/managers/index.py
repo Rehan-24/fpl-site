@@ -168,8 +168,8 @@ def load_last_season_ranks():
 
 RANKS_CACHE = load_last_season_ranks()
 
-PREMIER_LEAGUE_ID = 723566
-CHAMPIONSHIP_LEAGUE_ID = 850022
+PREMIER_LEAGUE_ID = 907148
+CHAMPIONSHIP_LEAGUE_ID = 907452
 
 def league_id_for_manager(mgr: dict) -> int | None:
     league = str(mgr.get("current_league","") or "").lower()

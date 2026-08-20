@@ -18,8 +18,8 @@ from datetime import datetime
 import requests
 
 # --- League IDs (provided) ---
-PREMIER_LEAGUE_ID = 723566
-CHAMPIONSHIP_LEAGUE_ID = 850022
+PREMIER_LEAGUE_ID = 907148
+CHAMPIONSHIP_LEAGUE_ID = 907452
 
 # --- Paths ---
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))  # /backend

@@ -7,8 +7,8 @@ const LINKS = [
   { label: "r/FantasyPL (Reddit)", href: "https://www.reddit.com/r/FantasyPL/" },
   { label: "Live Bonus Point Tracker", href: "https://www.anewpla.net/fpl/live/" },
   { label: "LiveFPL", href: "https://www.livefpl.net/" },
-  { label: "FPL Newspaper PL", href: "https://www.fplmundo.com/723566" },
-  { label: "FPL Newspaper CL", href: "https://www.fplmundo.com/850022" },
+  { label: "FPL Newspaper PL", href: "https://www.fplmundo.com/907148" },
+  { label: "FPL Newspaper CL", href: "https://www.fplmundo.com/907452" },
   { label: "FPL Newspaper", href: "https://www.fplmundo.com/" },
   { label: "Our Discord", href: "https://discord.gg/Y9Y3FjkU" },
 ];

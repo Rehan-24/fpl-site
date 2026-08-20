@@ -32,8 +32,8 @@ def parse_entry_id_from_url(url: str) -> Optional[str]:
     m = re.search(r"/entry/(\d+)/", url)
     return m.group(1) if m else None
 
-PREMIER_LEAGUE_ID = 723566
-CHAMPIONSHIP_LEAGUE_ID = 850022
+PREMIER_LEAGUE_ID = 907148
+CHAMPIONSHIP_LEAGUE_ID = 907452
 
 def league_id_for_manager(mgr: dict) -> Optional[int]:
     league = str(mgr.get("current_league", "") or "").lower()

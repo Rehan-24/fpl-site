@@ -16,8 +16,8 @@ def VERBOSE(print_str: str) -> None:
 
 def main():
     possible_leagues = {
-        'championship': 850022,
-        'premier': 723566,
+        'championship': 907452,
+        'premier': 907148,
     }
     help_str = ('Usage: fpl_management.py [LEAGUE_NAME] [GW] [OPTIONS]...\n'
                 'MANDATORY\n'
