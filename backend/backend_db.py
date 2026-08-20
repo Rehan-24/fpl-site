@@ -657,17 +657,38 @@ def fallback_fdr_from_finish(position: int) -> int:
 
 def rebuild_manager_matchups() -> int:
     """
-    Recompute the aggregated matchup table from fixtures_h2h.
-    Counts only finished matches with non-null scores. Works across all seasons.
+    Recompute the aggregated matchup table from fixtures_h2h (league play)
+    and facup_bracket (FA Cup knockout matches). Counts only finished
+    matches with non-null scores. Works across all seasons.
     """
     with _conn() as conn, conn.cursor() as cur:
         cur.execute("""
-          with completed as (
+          with league_completed as (
             select season, gw, home_owner, away_owner, home_score, away_score
             from public.fixtures_h2h
             where finished = true
               and home_score is not null
               and away_score is not null
+          ),
+          manager_entry_map as (
+            select owner_name,
+                   coalesce(entry_id, (substring(fpl_team_url from '/entry/(\\d+)/'))::int) as eid
+            from public.manager
+          ),
+          facup_completed as (
+            select b.season, b.gw,
+                   m1.owner_name as home_owner, m2.owner_name as away_owner,
+                   b.score1 as home_score, b.score2 as away_score
+            from public.facup_bracket b
+            join manager_entry_map m1 on m1.eid = b.entry_id1
+            join manager_entry_map m2 on m2.eid = b.entry_id2
+            where b.entry_id1 is not null and b.entry_id2 is not null
+              and b.score1 is not null and b.score2 is not null
+          ),
+          completed as (
+            select * from league_completed
+            union all
+            select * from facup_completed
           ),
           norm as (
             select
