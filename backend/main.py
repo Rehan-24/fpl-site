@@ -522,7 +522,22 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 
 
 def _load_season_rows(league: str, season: Optional[str]) -> list:
-    """Return the rows list for the given league+season."""
+    """Return the rows list for the given league+season.
+
+    Any season with a frozen data/{league}_gw38_{season}.json snapshot is
+    served from that file -- this is what keeps an archived season's page
+    showing that season's table once a newer season's data starts landing
+    in league_table_snapshots. "2024-25" additionally checks the older,
+    season-unsuffixed filename for backward compatibility. Only a season
+    with no frozen file at all falls through to "latest DB snapshot",
+    which is only correct for the season that's actually still live.
+    """
+    if season:
+        path = os.path.join(DATA_DIR, f"{league}_gw38_{season}.json")
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return data.get("rows", data) if isinstance(data, dict) else data
     if season == "2024-25":
         path = os.path.join(DATA_DIR, f"{league}_gw38.json")
         if not os.path.exists(path):
@@ -530,7 +545,7 @@ def _load_season_rows(league: str, season: Optional[str]) -> list:
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
         return data.get("rows", data) if isinstance(data, dict) else data
-    # default: latest DB snapshot
+    # default: latest DB snapshot -- only correct for the live season
     row = get_latest_table_snapshot(league)
     if not row:
         return []
