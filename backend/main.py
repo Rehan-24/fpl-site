@@ -1525,6 +1525,85 @@ def get_facup_seasons():
     return {"seasons": result}
 
 
+@app.get("/api/facup/projected-seeding", tags=["facup"])
+def get_facup_projected_seeding(byes: int = Query(4)):
+    """
+    Live projected FA Cup seeding for the season currently in progress,
+    computed fresh from current standings on every request -- nothing is
+    cached or stored. Not final; the real seeding locks at the season's
+    GW22 freeze. Only seeding + Round 1 are returned, since everything
+    past Round 1 depends on a bracket-quadrant convention that hasn't
+    been finalized for this season yet.
+    """
+    from facup_seeding import compute_seeding, compute_round1
+    from fixtures_refresh import last_season_label
+    import psycopg as pg
+    from psycopg.rows import dict_row
+    from facup_db import DB_URL as FACUP_DB_URL
+
+    last_season = last_season_label()
+
+    prem_last = _load_season_rows("premier", last_season)
+    champ_last = _load_season_rows("championship", last_season)
+    prem_winner_row = next((r for r in prem_last if int(r.get("Position") or 0) == 1), None)
+    champ_winner_row = next((r for r in champ_last if int(r.get("Position") or 0) == 1), None)
+    if not prem_winner_row or not champ_winner_row:
+        raise HTTPException(status_code=503, detail=f"No final standings on file for {last_season} yet")
+
+    facup_winner = None
+    try:
+        with pg.connect(FACUP_DB_URL, row_factory=dict_row) as conn, conn.cursor() as cur:
+            cur.execute("""
+                select winner_entry from public.facup_bracket
+                where season = %s and round = 'final' and winner_entry is not null
+            """, (last_season,))
+            row = cur.fetchone()
+            if row and row["winner_entry"]:
+                cur.execute("""
+                    select owner_name from public.manager
+                    where coalesce(entry_id, (substring(fpl_team_url from '/entry/(\\d+)/'))::int) = %s
+                """, (row["winner_entry"],))
+                owner_row = cur.fetchone()
+                facup_winner = owner_row["owner_name"] if owner_row else None
+    except Exception:
+        facup_winner = None
+
+    if not facup_winner:
+        raise HTTPException(status_code=503, detail=f"No FA Cup winner on file for {last_season} yet")
+
+    prem_snap = get_latest_table_snapshot("premier")
+    champ_snap = get_latest_table_snapshot("championship")
+    prem_rows = (prem_snap or {}).get("payload", {}).get("rows", [])
+    champ_rows = (champ_snap or {}).get("payload", {}).get("rows", [])
+    if not prem_rows or not champ_rows:
+        raise HTTPException(status_code=503, detail="No current standings available yet")
+
+    try:
+        seeds = compute_seeding(
+            prem_rows, champ_rows,
+            facup_winner, prem_winner_row["Owner"], champ_winner_row["Owner"],
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+
+    r1 = compute_round1(seeds, byes=byes)
+    basis = "score" if sum(s.score for s in seeds) > 0 else "alphabetical (preseason -- no scores yet)"
+
+    resp = JSONResponse({
+        "last_season": last_season,
+        "facup_winner": facup_winner,
+        "prem_winner": prem_winner_row["Owner"],
+        "champ_winner": champ_winner_row["Owner"],
+        "basis": basis,
+        "byes": byes,
+        "seeds": [s.__dict__ for s in seeds],
+        "round1": r1["round1"],
+        "shape": r1["shape"],
+    })
+    resp.headers["Cache-Control"] = "public, max-age=300"
+    return resp
+
+
 @app.post("/api/cron/trigger-facup", tags=["facup"])
 def cron_facup(
     background: BackgroundTasks,

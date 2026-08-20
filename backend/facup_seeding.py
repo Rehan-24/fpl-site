@@ -72,12 +72,20 @@ class Seed:
     reason: str
 
 
+def _first_name(owner: str) -> str:
+    return (owner or "").strip().split(" ", 1)[0].lower()
+
+
 def _pool(rows: list[dict], league: str) -> list[dict]:
-    """Rows sorted by descending Score, tagged with league."""
+    """Rows sorted by descending Score, first name (alphabetical) as the
+    tiebreak. Before any gameweek has been scored, everyone is tied at 0
+    and this tiebreak alone determines the order -- which is exactly the
+    "rank by first name" behavior wanted during preseason, with no
+    special-casing needed: it falls out naturally from a stable tiebreak
+    rule that also makes sense for any future tied scores."""
     return sorted(
         ({**r, "_league": league} for r in rows),
-        key=lambda r: int(r.get("Score") or 0),
-        reverse=True,
+        key=lambda r: (-int(r.get("Score") or 0), _first_name(r.get("Owner"))),
     )
 
 
@@ -127,10 +135,11 @@ def compute_seeding(
             continue
         assign(row, reason)
 
-    # Seed 4: highest remaining score, either league.
-    candidates = [r for r in (prem_pool[:1] + champ_pool[:1])]
+    # Seed 4: highest remaining score, either league (ties broken by first
+    # name, same rule as everywhere else).
+    candidates = prem_pool[:1] + champ_pool[:1]
     if candidates:
-        best = max(candidates, key=lambda r: int(r.get("Score") or 0))
+        best = min(candidates, key=lambda r: (-int(r.get("Score") or 0), _first_name(r.get("Owner"))))
         assign(pools[best["_league"]].pop(0), "Highest Overall Scorer")
         next_league = "championship" if best["_league"] == "premier" else "premier"
     else:
@@ -140,8 +149,6 @@ def compute_seeding(
     # was NOT drawn from. Once one pool is empty, keep drawing from the
     # other until both are empty.
     turn = next_league
-    rank_in_league = 3  # seed 4 already used the "1st/2nd highest" framing for one league;
-    # kept simple -- reasons below just say which league + running position within it.
     league_counts = {"premier": 0, "championship": 0}
     while prem_pool or champ_pool:
         pool = pools[turn]
@@ -167,6 +174,54 @@ def _ordsuf(n: int) -> str:
     if 10 <= n % 100 <= 20:
         return "th"
     return {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+
+
+def bracket_shape(n_total: int, byes: int) -> dict:
+    """
+    How many play Round 1, and how many enter Round 2 directly, for a
+    single-elimination bracket of n_total entrants with `byes` seeds
+    skipping Round 1. Round 2's size is fixed to the largest power of 2
+    that's <= n_total (so R16 -> QF -> SF -> Final all halve cleanly
+    afterward) -- this reproduces the actual 2025-26 shape exactly when
+    n_total=40, byes=8 (round2_size=32, r1_matches=8, direct_entrants=16).
+    """
+    round2_size = 1
+    while round2_size * 2 <= n_total:
+        round2_size *= 2
+    r1_matches = n_total - round2_size
+    direct_entrants = 2 * round2_size - byes - n_total
+    return {
+        "round2_size": round2_size,
+        "r1_matches": r1_matches,
+        "direct_entrants": direct_entrants,
+    }
+
+
+def compute_round1(seeds: list[Seed], byes: int) -> dict:
+    """
+    Only Round 1 is fully determined by seeding alone (best-remaining vs
+    worst-remaining, among whoever doesn't have a bye) -- everything past
+    that depends on a bracket-quadrant convention that hasn't been
+    finalized for next season yet. Returns byes (top N seeds) and the
+    Round 1 matchups for the bottom seeds.
+    """
+    n_total = len(seeds)
+    shape = bracket_shape(n_total, byes)
+    r1_matches = shape["r1_matches"]
+
+    bye_seeds = [s for s in seeds if s.seed <= byes]
+    r1_pool = [s for s in seeds if s.seed > n_total - 2 * r1_matches]
+    matchups = []
+    for i in range(r1_matches):
+        top = r1_pool[i]
+        bottom = r1_pool[-(i + 1)]
+        matchups.append({"seed1": asdict(top), "seed2": asdict(bottom)})
+
+    return {
+        "byes": [asdict(s) for s in bye_seeds],
+        "round1": matchups,
+        "shape": shape,
+    }
 
 
 def main():

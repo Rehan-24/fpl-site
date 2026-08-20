@@ -5,9 +5,17 @@ import NavBar from "../components/NavBar";
 import GWInfoBar from "../components/GWInfoBar";
 import FACupBracket from "../components/FACupBracket";
 import FACupSeedings from "../components/FACupSeedings";
+import FACupProjectedSeeding from "../components/FACupProjectedSeeding";
 import { ArchivePastFACupsButton } from "../components/FACupArchiveShared";
 
-type Tab = "bracket" | "seedings" | "rules";
+type Tab = "bracket" | "seedings" | "projected" | "rules";
+
+const TAB_LABELS: Record<Tab, string> = {
+  bracket: "Bracket",
+  seedings: "Seedings",
+  projected: "Next Season's Projected Seeding",
+  rules: "Rules",
+};
 
 export default function FACup() {
   const [activeTab, setActiveTab] = useState<Tab>("bracket");
@@ -50,26 +58,27 @@ export default function FACup() {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b-2 border-purple-200 mt-3 px-5">
-        {(["bracket", "seedings", "rules"] as Tab[]).map((tab) => (
+      <div className="flex border-b-2 border-purple-200 mt-3 px-5 flex-wrap">
+        {(["bracket", "seedings", "projected", "rules"] as Tab[]).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`text-[13px] font-semibold px-4 py-2.5 border-b-[3px] transition-colors capitalize ${
+            className={`text-[13px] font-semibold px-4 py-2.5 border-b-[3px] transition-colors ${
               activeTab === tab
                 ? "border-[#37003c] text-[#37003c]"
                 : "border-transparent text-purple-600 hover:text-[#37003c]"
             }`}
           >
-            {tab}
+            {TAB_LABELS[tab]}
           </button>
         ))}
       </div>
 
       {/* Tab panels */}
-      {activeTab === "bracket"  && <FACupBracket />}
-      {activeTab === "seedings" && <FACupSeedings />}
-      {activeTab === "rules"    && <RulesPanel />}
+      {activeTab === "bracket"   && <FACupBracket />}
+      {activeTab === "seedings"  && <FACupSeedings />}
+      {activeTab === "projected" && <FACupProjectedSeeding />}
+      {activeTab === "rules"     && <RulesPanel />}
     </main>
   );
 }

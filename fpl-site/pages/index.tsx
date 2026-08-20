@@ -4,6 +4,7 @@ import NavBar from '../components/NavBar';
 import { useStandings } from '@/public/hooks/useStandings';
 import useGWDeadline from '@/public/hooks/useGWDeadline';
 import { useFACupBracket, BracketMatchup } from '@/public/hooks/useFACupBracket';
+import { useProjectedSeeding } from '@/public/hooks/useProjectedSeeding';
 import { SEEDS } from '@/lib/facupSeedings';
 import Head from 'next/head';
 
@@ -260,12 +261,51 @@ function FACupPreview() {
         </div>
       )}
 
+      <ProjectedSeedingTeaser />
+
       <Link href="/facup"
         className="block text-center text-xs font-semibold py-1.5 rounded transition-colors"
         style={{ border: "0.5px solid #5b329e", color: "#5b329e" }}>
         View full bracket →
       </Link>
     </>
+  );
+}
+
+function ProjectedSeedingTeaser() {
+  const { seeds, byes, basis, loading, error } = useProjectedSeeding();
+
+  if (loading || error || seeds.length === 0) return null;
+
+  const top = seeds.slice(0, 4);
+  const isAlphabetical = (basis || "").startsWith("alphabetical");
+
+  return (
+    <div className="mb-3 pt-3 border-t border-[#ddd6fe]">
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-xs uppercase font-bold text-gray-500">Next Season's Projected Seeding</span>
+        {isAlphabetical && (
+          <span className="text-[9px] font-bold bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded">
+            preseason
+          </span>
+        )}
+      </div>
+      <div className="flex flex-col gap-1">
+        {top.map((s) => (
+          <div key={s.seed} className="flex items-center justify-between text-xs">
+            <span className="flex items-center gap-1.5 min-w-0">
+              <span className="text-purple-300 font-bold w-4 flex-shrink-0">{s.seed}</span>
+              <span className="truncate">{s.owner}</span>
+              {s.seed <= byes && (
+                <span className="text-[8px] font-bold bg-green-100 text-green-800 px-1 rounded flex-shrink-0">
+                  BYE
+                </span>
+              )}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
