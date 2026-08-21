@@ -177,12 +177,16 @@ function FACupPreview() {
             })}
           </div>
         </>
+      ) : bracket.length === 0 ? (
+        // Not frozen yet for this season -- nothing to summarize here;
+        // the projected seeding teaser below already covers this state.
+        null
       ) : (
         // Between rounds or finished: podium if complete, bracket progress otherwise
         <div className="mb-3">
           {champion ? (
             <>
-              <div className="text-xs uppercase font-bold text-gray-500 mb-2">2025/26 Results</div>
+              <div className="text-xs uppercase font-bold text-gray-500 mb-2">Results</div>
               <div className="flex flex-col gap-2">
                 {/* Champion */}
                 {(() => {
