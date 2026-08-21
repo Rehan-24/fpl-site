@@ -131,12 +131,26 @@ def cmd_apply(args):
 
         cur.execute("delete from public.facup_bracket where season = %s", (season,))
         deleted = cur.rowcount
-        print(f"Cleared {deleted} existing bracket rows for {season!r}")
+        cur.execute("delete from public.facup_seeding where season = %s", (season,))
+        deleted_seeding = cur.rowcount
+        print(f"Cleared {deleted} existing bracket rows and {deleted_seeding} seeding rows for {season!r}")
+
+        seeding_sql = """
+            insert into public.facup_seeding
+                (season, seed, owner_name, team, league, score, reason, entry_id)
+            values (%s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        for s in report["seeds"]:
+            cur.execute(seeding_sql, (
+                season, s["seed"], s["owner"], s["team"], s["league"],
+                s["score"], s["reason"], eid_by_owner[s["owner"]],
+            ))
+        print(f"Wrote {len(report['seeds'])} seeding rows for {season!r}")
 
         insert_sql = """
             insert into public.facup_bracket
-                (season, round, matchup_idx, gw, seed1, seed2, entry_id1, entry_id2)
-            values (%s, %s, %s, %s, %s, %s, %s, %s)
+                (season, round, matchup_idx, gw, seed1, seed2, entry_id1, entry_id2, feeds_r1_matchup_idx)
+            values (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
 
         n = 0
@@ -145,6 +159,7 @@ def cmd_apply(args):
                 season, "r1", i, gws["r1"],
                 m["seed1"]["seed"], m["seed2"]["seed"],
                 eid_by_owner[m["seed1"]["owner"]], eid_by_owner[m["seed2"]["owner"]],
+                None,
             ))
             n += 1
 
@@ -152,12 +167,14 @@ def cmd_apply(args):
             def slot_fields(slot):
                 if slot["kind"] == "seed":
                     owner = slot["seed"]["owner"]
-                    return slot["seed"]["seed"], eid_by_owner[owner]
-                return None, None  # R1-winner slot -- resolved once R1 finishes
+                    return slot["seed"]["seed"], eid_by_owner[owner], None
+                return None, None, slot["match_idx"]  # R1-winner slot -- resolved once R1 finishes
 
-            seed1, entry1 = slot_fields(m["slot1"])
-            seed2, entry2 = slot_fields(m["slot2"])
-            cur.execute(insert_sql, (season, "r32", i, gws["r32"], seed1, seed2, entry1, entry2))
+            seed1, entry1, feeds1 = slot_fields(m["slot1"])
+            seed2, entry2, feeds2 = slot_fields(m["slot2"])
+            # only one side of a Round-2 matchup can be a TBD R1-winner slot
+            feeds_r1 = feeds1 if feeds1 is not None else feeds2
+            cur.execute(insert_sql, (season, "r32", i, gws["r32"], seed1, seed2, entry1, entry2, feeds_r1))
             n += 1
 
         empty_sql = """

@@ -4,8 +4,8 @@ import NavBar from '../components/NavBar';
 import { useStandings } from '@/public/hooks/useStandings';
 import useGWDeadline from '@/public/hooks/useGWDeadline';
 import { useFACupBracket, BracketMatchup } from '@/public/hooks/useFACupBracket';
+import { useFACupSeeding, SeedMap } from '@/public/hooks/useFACupSeeding';
 import { useProjectedSeeding } from '@/public/hooks/useProjectedSeeding';
-import { SEEDS } from '@/lib/facupSeedings';
 import Head from 'next/head';
 
 
@@ -17,29 +17,27 @@ const ROUND_LABELS: Record<string, string> = {
   qf: "Quarterfinals", sf: "Semifinals", final: "Final", "3rd": "3rd Place",
 };
 
-const ROUND_GW: Record<string, number> = {
-  r1: 31, r32: 32, r16: 33, qf: 34, sf: 35, final: 36, "3rd": 36,
-};
-
 // Round ordering for finding "current" round
 const ROUND_ORDER = ["r1","r32","r16","qf","sf","final","3rd"];
 
-function getSeedName(seed: number | null | undefined): string {
+function seedName(seeding: SeedMap, seed: number | null | undefined): string {
   if (!seed) return "TBD";
-  return SEEDS.find(s => s.seed === seed)?.team ?? `Seed ${seed}`;
+  return seeding[seed]?.team ?? `Seed ${seed}`;
 }
 
-function getSeedOwner(seed: number | null | undefined): string | null {
+function seedOwner(seeding: SeedMap, seed: number | null | undefined): string | null {
   if (!seed) return null;
-  return SEEDS.find(s => s.seed === seed)?.owner ?? null;
+  return seeding[seed]?.owner_name ?? null;
 }
 
 function FACupPreview() {
   const { bracket, currentGw } = useFACupBracket();
+  const { seeding } = useFACupSeeding();
+  const getSeedName = (seed: number | null | undefined) => seedName(seeding, seed);
+  const getSeedOwner = (seed: number | null | undefined) => seedOwner(seeding, seed);
 
   // Determine which round to show:
   // 1. The earliest round with unplayed matchups (upcoming or in-progress)
-  //    — this handles the case where GW31 is next and R1 has no scores yet
   // 2. If all rounds are complete, show progress summary
   const displayRound = (() => {
     for (let i = 0; i < ROUND_ORDER.length; i++) {
@@ -54,7 +52,7 @@ function FACupPreview() {
   })();
 
   const roundLabel = displayRound ? ROUND_LABELS[displayRound] : null;
-  const roundGw    = displayRound ? ROUND_GW[displayRound] : null;
+  const roundGw    = displayRound ? (bracket.find(m => m.round === displayRound)?.gw ?? null) : null;
 
   // All matchups for the display round that haven't been decided yet
   const featured = bracket
@@ -81,7 +79,8 @@ function FACupPreview() {
       .map(m => m.winner_seed === m.seed1 ? m.seed2 : m.seed1)
       .filter(Boolean)
   );
-  const remaining = 40 - eliminated.size;
+  const totalSeeds = Object.keys(seeding).length;
+  const remaining = totalSeeds > 0 ? totalSeeds - eliminated.size : null;
 
   const isLive = (m: BracketMatchup) =>
     !!currentGw && m.gw === currentGw && m.winner_seed == null && m.score1 != null;
@@ -236,10 +235,12 @@ function FACupPreview() {
             <>
               <div className="text-xs uppercase font-bold text-gray-500 mb-2">Bracket Progress</div>
               <div className="flex flex-col gap-1.5 text-sm">
-                <div className="flex justify-between py-1 border-b border-[#ddd6fe]">
-                  <span className="text-gray-600">Teams remaining</span>
-                  <span className="font-semibold">{remaining} / 40</span>
-                </div>
+                {remaining != null && (
+                  <div className="flex justify-between py-1 border-b border-[#ddd6fe]">
+                    <span className="text-gray-600">Teams remaining</span>
+                    <span className="font-semibold">{remaining} / {totalSeeds}</span>
+                  </div>
+                )}
                 {lastCompletedRound && (
                   <div className="flex justify-between py-1 border-b border-[#ddd6fe]">
                     <span className="text-gray-600">Last completed</span>
@@ -248,10 +249,11 @@ function FACupPreview() {
                 )}
                 {lastCompletedRound && ROUND_ORDER.indexOf(lastCompletedRound) < ROUND_ORDER.length - 1 && (() => {
                   const nextRound = ROUND_ORDER[ROUND_ORDER.indexOf(lastCompletedRound) + 1];
+                  const nextGw = bracket.find(m => m.round === nextRound)?.gw;
                   return (
                     <div className="flex justify-between py-1">
                       <span className="text-gray-600">Next up</span>
-                      <span className="font-semibold">{ROUND_LABELS[nextRound]} · GW{ROUND_GW[nextRound]}</span>
+                      <span className="font-semibold">{ROUND_LABELS[nextRound]}{nextGw ? ` · GW${nextGw}` : ""}</span>
                     </div>
                   );
                 })()}

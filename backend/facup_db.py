@@ -48,13 +48,35 @@ def get_gw_scores(gw: int) -> list[dict]:
         return cur.fetchall()
 
 
+# ── Seeding ───────────────────────────────────────────────────────────────────
+
+def get_seeding(season: str = SEASON) -> list[dict]:
+    """
+    Persisted seeding for a season, written once at freeze time
+    (backend/scripts/facup_freeze.py). This is the frozen record of
+    "who was seed N" -- distinct from /api/facup/projected-seeding,
+    which recomputes a live guess from current standings and stops
+    being meaningful once the tournament itself starts affecting scores.
+    """
+    sql = """
+    SELECT seed, owner_name, team, league, score, reason, entry_id
+    FROM public.facup_seeding
+    WHERE season = %s
+    ORDER BY seed
+    """
+    with _conn() as conn, conn.cursor() as cur:
+        cur.execute(sql, (season,))
+        return cur.fetchall()
+
+
 # ── Bracket ───────────────────────────────────────────────────────────────────
 
 def get_bracket(season: str = SEASON) -> list[dict]:
     """Return the full bracket state for a season."""
     sql = """
     SELECT round, matchup_idx, gw, seed1, seed2, entry_id1, entry_id2,
-           score1, score2, goals1, goals2, winner_seed, winner_entry, updated_at
+           score1, score2, goals1, goals2, winner_seed, winner_entry, updated_at,
+           feeds_r1_matchup_idx
     FROM public.facup_bracket
     WHERE season = %s
     ORDER BY

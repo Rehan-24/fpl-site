@@ -1029,6 +1029,24 @@ def get_facup_bracket(season: str = Query(FACUP_SEASON)):
     return resp
 
 
+@app.get("/api/facup/seeding", tags=["facup"])
+def get_facup_seeding_endpoint(season: str = Query(FACUP_SEASON)):
+    """
+    The frozen seeding for a season (who is seed #N, their team/league/
+    score/reason), written once at freeze time. Empty until that
+    season's facup_freeze.py has actually been run -- use
+    /api/facup/projected-seeding instead for a live pre-freeze guess.
+    """
+    from facup_db import get_seeding
+    try:
+        rows = get_seeding(season)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    resp = JSONResponse({"season": season, "seeding": rows})
+    resp.headers["Cache-Control"] = "public, max-age=300"
+    return resp
+
+
 @app.get("/api/facup/scores", tags=["facup"])
 def get_facup_scores(gw: int = Query(...)):
     """

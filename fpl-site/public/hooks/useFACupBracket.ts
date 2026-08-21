@@ -19,20 +19,25 @@ const POLL_MS_LIVE   = 3 * 60 * 1000;   // 3 min — same as standings near dead
 const POLL_MS_NORMAL = 10 * 60 * 1000;  // 10 min — outside gameweek
 
 export interface BracketMatchup {
-  round:        string;
-  matchup_idx:  number;
-  gw:           number;
-  seed1:        number | null;
-  seed2:        number | null;
-  entry_id1:    number | null;
-  entry_id2:    number | null;
-  score1:       number | null;
-  score2:       number | null;
-  goals1:       number | null;
-  goals2:       number | null;
-  winner_seed:  number | null;
-  winner_entry: number | null;
-  updated_at:   string | null;
+  round:                 string;
+  matchup_idx:           number;
+  gw:                    number;
+  seed1:                 number | null;
+  seed2:                 number | null;
+  entry_id1:             number | null;
+  entry_id2:             number | null;
+  score1:                number | null;
+  score2:                number | null;
+  goals1:                number | null;
+  goals2:                number | null;
+  winner_seed:           number | null;
+  winner_entry:          number | null;
+  updated_at:            string | null;
+  // Set on a Round-2 row when one side is still waiting on a Round 1
+  // result -- the matchup_idx (within round "r1") of the match whose
+  // winner fills that side. Whichever of seed1/seed2 is null is the
+  // side this refers to.
+  feeds_r1_matchup_idx?: number | null;
 }
 
 export interface GwScore {
@@ -61,7 +66,10 @@ let _scoresCache:  GwScoreMap | null = null;
 let _cacheTs = 0;
 const STALE_MS = 60_000;
 
-export function useFACupBracket(season = "2025-26"): FACupData {
+// No hardcoded season default here on purpose -- omitting the query
+// param lets the backend fall back to whichever season facup_db.SEASON
+// currently points at, so this hook doesn't need updating every year.
+export function useFACupBracket(season?: string): FACupData {
   const [bracket,     setBracket]     = useState<BracketMatchup[]>(_bracketCache ?? []);
   const [scores,      setScores]      = useState<GwScoreMap>(_scoresCache ?? {});
   const [currentGw,   setCurrentGw]   = useState<number | null>(null);
@@ -95,9 +103,8 @@ export function useFACupBracket(season = "2025-26"): FACupData {
       setError(null);
 
       // Fetch bracket
-      const bRes = await fetch(
-        `${BACKEND}/api/facup/bracket?season=${encodeURIComponent(season)}`
-      );
+      const seasonQS = season ? `?season=${encodeURIComponent(season)}` : "";
+      const bRes = await fetch(`${BACKEND}/api/facup/bracket${seasonQS}`);
       if (!bRes.ok) throw new Error(`Bracket fetch failed: ${bRes.status}`);
       const bData = await bRes.json();
       const newBracket: BracketMatchup[] = bData.bracket ?? [];
