@@ -1506,7 +1506,7 @@ def get_facup_seasons():
 
     # Static metadata — label and fallback champion for seasons not yet in DB
     STATIC_META: dict[str, dict] = {
-        "2025-26": {"label": "2025-26 (v2)"},
+        "2025-26": {"label": "2025-26 (v2)", "champion": "Marvin Ling"},
         "2024-25": {"label": "2024-25 (v1)", "champion": "Chandler Ashman"},
     }
 
@@ -1559,6 +1559,14 @@ def get_facup_projected_seeding(byes: int = Query(4)):
     from psycopg.rows import dict_row
     from facup_db import DB_URL as FACUP_DB_URL
 
+    # Fallback for seasons whose live facup_bracket final-round result is
+    # unavailable (e.g. wiped by a bracket reset run after the season
+    # ended) -- the live lookup below is still tried first, in case a
+    # season's winner_entry is genuinely just not resolved yet.
+    LAST_SEASON_FACUP_WINNER_FALLBACK = {
+        "2025-26": "Marvin Ling",
+    }
+
     last_season = last_season_label()
 
     prem_last = _load_season_rows("premier", last_season)
@@ -1585,6 +1593,9 @@ def get_facup_projected_seeding(byes: int = Query(4)):
                 facup_winner = owner_row["owner_name"] if owner_row else None
     except Exception:
         facup_winner = None
+
+    if not facup_winner:
+        facup_winner = LAST_SEASON_FACUP_WINNER_FALLBACK.get(last_season)
 
     if not facup_winner:
         raise HTTPException(status_code=503, detail=f"No FA Cup winner on file for {last_season} yet")

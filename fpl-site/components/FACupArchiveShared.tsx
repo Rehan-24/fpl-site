@@ -116,7 +116,7 @@ interface PastEntry {
 
 // Static fallback (also the initial render state before the fetch resolves)
 const STATIC_SEASONS: PastEntry[] = [
-  { season: "2025-26", label: "2025-26 (v2)", champion: "Peaky Reijnders",  href: "/facup/2025-26" },
+  { season: "2025-26", label: "2025-26 (v2)", champion: "Marvin Ling",     href: "/facup/2025-26" },
   { season: "2024-25", label: "2024-25 (v1)", champion: "Chandler Ashman", href: "/facup/2024-25" },
 ];
 

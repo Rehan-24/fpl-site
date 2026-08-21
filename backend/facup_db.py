@@ -8,7 +8,7 @@ from psycopg.rows import dict_row
 from typing import Optional
 
 DB_URL = os.getenv("SUPABASE_DB_URL")
-SEASON = "2025-26"
+SEASON = "2026-27"
 
 
 def _conn():
