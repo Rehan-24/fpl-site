@@ -224,6 +224,81 @@ def compute_round1(seeds: list[Seed], byes: int) -> dict:
     }
 
 
+def _standard_bracket_order(size: int) -> list[int]:
+    """
+    The standard single-elimination seeding order for `size` (a power of
+    2) virtual ranks 1..size, such that rank 1 and rank 2 can only meet
+    in the final, ranks {1,4} and {2,3} only in the semifinal, and so on
+    -- the same guarantee real tournaments (and last year's hand-built
+    bracket) protect the top seeds with. Returns the ranks in bracket
+    order, i.e. adjacent pairs are Round-2 opponents:
+    (order[0] vs order[1]), (order[2] vs order[3]), ...
+    """
+    order = [1]
+    n = 1
+    while n < size:
+        n *= 2
+        order = [x for s in order for x in (s, n + 1 - s)]
+    return order
+
+
+def compute_full_bracket(seeds: list[Seed], byes: int) -> dict:
+    """
+    Full projected bracket: Round 1 (as compute_round1) plus Round 2
+    pairings, using the standard bracket-seeding algorithm (see
+    _standard_bracket_order) rather than reproducing 2025-26's bespoke,
+    hand-picked quadrant assignment -- that one wasn't a plain textbook
+    algorithm and guessing at its exact convention risked looking
+    official while being wrong. This is a real, well-known, explainable
+    method instead: it gives the same guarantee (protect top seeds,
+    1-vs-2 only possible in the final) via a documented rule anyone can
+    verify by hand.
+
+    Virtual Round-2 ranks 1..round2_size are assigned as:
+      1..byes                        -> the bye seeds, in seed order
+      byes+1..byes+r1_matches        -> R1 match winners, ranked by
+                                         their match's stronger seed
+                                         (Match 1 = the R1 match between
+                                         the two best-remaining seeds)
+      byes+r1_matches+1..round2_size -> direct entrants, in seed order
+    """
+    base = compute_round1(seeds, byes)
+    shape = base["shape"]
+    byes_list = base["byes"]
+    round1 = base["round1"]
+
+    n_total = len(seeds)
+    r1_matches = shape["r1_matches"]
+    direct_entrants_seeds = [
+        s for s in seeds
+        if s.seed > byes and s.seed <= n_total - 2 * r1_matches
+    ]
+
+    # virtual rank -> a descriptor of who's actually there
+    virtual: dict[int, dict] = {}
+    for i, b in enumerate(byes_list):
+        virtual[i + 1] = {"kind": "seed", "seed": b}
+    for i in range(r1_matches):
+        virtual[byes + i + 1] = {"kind": "r1_winner", "match_idx": i, "match": round1[i]}
+    for i, s in enumerate(direct_entrants_seeds):
+        virtual[byes + r1_matches + i + 1] = {"kind": "seed", "seed": asdict(s)}
+
+    order = _standard_bracket_order(shape["round2_size"])
+    round2 = []
+    for i in range(0, len(order), 2):
+        round2.append({
+            "slot1": virtual[order[i]],
+            "slot2": virtual[order[i + 1]],
+        })
+
+    return {
+        "byes": byes_list,
+        "round1": round1,
+        "round2": round2,
+        "shape": shape,
+    }
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--facup-winner", required=True)

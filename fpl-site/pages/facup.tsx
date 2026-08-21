@@ -4,16 +4,14 @@ import Head from "next/head";
 import NavBar from "../components/NavBar";
 import GWInfoBar from "../components/GWInfoBar";
 import FACupBracket from "../components/FACupBracket";
-import FACupSeedings from "../components/FACupSeedings";
 import FACupProjectedSeeding from "../components/FACupProjectedSeeding";
 import { ArchivePastFACupsButton } from "../components/FACupArchiveShared";
 
-type Tab = "bracket" | "seedings" | "projected" | "rules";
+type Tab = "bracket" | "seedings" | "rules";
 
 const TAB_LABELS: Record<Tab, string> = {
   bracket: "Bracket",
   seedings: "Seedings",
-  projected: "Next Season's Projected Seeding",
   rules: "Rules",
 };
 
@@ -39,7 +37,7 @@ export default function FACup() {
       <header className="relative bg-gradient-to-r from-blue-300 via-blue-400 to-[#5b329e] text-[#37003c] p-6 shadow-lg">
         <div className="navbar-ripple pointer-events-none select-none absolute inset-0" />
         <div className="relative z-10 flex items-start justify-between gap-4 flex-wrap">
-          <h1 className="text-4xl font-bold text-[#37003c]">Fantasy FA Cup (v2)</h1>
+          <h1 className="text-4xl font-bold text-[#37003c]">Fantasy FA Cup (v3)</h1>
           <ArchivePastFACupsButton currentSeason="" />
         </div>
         <div className="navbar-buttons relative z-20">
@@ -59,7 +57,7 @@ export default function FACup() {
 
       {/* Tabs */}
       <div className="flex border-b-2 border-purple-200 mt-3 px-5 flex-wrap">
-        {(["bracket", "seedings", "projected", "rules"] as Tab[]).map((tab) => (
+        {(["bracket", "seedings", "rules"] as Tab[]).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -75,10 +73,9 @@ export default function FACup() {
       </div>
 
       {/* Tab panels */}
-      {activeTab === "bracket"   && <FACupBracket />}
-      {activeTab === "seedings"  && <FACupSeedings />}
-      {activeTab === "projected" && <FACupProjectedSeeding />}
-      {activeTab === "rules"     && <RulesPanel />}
+      {activeTab === "bracket"  && <FACupBracket />}
+      {activeTab === "seedings" && <FACupProjectedSeeding />}
+      {activeTab === "rules"    && <RulesPanel />}
     </main>
   );
 }
@@ -92,19 +89,24 @@ function RulesPanel() {
       </h2>
       <div className="text-[13px] leading-relaxed space-y-3 text-[#37003c]">
         <p>
-          The Fantasy FA Cup is a single-elimination tournament featuring all{" "}
-          <strong>40 managers</strong> across both the Premier and Championship leagues.
+          The Fantasy FA Cup is a single-elimination tournament featuring every
+          manager across both the Premier and Championship leagues.
+        </p>
+
+        <p className="text-xs bg-purple-50 border-l-4 border-purple-300 px-2 py-1.5 text-purple-700">
+          Seeding for this season isn't final yet — check the Seedings tab for a
+          live projection based on current standings, updated as the season plays out.
         </p>
 
         <div>
           <p className="font-bold mb-1">Format</p>
           <ul className="list-disc ml-5 space-y-1">
-            <li>Seeds 25–40 compete in <strong>Round 1</strong> (GW31) — 8 matches, 16 players</li>
-            <li>The 8 R1 winners face seeds <strong>1–8</strong> in the Round of 32 (GW32) — seeds 1–8 receive first-round byes</li>
-            <li>Seeds 9–24 also enter in the Round of 32 — 8 seeded matchups</li>
-            <li>Bracket proceeds: R16 → Quarterfinals → Semifinals</li>
+            <li>The bottom seeds compete in <strong>Round 1</strong> (GW22)</li>
+            <li>Seeds <strong>1–4</strong> receive first-round byes, going straight to the Round of 32 (GW23) to face a Round 1 winner</li>
+            <li>The remaining seeds also enter the Round of 32 directly, seeded to protect the top seeds — 1 and 2 can only meet in the Final</li>
+            <li>Bracket proceeds: Round of 32 (GW23) → R16 (GW24) → Quarterfinals (GW25) → Semifinals (GW26)</li>
             <li>
-              <strong>Finals Week (GW36):</strong> SF winners play the <strong>Final</strong>;
+              <strong>Finals Week (GW27):</strong> SF winners play the <strong>Final</strong>;
               SF losers play the <strong>3rd Place match</strong> — both the same gameweek
             </li>
           </ul>

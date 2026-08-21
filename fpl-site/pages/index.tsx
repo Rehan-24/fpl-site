@@ -277,7 +277,7 @@ function ProjectedSeedingTeaser() {
 
   if (loading || error || seeds.length === 0) return null;
 
-  const top = seeds.slice(0, 4);
+  const top = seeds.slice(0, 10);
   const isAlphabetical = (basis || "").startsWith("alphabetical");
 
   return (
@@ -290,6 +290,10 @@ function ProjectedSeedingTeaser() {
           </span>
         )}
       </div>
+      <p className="text-[10px] text-gray-500 mb-1.5">
+        Cup is expected to kick off <strong>GW22</strong> — seeding below updates live
+        until then.
+      </p>
       <div className="flex flex-col gap-1">
         {top.map((s) => (
           <div key={s.seed} className="flex items-center justify-between text-xs">
