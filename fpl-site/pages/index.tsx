@@ -300,21 +300,44 @@ function ProjectedSeedingTeaser() {
         Cup is expected to kick off <strong>GW22</strong> — seeding below updates live
         until then.
       </p>
-      <div className="flex flex-col gap-1">
-        {top.map((s) => (
-          <div key={s.seed} className="flex items-center justify-between text-xs">
-            <span className="flex items-center gap-1.5 min-w-0">
-              <span className="text-purple-300 font-bold w-4 flex-shrink-0">{s.seed}</span>
-              <span className="truncate">{s.owner}</span>
-              {s.seed <= byes && (
-                <span className="text-[8px] font-bold bg-green-100 text-green-800 px-1 rounded flex-shrink-0">
-                  BYE
-                </span>
-              )}
-            </span>
-          </div>
-        ))}
-      </div>
+      <table className="w-full text-sm table-fixed">
+        <thead>
+          <tr className="bg-[#32FF6A] text-[#37003c] text-xs font-bold">
+            <th className="text-left px-2 py-1 w-6">#</th>
+            <th className="text-left px-2 py-1">Team & Manager</th>
+            <th className="text-right px-2 py-1 w-24">Seed Reason</th>
+          </tr>
+        </thead>
+        <tbody>
+          {top.map((s) => (
+            <tr key={s.seed} className="border-b border-[#37003c]">
+              <td className="px-2 py-1 w-6 text-center align-top">{s.seed}</td>
+              <td className="px-2 py-1 text-left align-top">
+                <div className="leading-tight">
+                  <div className="text-sm">{s.team}</div>
+                  <div className="text-xs text-gray-600 text-left no-underline hover:underline focus-visible:underline">
+                    <Link href={`/managers/${encodeURIComponent(s.owner)}`}>
+                      {s.owner}
+                    </Link>
+                  </div>
+                </div>
+              </td>
+              <td className="px-2 py-1 text-right align-top">
+                {s.seed <= byes ? (
+                  <>
+                    <span className="inline-block text-[9px] font-bold bg-green-100 text-green-800 px-1.5 py-0.5 rounded">
+                      BYE
+                    </span>
+                    <div className="text-[9px] text-gray-500 mt-0.5 leading-tight">{s.reason}</div>
+                  </>
+                ) : (
+                  <span className="text-sm font-semibold" style={{ color: "#37003c" }}>{s.score}</span>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
