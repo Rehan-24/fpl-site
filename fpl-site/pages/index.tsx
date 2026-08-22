@@ -328,7 +328,8 @@ function ProjectedSeedingTeaser() {
 
   if (loading || error || seeds.length === 0) return null;
 
-  const top = seeds.filter((s) => s.seed <= 13);
+  const topBand = seeds.filter((s) => s.seed <= 5);
+  const bubbleBand = seeds.filter((s) => s.seed >= 21 && s.seed <= 27);
   const isAlphabetical = (basis || "").startsWith("alphabetical");
 
   return (
@@ -354,9 +355,19 @@ function ProjectedSeedingTeaser() {
           </tr>
         </thead>
         <tbody>
-          {top.map((s) => (
+          {topBand.map((s) => (
             <ProjectedSeedingRow key={s.seed} s={s} round32Cutoff={round32Cutoff} />
           ))}
+          {bubbleBand.length > 0 && (
+            <>
+              <tr>
+                <td colSpan={3} className="text-center text-[10px] text-gray-400 py-0.5">⋯ around the Round of 32 cutoff ⋯</td>
+              </tr>
+              {bubbleBand.map((s) => (
+                <ProjectedSeedingRow key={s.seed} s={s} round32Cutoff={round32Cutoff} />
+              ))}
+            </>
+          )}
         </tbody>
       </table>
     </div>

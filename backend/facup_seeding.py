@@ -285,10 +285,23 @@ def compute_full_bracket(seeds: list[Seed], auto_qualify: int) -> dict:
                                                order
       round32_cutoff+1..round2_size        -> Qualification Round
                                                winners, ranked by their
-                                               match's stronger seed
-                                               (Match 1 = the KO match
-                                               between the two
-                                               best-remaining seeds)
+                                               match's stronger seed,
+                                               assigned in REVERSE match
+                                               order (highest virtual
+                                               rank = Match 1's winner)
+
+    That reverse assignment isn't arbitrary: _standard_bracket_order's
+    first-round opponents always sum to round2_size+1 (rank k always
+    faces rank round2_size+1-k) -- a textbook property of the seeding
+    recursion. So for k in 1..qualifying_matches, seed k's opponent is
+    rank round2_size+1-k, which lands exactly in the Qualification
+    Round winner zone as k ranges over 1..qualifying_matches. Assigning
+    Match k's winner to that exact rank is what makes seed k face
+    Match k's winner (seed 1 vs the strongest expected KO survivor,
+    seed 2 vs the next, and so on for the top `qualifying_matches`
+    seeds) -- while every seed past that pairs up amongst the direct
+    entrants themselves via the same reflection property, which turns
+    out to be identical to a plain best-vs-worst pairing there too.
     """
     base = compute_round1(seeds, auto_qualify)
     shape = base["shape"]
@@ -298,6 +311,7 @@ def compute_full_bracket(seeds: list[Seed], auto_qualify: int) -> dict:
     n_total = len(seeds)
     round32_cutoff = shape["round32_cutoff"]
     qualifying_matches = shape["qualifying_matches"]
+    round2_size = shape["round2_size"]
     direct_entrants_seeds = [
         s for s in seeds
         if s.seed > auto_qualify and s.seed <= round32_cutoff
@@ -310,7 +324,7 @@ def compute_full_bracket(seeds: list[Seed], auto_qualify: int) -> dict:
     for i, s in enumerate(direct_entrants_seeds):
         virtual[auto_qualify + i + 1] = {"kind": "seed", "seed": asdict(s)}
     for i in range(qualifying_matches):
-        virtual[round32_cutoff + i + 1] = {"kind": "ko_winner", "match_idx": i, "match": round1[i]}
+        virtual[round2_size - i] = {"kind": "ko_winner", "match_idx": i, "match": round1[i]}
 
     order = _standard_bracket_order(shape["round2_size"])
     round2 = []
