@@ -1,8 +1,8 @@
-// public/hooks/useHypotheticalBracket.ts
-// "If the Cup started today" -- a full hypothetical bracket (every
-// round) recomputed live from current standings. Only the
-// Qualification Round pairings are real seeding; everything past that
-// assumes the better seed wins, purely for preview purposes.
+// public/hooks/useBracketPlacement.ts
+// What the bracket layout looks like right now, recomputed live from
+// current standings. No results simulated -- only the Qualification
+// Round and Round of 32 are real; everything after that is TBD except
+// where a Round-of-32 walkover already resolves a slot mechanically.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -12,7 +12,7 @@ const BACKEND = (
 
 const POLL_MS = 10 * 60 * 1000; // 10 min -- not a live-scoring page
 
-export interface HBSeed {
+export interface PlacementSeed {
   seed: number;
   owner: string;
   team: string;
@@ -21,25 +21,33 @@ export interface HBSeed {
   reason: string;
 }
 
-export interface HBMatch {
-  seed1: HBSeed | null;
-  seed2: HBSeed | null;
-  winner_seed: number;
-  walkover?: boolean;
+export interface QualificationMatch {
+  seed1: PlacementSeed;
+  seed2: PlacementSeed;
 }
 
-export interface HypotheticalBracketData {
+export interface BracketSlot {
+  kind: "seed" | "ko_winner" | "walkover" | "tbd";
+  seed?: PlacementSeed;
+  match_idx?: number;
+}
+
+export interface SlotMatch {
+  slot1: BracketSlot;
+  slot2: BracketSlot;
+}
+
+export interface BracketPlacementData {
   lastSeason: string | null;
   basis: string | null;
   autoQualify: number;
-  qualificationRound: HBMatch[];
-  roundOf32: HBMatch[];
-  roundOf16: HBMatch[];
-  quarterfinals: HBMatch[];
-  semifinals: HBMatch[];
-  final: HBMatch[];
-  thirdPlace: HBMatch[];
-  champion: HBSeed | null;
+  qualificationRound: QualificationMatch[];
+  roundOf32: SlotMatch[];
+  roundOf16: SlotMatch[];
+  quarterfinals: SlotMatch[];
+  semifinals: SlotMatch[];
+  final: SlotMatch[];
+  thirdPlace: SlotMatch[];
   loading: boolean;
   error: string | null;
   lastUpdated: number | null;
@@ -50,7 +58,7 @@ let _cache: any = null;
 let _cacheTs = 0;
 const STALE_MS = 60_000;
 
-export function useHypotheticalBracket(): HypotheticalBracketData {
+export function useBracketPlacement(): BracketPlacementData {
   const [data, setData] = useState<any>(_cache);
   const [loading, setLoading] = useState(!_cache);
   const [error, setError] = useState<string | null>(null);
@@ -66,10 +74,10 @@ export function useHypotheticalBracket(): HypotheticalBracketData {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch(`${BACKEND}/api/facup/hypothetical-bracket`);
+      const res = await fetch(`${BACKEND}/api/facup/bracket-placement`);
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body?.detail || `Hypothetical bracket fetch failed: ${res.status}`);
+        throw new Error(body?.detail || `Bracket placement fetch failed: ${res.status}`);
       }
       const json = await res.json();
       _cache = json;
@@ -77,7 +85,7 @@ export function useHypotheticalBracket(): HypotheticalBracketData {
       setData(json);
       setLastUpdated(Date.now());
     } catch (e: any) {
-      setError(e?.message ?? "Failed to load hypothetical bracket");
+      setError(e?.message ?? "Failed to load bracket placement");
     } finally {
       setLoading(false);
     }
@@ -105,7 +113,6 @@ export function useHypotheticalBracket(): HypotheticalBracketData {
     semifinals: data?.semifinals ?? [],
     final: data?.final ?? [],
     thirdPlace: data?.third_place ?? [],
-    champion: data?.champion ?? null,
     loading,
     error,
     lastUpdated,

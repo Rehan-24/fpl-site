@@ -1653,21 +1653,20 @@ def get_facup_projected_seeding(auto_qualify: int = Query(16)):
     return resp
 
 
-@app.get("/api/facup/hypothetical-bracket", tags=["facup"])
-def get_facup_hypothetical_bracket(auto_qualify: int = Query(16)):
+@app.get("/api/facup/bracket-placement", tags=["facup"])
+def get_facup_bracket_placement(auto_qualify: int = Query(16)):
     """
-    "If the Cup started today" -- a full hypothetical bracket through
-    every round, computed fresh from current standings on every
-    request. Only the Qualification Round pairings are actually
-    determined by seeding; everything past that assumes the better
-    seed wins, purely for preview purposes (see
-    facup_seeding.compute_hypothetical_bracket).
+    What the bracket layout looks like right now, computed fresh from
+    current standings on every request -- no results simulated or
+    guessed. Qualification Round and Round of 32 are real; Round of 16
+    onward is TBD except where a Round-of-32 walkover already resolves
+    a slot mechanically (see facup_seeding.compute_bracket_placement).
     """
-    from facup_seeding import compute_hypothetical_bracket
+    from facup_seeding import compute_bracket_placement
 
     seeds, last_season, facup_winner, prem_winner, champ_winner = _compute_live_facup_seeds()
 
-    bracket = compute_hypothetical_bracket(seeds, auto_qualify=auto_qualify)
+    bracket = compute_bracket_placement(seeds, auto_qualify=auto_qualify)
     basis = "score" if sum(s.score for s in seeds) > 0 else "alphabetical (preseason -- no scores yet)"
 
     resp = JSONResponse({

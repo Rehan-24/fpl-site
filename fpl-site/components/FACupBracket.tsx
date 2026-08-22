@@ -11,7 +11,7 @@
 import { useEffect, useRef, useId } from "react";
 import { useFACupBracket, BracketMatchup } from "@/public/hooks/useFACupBracket";
 import { useFACupSeeding, SeedEntry } from "@/public/hooks/useFACupSeeding";
-import FACupHypotheticalBracket from "./FACupHypotheticalBracket";
+import FACupBracketPlacement from "./FACupBracketPlacement";
 
 const ROUND_ORDER = ["r1", "r32", "r16", "qf", "sf"] as const;
 const ROUND_TITLES: Record<string, string> = {
@@ -403,7 +403,7 @@ export default function FACupBracket({ season }: Props) {
   }
 
   if (!loading && bracket.length === 0) {
-    return <FACupHypotheticalBracket />;
+    return <FACupBracketPlacement />;
   }
 
   return (

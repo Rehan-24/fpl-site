@@ -314,87 +314,43 @@ def compute_full_bracket(seeds: list[Seed], auto_qualify: int) -> dict:
     }
 
 
-def _resolve_slot(slot: dict, qualification_winners: list[dict]):
-    """A Round-of-32 slot descriptor -> the seed dict occupying it, or
-    None for a walkover (nobody there -- the other side auto-advances)."""
-    if slot["kind"] == "seed":
-        return slot["seed"]
-    if slot["kind"] == "ko_winner":
-        return qualification_winners[slot["match_idx"]]
-    return None
-
-
-def _sim_round(entrants: list[dict]) -> tuple[list[dict], list[dict]]:
-    """Pair adjacent entrants (bracket order) and assume the better
-    (lower-numbered) seed wins each one. Returns (matches, winners)."""
-    matches, winners = [], []
-    for i in range(0, len(entrants), 2):
-        a, b = entrants[i], entrants[i + 1]
-        winner = a if a["seed"] < b["seed"] else b
-        matches.append({"seed1": a, "seed2": b, "winner_seed": winner["seed"]})
-        winners.append(winner)
-    return matches, winners
-
-
-def compute_hypothetical_bracket(seeds: list[Seed], auto_qualify: int) -> dict:
+def compute_bracket_placement(seeds: list[Seed], auto_qualify: int) -> dict:
     """
-    A full "if the season ended today" bracket -- every round, not just
-    the Qualification Round. Only the Qualification Round pairings are
-    actually determined by seeding; everything past that depends on who
-    wins, which hasn't happened yet. So this fills in the rest with one
-    explicit, clearly-labeled assumption: the better (lower-numbered)
-    seed wins every hypothetical match, all the way to a hypothetical
-    champion. This is a projection for entertainment/preview purposes,
-    not a prediction -- upsets are what makes a cup run a cup run.
+    What the bracket layout actually looks like right now -- no results
+    simulated or guessed. Qualification Round and Round of 32 are real
+    (auto-qualified seeds, real KO pairings, walkovers shown as a bye).
+    Round of 16 onward is almost entirely unknowable until real games
+    are played, so every slot there is TBD -- except a Round-of-16 slot
+    that a Round-of-32 walkover already resolves mechanically (that's a
+    fact, not a guess: nobody else can end up in that slot).
     """
     base = compute_full_bracket(seeds, auto_qualify)
     round1 = base["round1"]
-    round2_slots = base["round2"]
+    round2 = base["round2"]
+    shape = base["shape"]
 
-    # Assume the better seed wins each real Qualification Round match.
-    qualification_winners = []
-    qualification_results = []
-    for m in round1:
-        s1, s2 = m["seed1"], m["seed2"]
-        winner = s1 if s1["seed"] < s2["seed"] else s2
-        qualification_winners.append(winner)
-        qualification_results.append({**m, "winner_seed": winner["seed"]})
+    n_r32 = len(round2)
+    n_r16, n_qf, n_sf = n_r32 // 2, n_r32 // 4, n_r32 // 8
 
-    round32_results = []
-    r16_entrants = []
-    for m in round2_slots:
-        occ1 = _resolve_slot(m["slot1"], qualification_winners)
-        occ2 = _resolve_slot(m["slot2"], qualification_winners)
-        if occ1 is None or occ2 is None:
-            real = occ1 or occ2
-            round32_results.append({"seed1": occ1, "seed2": occ2, "winner_seed": real["seed"], "walkover": True})
-            r16_entrants.append(real)
-        else:
-            winner = occ1 if occ1["seed"] < occ2["seed"] else occ2
-            round32_results.append({"seed1": occ1, "seed2": occ2, "winner_seed": winner["seed"], "walkover": False})
-            r16_entrants.append(winner)
+    r16 = [{"slot1": {"kind": "tbd"}, "slot2": {"kind": "tbd"}} for _ in range(n_r16)]
+    for i, m in enumerate(round2):
+        if m["slot1"]["kind"] == "walkover" or m["slot2"]["kind"] == "walkover":
+            real = m["slot1"] if m["slot1"]["kind"] != "walkover" else m["slot2"]
+            r16_idx, slot_key = i // 2, "slot1" if i % 2 == 0 else "slot2"
+            r16[r16_idx][slot_key] = real
 
-    r16_matches, r16_winners = _sim_round(r16_entrants)
-    qf_matches, qf_winners = _sim_round(r16_winners)
-    sf_matches, sf_winners = _sim_round(qf_winners)
-    final_matches, final_winners = _sim_round(sf_winners)
-
-    sf_losers = [
-        m["seed2"] if m["winner_seed"] == m["seed1"]["seed"] else m["seed1"]
-        for m in sf_matches
-    ]
-    third_matches, _ = _sim_round(sf_losers)
+    tbd_round = lambda n: [{"slot1": {"kind": "tbd"}, "slot2": {"kind": "tbd"}} for _ in range(n)]
 
     return {
-        "qualification_round": qualification_results,
-        "round_of_32": round32_results,
-        "round_of_16": r16_matches,
-        "quarterfinals": qf_matches,
-        "semifinals": sf_matches,
-        "final": final_matches,
-        "third_place": third_matches,
-        "champion": final_winners[0],
-        "shape": base["shape"],
+        "byes": base["byes"],
+        "qualification_round": round1,
+        "round_of_32": round2,
+        "round_of_16": r16,
+        "quarterfinals": tbd_round(n_qf),
+        "semifinals": tbd_round(n_sf),
+        "final": tbd_round(1),
+        "third_place": tbd_round(1),
+        "shape": shape,
     }
 
 

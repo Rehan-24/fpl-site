@@ -269,10 +269,10 @@ function FACupPreview() {
 
       <ProjectedSeedingTeaser />
 
-      <Link href="/facup"
+      <Link href={bracket.length === 0 ? "/facup?tab=seedings" : "/facup"}
         className="block text-center text-xs font-semibold py-1.5 rounded transition-colors"
         style={{ border: "0.5px solid #5b329e", color: "#5b329e" }}>
-        View full bracket →
+        {bracket.length === 0 ? "View full seeding →" : "View full bracket →"}
       </Link>
     </>
   );
@@ -327,8 +327,7 @@ function ProjectedSeedingTeaser() {
 
   if (loading || error || seeds.length === 0) return null;
 
-  const headline = seeds.filter((s) => s.seed <= 6);
-  const bubble = seeds.filter((s) => s.seed >= 14 && s.seed <= 20);
+  const top = seeds.filter((s) => s.seed <= 13);
   const isAlphabetical = (basis || "").startsWith("alphabetical");
 
   return (
@@ -354,19 +353,9 @@ function ProjectedSeedingTeaser() {
           </tr>
         </thead>
         <tbody>
-          {headline.map((s) => (
+          {top.map((s) => (
             <ProjectedSeedingRow key={s.seed} s={s} autoQualify={autoQualify} />
           ))}
-          {bubble.length > 0 && (
-            <>
-              <tr>
-                <td colSpan={3} className="text-center text-[10px] text-gray-400 py-0.5">⋯ bubble for the last auto-qualify spots ⋯</td>
-              </tr>
-              {bubble.map((s) => (
-                <ProjectedSeedingRow key={s.seed} s={s} autoQualify={autoQualify} />
-              ))}
-            </>
-          )}
         </tbody>
       </table>
     </div>

@@ -1,5 +1,6 @@
 // pages/facup.tsx
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import Head from "next/head";
 import NavBar from "../components/NavBar";
 import GWInfoBar from "../components/GWInfoBar";
@@ -15,8 +16,19 @@ const TAB_LABELS: Record<Tab, string> = {
   rules: "Rules",
 };
 
+const VALID_TABS: Tab[] = ["bracket", "seedings", "rules"];
+
 export default function FACup() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("bracket");
+
+  useEffect(() => {
+    const q = router.query.tab;
+    if (typeof q === "string" && (VALID_TABS as string[]).includes(q)) {
+      setActiveTab(q as Tab);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router.query.tab]);
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-blue-200 via-white to-purple-100 text-[#37003c]">
