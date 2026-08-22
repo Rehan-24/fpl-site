@@ -5,7 +5,7 @@ type SeasonRow = {
   season: string
   placement: number | null
   points: number | null
-  score: number
+  score: number | null
   overallRank: number | null
 }
 
@@ -50,7 +50,7 @@ export default function SeasonStatsCard({ ownerName }: { ownerName: string }) {
           season: r.season,
           placement: toNum(r.placement ?? r.position ?? null),
           points: toNum(r.points ?? r.league_points ?? null),
-          score: toNum(r.score ?? r.total_score ?? null) ?? 0,
+          score: toNum(r.score ?? r.total_score ?? null),
           overallRank: toNum(r.overallRank ?? r.overall_rank ?? null),
         }))
 
