@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo } from 'react'
 
 type SeasonRow = {
   season: string
+  league: string | null
   placement: number | null
   points: number | null
   score: number | null
@@ -48,6 +49,7 @@ export default function SeasonStatsCard({ ownerName }: { ownerName: string }) {
         // Normalize field names for UI
         const normalized: SeasonRow[] = raw.map((r) => ({
           season: r.season,
+          league: r.league ?? null,
           placement: toNum(r.placement ?? r.position ?? null),
           points: toNum(r.points ?? r.league_points ?? null),
           score: toNum(r.score ?? r.total_score ?? null),
@@ -80,8 +82,9 @@ export default function SeasonStatsCard({ ownerName }: { ownerName: string }) {
           <thead>
             <tr className="border-b border-gray-400">
               <th className="py-2 text-left font-semibold">Season</th>
-              <th className="py-2 text-center font-semibold">Placement</th>
-              <th className="py-2 text-center font-semibold">Points</th>
+              <th className="py-2 text-center font-semibold">League</th>
+              <th className="py-2 text-center font-semibold">League Placement</th>
+              <th className="py-2 text-center font-semibold">League Points</th>
               <th className="py-2 text-center font-semibold">Score</th>
               <th className="py-2 text-center font-semibold">Overall Rank</th>
             </tr>
@@ -90,6 +93,7 @@ export default function SeasonStatsCard({ ownerName }: { ownerName: string }) {
             {rows.map((r) => (
               <tr key={r.season} className="border-b border-gray-300">
                 <td className="py-2">{r.season}</td>
+                <td className="py-2 text-center">{r.league ?? '—'}</td>
                 <td className="py-2 text-center">{r.placement ?? '—'}</td>
                 <td className="py-2 text-center">{r.points ?? '—'}</td>
                 <td className="py-2 text-center">{r.score ?? '—'}</td>
@@ -100,7 +104,7 @@ export default function SeasonStatsCard({ ownerName }: { ownerName: string }) {
             ))}
             {!rows.length && (
               <tr>
-                <td colSpan={5} className="py-4 text-center opacity-70">
+                <td colSpan={6} className="py-4 text-center opacity-70">
                   No seasons yet.
                 </td>
               </tr>

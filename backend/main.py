@@ -661,7 +661,9 @@ _STATIC_SEASON_META = {
         "2022-23": {"version": "v2", "champion": "joel FC",       "manager": "Joel Matthew"},
         "2021-22": {"version": "v1", "champion": "Cheeks FC",     "manager": "Rehan Khan"},
     },
-    "championship": {},
+    "championship": {
+        "2023-24": {"version": "v1", "champion": "Boogie Woogie", "manager": "James Giles"},
+    },
 }
 
 @app.get("/api/seasons", tags=["seasons"])

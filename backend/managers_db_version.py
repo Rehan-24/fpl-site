@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 from fastapi import APIRouter, HTTPException, Body, Header, Query
 from backend_db import get_season_stats_for_owner
+from league_versions import league_full_label
 from backend_db import get_manager_fixtures
 from fixtures_refresh import current_season_label
 from backend_db import (
@@ -182,7 +183,7 @@ def seasons_for_owner(owner: str):
         season = r.get("season")
         merged[season] = {
             "season": season,
-            "league": r.get("league"),
+            "league": league_full_label(r.get("league"), season),
             "placement": _int_or_none(r.get("placement")),
             "points": _int_or_none(r.get("league_points")),
             "score": _int_or_none(r.get("total_score")),
