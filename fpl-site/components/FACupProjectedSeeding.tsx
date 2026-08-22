@@ -6,10 +6,21 @@
 import Link from "next/link";
 import { useProjectedSeeding, ProjectedSeed } from "@/public/hooks/useProjectedSeeding";
 
+// Seeds 1-3 are locked to last season's trophy winners regardless of
+// current score; everyone else's qualification status is score-based
+// and can still shift as the season plays out.
+function qualificationStatus(seed: number, autoQualify: number): { label: string; locked: boolean } {
+  const locked = seed <= 3;
+  if (seed <= autoQualify) {
+    return { label: locked ? "Qualified for Round of 32" : "Currently Qualified for Round of 32", locked };
+  }
+  return { label: "Currently Heading to Qualification KO Round", locked: false };
+}
+
 export default function FACupProjectedSeeding() {
   const {
     lastSeason, facupWinner, premWinner, champWinner,
-    basis, byes, seeds, round1, loading, error, lastUpdated, refresh,
+    basis, autoQualify, seeds, qualificationRound, loading, error, lastUpdated, refresh,
   } = useProjectedSeeding();
 
   if (loading && seeds.length === 0) {
@@ -42,8 +53,10 @@ export default function FACupProjectedSeeding() {
       <div className="text-xs text-gray-500 mb-3 space-y-1">
         <p>
           Recomputed live from current standings — not final until the bracket
-          freezes. Seeds 1–3 are locked in ({lastSeason} trophy winners); everything
-          after that will keep shuffling as the season plays out.
+          freezes. Seeds 1–3 are locked in ({lastSeason} trophy winners). The top{" "}
+          {autoQualify} seeds auto-qualify for the Round of 32; everyone else plays
+          a Qualification Round first. Everything past seed 3 will keep shuffling
+          as the season plays out.
         </p>
         {isAlphabetical && (
           <p className="inline-block bg-yellow-50 border-l-4 border-yellow-400 px-2 py-1 text-yellow-800">
@@ -63,7 +76,7 @@ export default function FACupProjectedSeeding() {
         <table className="w-full border-collapse text-[12px]">
           <thead>
             <tr>
-              {["#", "Team", "Manager", "League", "Reason", "Score"].map((h, i) => (
+              {["#", "Team", "Manager", "League", "Status", "Score"].map((h, i) => (
                 <th
                   key={h}
                   className="bg-[#37003c] text-white px-3 py-2 text-left text-[11px] font-semibold tracking-wide"
@@ -76,18 +89,13 @@ export default function FACupProjectedSeeding() {
           </thead>
           <tbody>
             {seeds.map((p: ProjectedSeed, i: number) => {
-              const isBye = p.seed <= byes;
+              const status = qualificationStatus(p.seed, autoQualify);
               const bg = i % 2 === 0 ? "bg-white" : "bg-purple-50";
               return (
                 <tr key={p.seed} className={`${bg} hover:bg-purple-100 transition-colors`}>
                   <td className="px-3 py-1.5 font-bold text-[#37003c]">{p.seed}</td>
                   <td className="px-3 py-1.5">
                     <span className="font-semibold text-[#37003c]">{p.team}</span>
-                    {isBye && (
-                      <span className="ml-1.5 inline-block text-[9px] font-bold bg-green-100 text-green-800 px-1.5 py-0.5 rounded">
-                        BYE
-                      </span>
-                    )}
                   </td>
                   <td className="px-3 py-1.5 text-purple-700">
                     <Link href={`/managers/${encodeURIComponent(p.owner)}`} className="hover:underline">
@@ -105,7 +113,20 @@ export default function FACupProjectedSeeding() {
                       </span>
                     )}
                   </td>
-                  <td className="px-3 py-1.5 text-gray-400 text-[10px]">{p.reason}</td>
+                  <td className="px-3 py-1.5">
+                    <span
+                      className={`inline-block text-[9px] font-bold px-1.5 py-0.5 rounded tracking-wide ${
+                        status.locked ? "bg-green-100 text-green-800" :
+                        p.seed <= autoQualify ? "bg-green-50 text-green-700" :
+                        "bg-amber-50 text-amber-700"
+                      }`}
+                    >
+                      {status.label}
+                    </span>
+                    {status.locked && (
+                      <div className="text-gray-400 text-[10px] mt-0.5">{p.reason}</div>
+                    )}
+                  </td>
                   <td className="px-3 py-1.5 text-right font-bold font-mono text-[#37003c]">
                     {p.score}
                   </td>
@@ -117,16 +138,17 @@ export default function FACupProjectedSeeding() {
       </div>
 
       <h3 className="text-[14px] font-bold text-[#37003c] mb-1 flex items-center gap-2">
-        Projected Round 1 Matchups
+        Projected Qualification Round Matchups
         <span className="flex-1 h-px bg-purple-200 block" />
       </h3>
       <p className="text-xs text-gray-500 mb-3">
-        Top {byes} seeds get a bye straight through. The bottom {round1.length * 2} seeds
-        are paired best-vs-worst. Everything past Round 1 depends on the bracket draw,
-        which isn't finalized yet.
+        Top {autoQualify} seeds auto-qualify for the Round of 32. The remaining{" "}
+        {qualificationRound.length * 2} seeds play a single Qualification Round,
+        paired best-vs-worst, for the last spots. Everything past that depends on
+        who actually wins these matches.
       </p>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        {round1.map((m, i) => (
+        {qualificationRound.map((m, i) => (
           <div key={i} className="border border-[#ddd6fe] rounded-md overflow-hidden text-[11px]">
             <div className="bg-purple-50 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-purple-400">
               Match {i + 1}

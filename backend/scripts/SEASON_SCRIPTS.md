@@ -186,7 +186,7 @@ to `facup_bracket` until you've reviewed the computed seeding and
 bracket:
 
 ```bash
-python facup_freeze.py compute --season 2026-27 --kickoff-gw 22 --byes 4 \
+python facup_freeze.py compute --season 2026-27 --kickoff-gw 22 --auto-qualify 16 \
     --facup-winner "Marvin Ling" --prem-winner "Michael Giles" \
     --champ-winner "Aaron Frank" --out facup_report.json
 
@@ -195,12 +195,22 @@ python facup_freeze.py compute --season 2026-27 --kickoff-gw 22 --byes 4 \
 python facup_freeze.py apply --report facup_report.json
 ```
 
+The top `auto-qualify` seeds (16 by default) skip straight to the Round
+of 32; everyone else plays a single Qualification Round, paired
+best-remaining vs worst-remaining. Since 16 auto-qualifiers + 12
+Qualification Round winners (for the default 40-seed/16-auto-qualify
+case) isn't a power of 2, the strongest few advancing seeds get an
+additional walkover straight past Round of 32 too -- `apply` handles
+this automatically by pre-filling their Round-of-16 slot directly
+rather than writing an unplayable Round-of-32 row.
+
 `apply` clears any existing bracket rows for that season first (safe
 to re-run if you need to fix something before the tournament actually
-starts), resolves every seed to a real FPL entry ID, and writes Round 1
-+ Round 2 fully seeded plus empty placeholder rows for R16 onward --
-same shape `facup_recalculate.py` already produces, so the existing
-score-refresh cron (`refresh-facup.yml`) picks it up with no changes.
+starts), resolves every seed to a real FPL entry ID, and writes the
+Qualification Round + Round of 32 fully seeded plus empty placeholder
+rows for R16 onward -- same shape `facup_recalculate.py` already
+produces, so the existing score-refresh cron (`refresh-facup.yml`)
+picks it up with no changes.
 
 **The Round 2 pairing is worth understanding before you trust it.**
 2025-26's bracket used a hand-built quadrant convention that was never

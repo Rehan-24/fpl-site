@@ -31,9 +31,9 @@ export interface ProjectedSeedingData {
   premWinner: string | null;
   champWinner: string | null;
   basis: string | null;
-  byes: number;
+  autoQualify: number;
   seeds: ProjectedSeed[];
-  round1: ProjectedMatchup[];
+  qualificationRound: ProjectedMatchup[];
   loading: boolean;
   error: string | null;
   lastUpdated: number | null;
@@ -94,9 +94,9 @@ export function useProjectedSeeding(): ProjectedSeedingData {
     premWinner: data?.prem_winner ?? null,
     champWinner: data?.champ_winner ?? null,
     basis: data?.basis ?? null,
-    byes: data?.byes ?? 4,
+    autoQualify: data?.auto_qualify ?? 16,
     seeds: data?.seeds ?? [],
-    round1: data?.round1 ?? [],
+    qualificationRound: data?.qualification_round ?? [],
     loading,
     error,
     lastUpdated,

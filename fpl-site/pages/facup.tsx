@@ -101,9 +101,11 @@ function RulesPanel() {
         <div>
           <p className="font-bold mb-1">Format</p>
           <ul className="list-disc ml-5 space-y-1">
-            <li>The bottom seeds compete in <strong>Round 1</strong> (GW22)</li>
-            <li>Seeds <strong>1–4</strong> receive first-round byes, going straight to the Round of 32 (GW23) to face a Round 1 winner</li>
-            <li>The remaining seeds also enter the Round of 32 directly, seeded to protect the top seeds — 1 and 2 can only meet in the Final</li>
+            <li><strong>GW1–22</strong> are Qualifying Weeks — cumulative season score determines seeding</li>
+            <li>Seeds <strong>1–3</strong> are locked to last season's trophy winners (FA Cup, Premier League, Championship); seed <strong>4</strong> onward is the highest remaining scorer, alternating leagues</li>
+            <li>The top <strong>16</strong> seeds auto-qualify straight to the <strong>Round of 32</strong> — no game needed</li>
+            <li>The bottom <strong>24</strong> seeds play a single-elimination <strong>Qualification Round</strong> (GW22), paired best-vs-worst within that group (seed 17 vs seed 40, seed 18 vs seed 39, and so on) for the remaining Round of 32 spots</li>
+            <li>Round of 32 (GW23) is seeded to protect the top seeds — 1 and 2 can only meet in the Final; if a round ever has an odd number of teams remaining, the strongest surviving seed gets a bye to the next round</li>
             <li>Bracket proceeds: Round of 32 (GW23) → R16 (GW24) → Quarterfinals (GW25) → Semifinals (GW26)</li>
             <li>
               <strong>Finals Week (GW27):</strong> SF winners play the <strong>Final</strong>;

@@ -176,49 +176,56 @@ def _ordsuf(n: int) -> str:
     return {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
 
 
-def bracket_shape(n_total: int, byes: int) -> dict:
+def bracket_shape(n_total: int, auto_qualify: int) -> dict:
     """
-    How many play Round 1, and how many enter Round 2 directly, for a
-    single-elimination bracket of n_total entrants with `byes` seeds
-    skipping Round 1. Round 2's size is fixed to the largest power of 2
-    that's <= n_total (so R16 -> QF -> SF -> Final all halve cleanly
-    afterward) -- this reproduces the actual 2025-26 shape exactly when
-    n_total=40, byes=8 (round2_size=32, r1_matches=8, direct_entrants=16).
+    The top `auto_qualify` seeds skip the Qualification Round entirely
+    and go straight through to the Round of 32. Everyone else --
+    n_total - auto_qualify seeds -- plays in the Qualification Round,
+    paired best-remaining vs worst-remaining within that pool (e.g. for
+    n_total=40, auto_qualify=16: seeds 17-40, paired 17v40, 18v39, ...
+    28v29 -- 12 matches, 12 winners).
+
+    Unlike the old scheme, this doesn't force the round after
+    qualification to a clean power of 2 -- 16 auto-qualifiers + 12
+    Qualification Round winners = 28, not 32. That's fine: from Round
+    of 32 onward, whichever round happens to have an odd number of
+    teams still alive gives the single best-remaining seed a bye to the
+    next round (see compute_full_bracket) rather than forcing an
+    artificial power-of-2 shape immediately after qualification.
     """
-    round2_size = 1
-    while round2_size * 2 <= n_total:
-        round2_size *= 2
-    r1_matches = n_total - round2_size
-    direct_entrants = 2 * round2_size - byes - n_total
+    ko_pool_size = n_total - auto_qualify
+    ko_matches = ko_pool_size // 2
+    advancing = auto_qualify + ko_matches
     return {
-        "round2_size": round2_size,
-        "r1_matches": r1_matches,
-        "direct_entrants": direct_entrants,
+        "auto_qualify": auto_qualify,
+        "ko_pool_size": ko_pool_size,
+        "ko_matches": ko_matches,
+        "advancing": advancing,
     }
 
 
-def compute_round1(seeds: list[Seed], byes: int) -> dict:
+def compute_round1(seeds: list[Seed], auto_qualify: int) -> dict:
     """
-    Only Round 1 is fully determined by seeding alone (best-remaining vs
-    worst-remaining, among whoever doesn't have a bye) -- everything past
-    that depends on a bracket-quadrant convention that hasn't been
-    finalized for next season yet. Returns byes (top N seeds) and the
-    Round 1 matchups for the bottom seeds.
+    Only the Qualification Round is fully determined by seeding alone
+    (best-remaining vs worst-remaining, among whoever isn't auto-
+    qualified) -- everything past that depends on actual results.
+    Returns the auto-qualified seeds and the Qualification Round
+    matchups for the rest.
     """
     n_total = len(seeds)
-    shape = bracket_shape(n_total, byes)
-    r1_matches = shape["r1_matches"]
+    shape = bracket_shape(n_total, auto_qualify)
+    ko_matches = shape["ko_matches"]
 
-    bye_seeds = [s for s in seeds if s.seed <= byes]
-    r1_pool = [s for s in seeds if s.seed > n_total - 2 * r1_matches]
+    auto_seeds = [s for s in seeds if s.seed <= auto_qualify]
+    ko_pool = [s for s in seeds if s.seed > auto_qualify]
     matchups = []
-    for i in range(r1_matches):
-        top = r1_pool[i]
-        bottom = r1_pool[-(i + 1)]
+    for i in range(ko_matches):
+        top = ko_pool[i]
+        bottom = ko_pool[-(i + 1)]
         matchups.append({"seed1": asdict(top), "seed2": asdict(bottom)})
 
     return {
-        "byes": [asdict(s) for s in bye_seeds],
+        "byes": [asdict(s) for s in auto_seeds],
         "round1": matchups,
         "shape": shape,
     }
@@ -242,60 +249,68 @@ def _standard_bracket_order(size: int) -> list[int]:
     return order
 
 
-def compute_full_bracket(seeds: list[Seed], byes: int) -> dict:
+def compute_full_bracket(seeds: list[Seed], auto_qualify: int) -> dict:
     """
-    Full projected bracket: Round 1 (as compute_round1) plus Round 2
-    pairings, using the standard bracket-seeding algorithm (see
-    _standard_bracket_order) rather than reproducing 2025-26's bespoke,
-    hand-picked quadrant assignment -- that one wasn't a plain textbook
-    algorithm and guessing at its exact convention risked looking
-    official while being wrong. This is a real, well-known, explainable
-    method instead: it gives the same guarantee (protect top seeds,
-    1-vs-2 only possible in the final) via a documented rule anyone can
-    verify by hand.
+    Full projected bracket: the Qualification Round (as compute_round1)
+    plus Round of 32 pairings.
 
-    Virtual Round-2 ranks 1..round2_size are assigned as:
-      1..byes                        -> the bye seeds, in seed order
-      byes+1..byes+r1_matches        -> R1 match winners, ranked by
-                                         their match's stronger seed
-                                         (Match 1 = the R1 match between
-                                         the two best-remaining seeds)
-      byes+r1_matches+1..round2_size -> direct entrants, in seed order
+    The "advancing" pool -- auto-qualifiers + Qualification Round
+    winners (e.g. 16 + 12 = 28 for a 40-seed season with
+    auto_qualify=16) -- generally isn't a power of 2, so it's padded up
+    to the next one the same way any non-power-of-2 single-elimination
+    field is handled: the strongest remaining entrants get an
+    additional walkover straight past Round of 32, so R16 -> QF -> SF
+    -> Final all halve cleanly from there. Uses the standard
+    bracket-seeding algorithm (see _standard_bracket_order) for
+    pairing, not a bespoke hand-built quadrant convention -- a real,
+    well-known, explainable method that protects the top seeds
+    (1-vs-2 only possible in the final); the "extra" walkovers fall out
+    of it automatically, landing on the strongest seeds, since a
+    missing rank at the far end of the standard order is always paired
+    against one of the top seeds.
+
+    Virtual ranks 1..advancing entering Round of 32 are assigned as:
+      1..auto_qualify              -> the auto-qualified seeds, in seed
+                                       order
+      auto_qualify+1..advancing    -> Qualification Round winners,
+                                       ranked by their match's stronger
+                                       seed (Match 1 = the KO match
+                                       between the two best-remaining
+                                       seeds)
     """
-    base = compute_round1(seeds, byes)
+    base = compute_round1(seeds, auto_qualify)
     shape = base["shape"]
-    byes_list = base["byes"]
+    auto_seeds = base["byes"]
     round1 = base["round1"]
 
-    n_total = len(seeds)
-    r1_matches = shape["r1_matches"]
-    direct_entrants_seeds = [
-        s for s in seeds
-        if s.seed > byes and s.seed <= n_total - 2 * r1_matches
-    ]
+    advancing = shape["advancing"]
+    ko_matches = shape["ko_matches"]
 
-    # virtual rank -> a descriptor of who's actually there
+    round2_size = 1
+    while round2_size < advancing:
+        round2_size *= 2
+    extra_byes = round2_size - advancing
+
+    # virtual rank -> a descriptor of who's actually there entering Round of 32
     virtual: dict[int, dict] = {}
-    for i, b in enumerate(byes_list):
+    for i, b in enumerate(auto_seeds):
         virtual[i + 1] = {"kind": "seed", "seed": b}
-    for i in range(r1_matches):
-        virtual[byes + i + 1] = {"kind": "r1_winner", "match_idx": i, "match": round1[i]}
-    for i, s in enumerate(direct_entrants_seeds):
-        virtual[byes + r1_matches + i + 1] = {"kind": "seed", "seed": asdict(s)}
+    for i in range(ko_matches):
+        virtual[auto_qualify + i + 1] = {"kind": "ko_winner", "match_idx": i, "match": round1[i]}
 
-    order = _standard_bracket_order(shape["round2_size"])
+    order = _standard_bracket_order(round2_size)
     round2 = []
     for i in range(0, len(order), 2):
         round2.append({
-            "slot1": virtual[order[i]],
-            "slot2": virtual[order[i + 1]],
+            "slot1": virtual.get(order[i], {"kind": "walkover"}),
+            "slot2": virtual.get(order[i + 1], {"kind": "walkover"}),
         })
 
     return {
-        "byes": byes_list,
+        "byes": auto_seeds,
         "round1": round1,
         "round2": round2,
-        "shape": shape,
+        "shape": {**shape, "round2_size": round2_size, "extra_byes": extra_byes},
     }
 
 

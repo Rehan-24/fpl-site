@@ -278,12 +278,57 @@ function FACupPreview() {
   );
 }
 
+// Seeds 1-3 are locked to last season's trophy winners regardless of
+// current score; everyone else's qualification status is score-based
+// and can still shift as the season plays out.
+function qualificationStatus(seed: number, autoQualify: number): { label: string; locked: boolean } {
+  const locked = seed <= 3;
+  if (seed <= autoQualify) {
+    return { label: locked ? "Qualified for Round of 32" : "Currently Qualified for Round of 32", locked };
+  }
+  return { label: "Currently Heading to Qualification KO Round", locked: false };
+}
+
+function ProjectedSeedingRow({ s, autoQualify }: { s: any; autoQualify: number }) {
+  const status = qualificationStatus(s.seed, autoQualify);
+  return (
+    <tr className="border-b border-[#37003c]">
+      <td className="px-2 py-1 w-6 text-center align-top">{s.seed}</td>
+      <td className="px-2 py-1 text-left align-top">
+        <div className="leading-tight">
+          <div className="text-sm">{s.team}</div>
+          <div className="text-xs text-gray-600 text-left no-underline hover:underline focus-visible:underline">
+            <Link href={`/managers/${encodeURIComponent(s.owner)}`}>
+              {s.owner}
+            </Link>
+          </div>
+        </div>
+      </td>
+      <td className="px-2 py-1 text-right align-top">
+        <span
+          className={`inline-block text-[9px] font-bold px-1.5 py-0.5 rounded whitespace-normal leading-tight ${
+            status.locked ? "bg-green-100 text-green-800" :
+            s.seed <= autoQualify ? "bg-green-50 text-green-700" :
+            "bg-amber-50 text-amber-700"
+          }`}
+        >
+          {status.label}
+        </span>
+        {status.locked && (
+          <div className="text-[9px] text-gray-500 mt-0.5 leading-tight">{s.reason}</div>
+        )}
+      </td>
+    </tr>
+  );
+}
+
 function ProjectedSeedingTeaser() {
-  const { seeds, byes, basis, loading, error } = useProjectedSeeding();
+  const { seeds, autoQualify, basis, loading, error } = useProjectedSeeding();
 
   if (loading || error || seeds.length === 0) return null;
 
-  const top = seeds.slice(0, 10);
+  const headline = seeds.filter((s) => s.seed <= 6);
+  const bubble = seeds.filter((s) => s.seed >= 14 && s.seed <= 20);
   const isAlphabetical = (basis || "").startsWith("alphabetical");
 
   return (
@@ -297,45 +342,31 @@ function ProjectedSeedingTeaser() {
         )}
       </div>
       <p className="text-[10px] text-gray-500 mb-1.5">
-        Cup is expected to kick off <strong>GW22</strong> — seeding below updates live
-        until then.
+        Cup is expected to kick off <strong>GW22</strong> — the top {autoQualify} seeds qualify
+        automatically for the Round of 32; everyone else plays a Qualification Round first.
       </p>
       <table className="w-full text-sm table-fixed">
         <thead>
           <tr className="bg-[#32FF6A] text-[#37003c] text-xs font-bold">
             <th className="text-left px-2 py-1 w-6">#</th>
             <th className="text-left px-2 py-1">Team & Manager</th>
-            <th className="text-right px-2 py-1 w-24">Seed Reason</th>
+            <th className="text-right px-2 py-1 w-24">Status</th>
           </tr>
         </thead>
         <tbody>
-          {top.map((s) => (
-            <tr key={s.seed} className="border-b border-[#37003c]">
-              <td className="px-2 py-1 w-6 text-center align-top">{s.seed}</td>
-              <td className="px-2 py-1 text-left align-top">
-                <div className="leading-tight">
-                  <div className="text-sm">{s.team}</div>
-                  <div className="text-xs text-gray-600 text-left no-underline hover:underline focus-visible:underline">
-                    <Link href={`/managers/${encodeURIComponent(s.owner)}`}>
-                      {s.owner}
-                    </Link>
-                  </div>
-                </div>
-              </td>
-              <td className="px-2 py-1 text-right align-top">
-                {s.seed <= byes ? (
-                  <>
-                    <span className="inline-block text-[9px] font-bold bg-green-100 text-green-800 px-1.5 py-0.5 rounded">
-                      BYE
-                    </span>
-                    <div className="text-[9px] text-gray-500 mt-0.5 leading-tight">{s.reason}</div>
-                  </>
-                ) : (
-                  <span className="text-sm font-semibold" style={{ color: "#37003c" }}>{s.score}</span>
-                )}
-              </td>
-            </tr>
+          {headline.map((s) => (
+            <ProjectedSeedingRow key={s.seed} s={s} autoQualify={autoQualify} />
           ))}
+          {bubble.length > 0 && (
+            <>
+              <tr>
+                <td colSpan={3} className="text-center text-[10px] text-gray-400 py-0.5">⋯ bubble for the last auto-qualify spots ⋯</td>
+              </tr>
+              {bubble.map((s) => (
+                <ProjectedSeedingRow key={s.seed} s={s} autoQualify={autoQualify} />
+              ))}
+            </>
+          )}
         </tbody>
       </table>
     </div>

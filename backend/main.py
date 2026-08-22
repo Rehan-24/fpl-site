@@ -1544,14 +1544,20 @@ def get_facup_seasons():
 
 
 @app.get("/api/facup/projected-seeding", tags=["facup"])
-def get_facup_projected_seeding(byes: int = Query(4)):
+def get_facup_projected_seeding(auto_qualify: int = Query(16)):
     """
     Live projected FA Cup seeding for the season currently in progress,
     computed fresh from current standings on every request -- nothing is
     cached or stored. Not final; the real seeding locks at the season's
-    GW22 freeze. Only seeding + Round 1 are returned, since everything
-    past Round 1 depends on a bracket-quadrant convention that hasn't
-    been finalized for this season yet.
+    GW22 freeze.
+
+    GW1-21 are "qualifying weeks": the top `auto_qualify` seeds (16 by
+    default) go straight through to the Round of 32. Everyone else
+    plays a single Qualification Round, paired best-remaining vs
+    worst-remaining -- e.g. seed 17 vs seed 40, seed 18 vs seed 39, and
+    so on. Only seeding + the Qualification Round are returned here,
+    since Round of 32 pairing depends on who actually wins those
+    matches.
     """
     from facup_seeding import compute_seeding, compute_round1
     from fixtures_refresh import last_season_label
@@ -1615,7 +1621,7 @@ def get_facup_projected_seeding(byes: int = Query(4)):
     except ValueError as e:
         raise HTTPException(status_code=503, detail=str(e))
 
-    r1 = compute_round1(seeds, byes=byes)
+    r1 = compute_round1(seeds, auto_qualify=auto_qualify)
     basis = "score" if sum(s.score for s in seeds) > 0 else "alphabetical (preseason -- no scores yet)"
 
     resp = JSONResponse({
@@ -1624,9 +1630,9 @@ def get_facup_projected_seeding(byes: int = Query(4)):
         "prem_winner": prem_winner_row["Owner"],
         "champ_winner": champ_winner_row["Owner"],
         "basis": basis,
-        "byes": byes,
+        "auto_qualify": auto_qualify,
         "seeds": [s.__dict__ for s in seeds],
-        "round1": r1["round1"],
+        "qualification_round": r1["round1"],
         "shape": r1["shape"],
     })
     resp.headers["Cache-Control"] = "public, max-age=300"
