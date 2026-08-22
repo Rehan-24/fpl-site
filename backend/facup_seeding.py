@@ -178,50 +178,67 @@ def _ordsuf(n: int) -> str:
 
 def bracket_shape(n_total: int, auto_qualify: int) -> dict:
     """
-    The top `auto_qualify` seeds skip the Qualification Round entirely
-    and go straight through to the Round of 32. Everyone else --
-    n_total - auto_qualify seeds -- plays in the Qualification Round,
-    paired best-remaining vs worst-remaining within that pool (e.g. for
-    n_total=40, auto_qualify=16: seeds 17-40, paired 17v40, 18v39, ...
-    28v29 -- 12 matches, 12 winners).
+    Three tiers for a single-elimination bracket of n_total entrants:
 
-    Unlike the old scheme, this doesn't force the round after
-    qualification to a clean power of 2 -- 16 auto-qualifiers + 12
-    Qualification Round winners = 28, not 32. That's fine: from Round
-    of 32 onward, whichever round happens to have an odd number of
-    teams still alive gives the single best-remaining seed a bye to the
-    next round (see compute_full_bracket) rather than forcing an
-    artificial power-of-2 shape immediately after qualification.
+      1. auto_qualify seeds   -- explicit, spotlighted qualifiers (top
+                                  3 trophy winners + highest scorer, by
+                                  default) that skip the Qualification
+                                  Round with a clearly-stated reason.
+      2. "direct entrants"    -- also skip the Qualification Round with
+                                  no game, for a purely mechanical
+                                  reason: Round of 32's size is fixed to
+                                  the largest power of 2 <= n_total, and
+                                  reaching that cleanly requires it.
+      3. Qualification Round  -- the bottom seeds, paired
+                                  best-remaining vs worst-remaining,
+                                  playing for the rest of the Round of
+                                  32 spots.
+
+    Round of 32's size (and therefore the Qualification Round's size)
+    depends only on n_total, not on auto_qualify -- e.g. for n_total=40,
+    round2_size is always 32 and the Qualification Round is always the
+    bottom 16 (8 matches), regardless of whether auto_qualify is 4 or
+    24. auto_qualify only controls how many of the 24 non-playing seeds
+    get their qualification reason spotlighted vs shown as a plain
+    "advancing directly" status -- it doesn't change the bracket shape
+    itself, since both tiers land in the same ordered pool entering
+    Round of 32. This reproduces 2025-26's actual bracket shape exactly
+    when auto_qualify=4 (round2_size=32, qualifying_matches=8,
+    direct_entrants=20).
     """
-    ko_pool_size = n_total - auto_qualify
-    ko_matches = ko_pool_size // 2
-    advancing = auto_qualify + ko_matches
+    round2_size = 1
+    while round2_size * 2 <= n_total:
+        round2_size *= 2
+    qualifying_matches = n_total - round2_size
+    direct_entrants = 2 * round2_size - auto_qualify - n_total
+    round32_cutoff = auto_qualify + direct_entrants
     return {
         "auto_qualify": auto_qualify,
-        "ko_pool_size": ko_pool_size,
-        "ko_matches": ko_matches,
-        "advancing": advancing,
+        "round2_size": round2_size,
+        "qualifying_matches": qualifying_matches,
+        "direct_entrants": direct_entrants,
+        "round32_cutoff": round32_cutoff,
     }
 
 
 def compute_round1(seeds: list[Seed], auto_qualify: int) -> dict:
     """
     Only the Qualification Round is fully determined by seeding alone
-    (best-remaining vs worst-remaining, among whoever isn't auto-
-    qualified) -- everything past that depends on actual results.
+    (best-remaining vs worst-remaining, among whoever doesn't advance
+    directly) -- everything past that depends on actual results.
     Returns the auto-qualified seeds and the Qualification Round
-    matchups for the rest.
+    matchups for the bottom seeds.
     """
     n_total = len(seeds)
     shape = bracket_shape(n_total, auto_qualify)
-    ko_matches = shape["ko_matches"]
+    qualifying_matches = shape["qualifying_matches"]
 
     auto_seeds = [s for s in seeds if s.seed <= auto_qualify]
-    ko_pool = [s for s in seeds if s.seed > auto_qualify]
+    qual_pool = [s for s in seeds if s.seed > n_total - 2 * qualifying_matches]
     matchups = []
-    for i in range(ko_matches):
-        top = ko_pool[i]
-        bottom = ko_pool[-(i + 1)]
+    for i in range(qualifying_matches):
+        top = qual_pool[i]
+        bottom = qual_pool[-(i + 1)]
         matchups.append({"seed1": asdict(top), "seed2": asdict(bottom)})
 
     return {
@@ -252,65 +269,62 @@ def _standard_bracket_order(size: int) -> list[int]:
 def compute_full_bracket(seeds: list[Seed], auto_qualify: int) -> dict:
     """
     Full projected bracket: the Qualification Round (as compute_round1)
-    plus Round of 32 pairings.
+    plus Round of 32 pairings. Round of 32 always comes out to exactly
+    round2_size entrants (32 for a 40-seed season) -- auto-qualifiers +
+    direct entrants + Qualification Round winners -- so there's no
+    padding or walkovers needed; every Round-of-32 slot is a real
+    entrant. Uses the standard bracket-seeding algorithm (see
+    _standard_bracket_order) for pairing, not a bespoke hand-built
+    quadrant convention -- a real, well-known, explainable method that
+    protects the top seeds (1-vs-2 only possible in the Final).
 
-    The "advancing" pool -- auto-qualifiers + Qualification Round
-    winners (e.g. 16 + 12 = 28 for a 40-seed season with
-    auto_qualify=16) -- generally isn't a power of 2, so it's padded up
-    to the next one the same way any non-power-of-2 single-elimination
-    field is handled: the strongest remaining entrants get an
-    additional walkover straight past Round of 32, so R16 -> QF -> SF
-    -> Final all halve cleanly from there. Uses the standard
-    bracket-seeding algorithm (see _standard_bracket_order) for
-    pairing, not a bespoke hand-built quadrant convention -- a real,
-    well-known, explainable method that protects the top seeds
-    (1-vs-2 only possible in the final); the "extra" walkovers fall out
-    of it automatically, landing on the strongest seeds, since a
-    missing rank at the far end of the standard order is always paired
-    against one of the top seeds.
-
-    Virtual ranks 1..advancing entering Round of 32 are assigned as:
-      1..auto_qualify              -> the auto-qualified seeds, in seed
-                                       order
-      auto_qualify+1..advancing    -> Qualification Round winners,
-                                       ranked by their match's stronger
-                                       seed (Match 1 = the KO match
-                                       between the two best-remaining
-                                       seeds)
+    Virtual ranks 1..round2_size entering Round of 32 are assigned as:
+      1..auto_qualify                      -> the auto-qualified seeds,
+                                               in seed order
+      auto_qualify+1..round32_cutoff       -> direct entrants, in seed
+                                               order
+      round32_cutoff+1..round2_size        -> Qualification Round
+                                               winners, ranked by their
+                                               match's stronger seed
+                                               (Match 1 = the KO match
+                                               between the two
+                                               best-remaining seeds)
     """
     base = compute_round1(seeds, auto_qualify)
     shape = base["shape"]
     auto_seeds = base["byes"]
     round1 = base["round1"]
 
-    advancing = shape["advancing"]
-    ko_matches = shape["ko_matches"]
-
-    round2_size = 1
-    while round2_size < advancing:
-        round2_size *= 2
-    extra_byes = round2_size - advancing
+    n_total = len(seeds)
+    round32_cutoff = shape["round32_cutoff"]
+    qualifying_matches = shape["qualifying_matches"]
+    direct_entrants_seeds = [
+        s for s in seeds
+        if s.seed > auto_qualify and s.seed <= round32_cutoff
+    ]
 
     # virtual rank -> a descriptor of who's actually there entering Round of 32
     virtual: dict[int, dict] = {}
     for i, b in enumerate(auto_seeds):
         virtual[i + 1] = {"kind": "seed", "seed": b}
-    for i in range(ko_matches):
-        virtual[auto_qualify + i + 1] = {"kind": "ko_winner", "match_idx": i, "match": round1[i]}
+    for i, s in enumerate(direct_entrants_seeds):
+        virtual[auto_qualify + i + 1] = {"kind": "seed", "seed": asdict(s)}
+    for i in range(qualifying_matches):
+        virtual[round32_cutoff + i + 1] = {"kind": "ko_winner", "match_idx": i, "match": round1[i]}
 
-    order = _standard_bracket_order(round2_size)
+    order = _standard_bracket_order(shape["round2_size"])
     round2 = []
     for i in range(0, len(order), 2):
         round2.append({
-            "slot1": virtual.get(order[i], {"kind": "walkover"}),
-            "slot2": virtual.get(order[i + 1], {"kind": "walkover"}),
+            "slot1": virtual[order[i]],
+            "slot2": virtual[order[i + 1]],
         })
 
     return {
         "byes": auto_seeds,
         "round1": round1,
         "round2": round2,
-        "shape": {**shape, "round2_size": round2_size, "extra_byes": extra_byes},
+        "shape": shape,
     }
 
 
@@ -318,11 +332,9 @@ def compute_bracket_placement(seeds: list[Seed], auto_qualify: int) -> dict:
     """
     What the bracket layout actually looks like right now -- no results
     simulated or guessed. Qualification Round and Round of 32 are real
-    (auto-qualified seeds, real KO pairings, walkovers shown as a bye).
-    Round of 16 onward is almost entirely unknowable until real games
-    are played, so every slot there is TBD -- except a Round-of-16 slot
-    that a Round-of-32 walkover already resolves mechanically (that's a
-    fact, not a guess: nobody else can end up in that slot).
+    (auto-qualified seeds, direct entrants, real KO pairings). Round of
+    16 onward is entirely unknowable until real games are played, so
+    every slot there is TBD.
     """
     base = compute_full_bracket(seeds, auto_qualify)
     round1 = base["round1"]
@@ -332,20 +344,13 @@ def compute_bracket_placement(seeds: list[Seed], auto_qualify: int) -> dict:
     n_r32 = len(round2)
     n_r16, n_qf, n_sf = n_r32 // 2, n_r32 // 4, n_r32 // 8
 
-    r16 = [{"slot1": {"kind": "tbd"}, "slot2": {"kind": "tbd"}} for _ in range(n_r16)]
-    for i, m in enumerate(round2):
-        if m["slot1"]["kind"] == "walkover" or m["slot2"]["kind"] == "walkover":
-            real = m["slot1"] if m["slot1"]["kind"] != "walkover" else m["slot2"]
-            r16_idx, slot_key = i // 2, "slot1" if i % 2 == 0 else "slot2"
-            r16[r16_idx][slot_key] = real
-
     tbd_round = lambda n: [{"slot1": {"kind": "tbd"}, "slot2": {"kind": "tbd"}} for _ in range(n)]
 
     return {
         "byes": base["byes"],
         "qualification_round": round1,
         "round_of_32": round2,
-        "round_of_16": r16,
+        "round_of_16": tbd_round(n_r16),
         "quarterfinals": tbd_round(n_qf),
         "semifinals": tbd_round(n_sf),
         "final": tbd_round(1),

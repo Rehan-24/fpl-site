@@ -1,9 +1,9 @@
 // components/FACupBracketPlacement.tsx
 // What the bracket layout looks like right now, shown on the Bracket
 // tab before the season's real bracket is frozen (GW22). No results
-// are simulated -- only the Qualification Round and Round of 32 are
-// real; everything after that shows TBD except where a Round-of-32
-// walkover already resolves a slot mechanically.
+// are simulated -- only the auto-qualified/direct-entrant seeds and
+// the real Qualification Round pairings are known; every slot that
+// depends on an unplayed game shows TBD.
 
 import {
   useBracketPlacement, QualificationMatch, SlotMatch, BracketSlot,
@@ -11,10 +11,14 @@ import {
 import { ArchiveRoundSection, ArchiveMatch } from "./FACupArchiveShared";
 
 function slotToSide(slot: BracketSlot) {
-  if (slot.kind === "tbd") return { seed: 0, team: "TBD", owner: "" };
-  if (slot.kind === "walkover") return { seed: 0, team: "BYE", owner: "" };
-  const s = slot.seed!;
-  return { seed: s.seed, team: s.team, owner: s.owner };
+  if (slot.kind === "seed") {
+    const s = slot.seed!;
+    return { seed: s.seed, team: s.team, owner: s.owner };
+  }
+  if (slot.kind === "ko_winner") {
+    return { seed: 0, team: `TBD (Match ${(slot.match_idx ?? 0) + 1} winner)`, owner: "" };
+  }
+  return { seed: 0, team: "TBD", owner: "" };
 }
 
 function qualificationToArchiveMatch(m: QualificationMatch, idx: number): ArchiveMatch {
@@ -39,7 +43,7 @@ function slotMatchToArchiveMatch(m: SlotMatch, idx: number): ArchiveMatch {
 
 export default function FACupBracketPlacement() {
   const {
-    autoQualify, qualificationRound, roundOf32, roundOf16,
+    round32Cutoff, qualificationRound, roundOf32, roundOf16,
     quarterfinals, semifinals, final, thirdPlace,
     loading, error, lastUpdated, refresh,
   } = useBracketPlacement();
@@ -66,9 +70,9 @@ export default function FACupBracketPlacement() {
       </h2>
       <p className="text-xs text-gray-500 mb-4">
         No bracket has been frozen for this season yet — that happens at the GW22
-        kickoff. This shows where things actually stand: the top {autoQualify} seeds
-        auto-qualify for the Round of 32, the Qualification Round matchups are real,
-        and every slot that depends on an unplayed game shows <strong>TBD</strong>.
+        kickoff. This shows where things actually stand: the top {round32Cutoff} seeds
+        advance straight to the Round of 32, the Qualification Round matchups are
+        real, and every slot that depends on an unplayed game shows <strong>TBD</strong>.
       </p>
 
       <div className="space-y-6 overflow-x-auto pb-2">

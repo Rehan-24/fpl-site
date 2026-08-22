@@ -1,8 +1,7 @@
 // public/hooks/useBracketPlacement.ts
 // What the bracket layout looks like right now, recomputed live from
-// current standings. No results simulated -- only the Qualification
-// Round and Round of 32 are real; everything after that is TBD except
-// where a Round-of-32 walkover already resolves a slot mechanically.
+// current standings. No results simulated -- the Qualification Round
+// and Round of 32 are real; everything after that is TBD.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -27,7 +26,7 @@ export interface QualificationMatch {
 }
 
 export interface BracketSlot {
-  kind: "seed" | "ko_winner" | "walkover" | "tbd";
+  kind: "seed" | "ko_winner" | "tbd";
   seed?: PlacementSeed;
   match_idx?: number;
 }
@@ -41,6 +40,7 @@ export interface BracketPlacementData {
   lastSeason: string | null;
   basis: string | null;
   autoQualify: number;
+  round32Cutoff: number;
   qualificationRound: QualificationMatch[];
   roundOf32: SlotMatch[];
   roundOf16: SlotMatch[];
@@ -105,7 +105,8 @@ export function useBracketPlacement(): BracketPlacementData {
   return {
     lastSeason: data?.last_season ?? null,
     basis: data?.basis ?? null,
-    autoQualify: data?.auto_qualify ?? 16,
+    autoQualify: data?.auto_qualify ?? 4,
+    round32Cutoff: data?.shape?.round32_cutoff ?? 24,
     qualificationRound: data?.qualification_round ?? [],
     roundOf32: data?.round_of_32 ?? [],
     roundOf16: data?.round_of_16 ?? [],

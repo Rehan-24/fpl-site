@@ -1616,20 +1616,23 @@ def _compute_live_facup_seeds():
 
 
 @app.get("/api/facup/projected-seeding", tags=["facup"])
-def get_facup_projected_seeding(auto_qualify: int = Query(16)):
+def get_facup_projected_seeding(auto_qualify: int = Query(4)):
     """
     Live projected FA Cup seeding for the season currently in progress,
     computed fresh from current standings on every request -- nothing is
     cached or stored. Not final; the real seeding locks at the season's
     GW22 freeze.
 
-    GW1-22 are "qualifying weeks": the top `auto_qualify` seeds (16 by
-    default) go straight through to the Round of 32. Everyone else
-    plays a single Qualification Round, paired best-remaining vs
-    worst-remaining -- e.g. seed 17 vs seed 40, seed 18 vs seed 39, and
-    so on. Only seeding + the Qualification Round are returned here,
-    since Round of 32 pairing depends on who actually wins those
-    matches.
+    GW1-22 are "qualifying weeks". The top `auto_qualify` seeds (4 by
+    default -- last season's 3 trophy winners plus the highest current
+    scorer) get their qualification reason spotlighted; seeds up through
+    `shape.round32_cutoff` also advance straight to the Round of 32 with
+    no game, for the purely mechanical reason that Round of 32 needs a
+    clean power-of-2 field. Everyone below that plays a single
+    Qualification Round, paired best-remaining vs worst-remaining --
+    e.g. seed 25 vs seed 40, seed 26 vs seed 39, and so on. Only seeding
+    + the Qualification Round are returned here, since Round of 32
+    pairing depends on who actually wins those matches.
     """
     from facup_seeding import compute_round1
 
@@ -1654,13 +1657,13 @@ def get_facup_projected_seeding(auto_qualify: int = Query(16)):
 
 
 @app.get("/api/facup/bracket-placement", tags=["facup"])
-def get_facup_bracket_placement(auto_qualify: int = Query(16)):
+def get_facup_bracket_placement(auto_qualify: int = Query(4)):
     """
     What the bracket layout looks like right now, computed fresh from
     current standings on every request -- no results simulated or
-    guessed. Qualification Round and Round of 32 are real; Round of 16
-    onward is TBD except where a Round-of-32 walkover already resolves
-    a slot mechanically (see facup_seeding.compute_bracket_placement).
+    guessed. Qualification Round and Round of 32 are real; everything
+    from Round of 16 onward is TBD (see
+    facup_seeding.compute_bracket_placement).
     """
     from facup_seeding import compute_bracket_placement
 

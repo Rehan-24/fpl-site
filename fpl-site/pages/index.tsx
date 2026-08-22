@@ -279,18 +279,21 @@ function FACupPreview() {
 }
 
 // Seeds 1-3 are locked to last season's trophy winners regardless of
-// current score; everyone else's qualification status is score-based
-// and can still shift as the season plays out.
-function qualificationStatus(seed: number, autoQualify: number): { label: string; locked: boolean } {
+// current score. Seeds up through round32Cutoff all advance straight
+// to the Round of 32 with no game (some spotlighted as auto_qualify,
+// the rest just mechanically needed for a clean bracket size) -- that
+// status is score-based and can still shift as the season plays out.
+// Everyone else is still fighting for a spot via the Qualification Round.
+function qualificationStatus(seed: number, round32Cutoff: number): { label: string; locked: boolean } {
   const locked = seed <= 3;
-  if (seed <= autoQualify) {
+  if (seed <= round32Cutoff) {
     return { label: locked ? "Qualified for Round of 32" : "Currently Qualified for Round of 32", locked };
   }
-  return { label: "Currently Heading to Qualification KO Round", locked: false };
+  return { label: "Currently Heading to Qualification Round", locked: false };
 }
 
-function ProjectedSeedingRow({ s, autoQualify }: { s: any; autoQualify: number }) {
-  const status = qualificationStatus(s.seed, autoQualify);
+function ProjectedSeedingRow({ s, round32Cutoff }: { s: any; round32Cutoff: number }) {
+  const status = qualificationStatus(s.seed, round32Cutoff);
   return (
     <tr className="border-b border-[#37003c]">
       <td className="px-2 py-1 w-6 text-center align-top">{s.seed}</td>
@@ -308,22 +311,20 @@ function ProjectedSeedingRow({ s, autoQualify }: { s: any; autoQualify: number }
         <span
           className={`inline-block text-[9px] font-bold px-1.5 py-0.5 rounded whitespace-normal leading-tight ${
             status.locked ? "bg-green-100 text-green-800" :
-            s.seed <= autoQualify ? "bg-green-50 text-green-700" :
+            s.seed <= round32Cutoff ? "bg-green-50 text-green-700" :
             "bg-amber-50 text-amber-700"
           }`}
         >
           {status.label}
         </span>
-        {status.locked && (
-          <div className="text-[9px] text-gray-500 mt-0.5 leading-tight">{s.reason}</div>
-        )}
+        <div className="text-[9px] text-gray-500 mt-0.5 leading-tight">{s.reason}</div>
       </td>
     </tr>
   );
 }
 
 function ProjectedSeedingTeaser() {
-  const { seeds, autoQualify, basis, loading, error } = useProjectedSeeding();
+  const { seeds, round32Cutoff, basis, loading, error } = useProjectedSeeding();
 
   if (loading || error || seeds.length === 0) return null;
 
@@ -341,8 +342,8 @@ function ProjectedSeedingTeaser() {
         )}
       </div>
       <p className="text-[10px] text-gray-500 mb-1.5">
-        Cup is expected to kick off <strong>GW22</strong> — the top {autoQualify} seeds qualify
-        automatically for the Round of 32; everyone else plays a Qualification Round first.
+        Cup is expected to kick off <strong>GW22</strong> — the top {round32Cutoff} seeds advance
+        straight to the Round of 32; everyone else plays a Qualification Round first.
       </p>
       <table className="w-full text-sm table-fixed">
         <thead>
@@ -354,7 +355,7 @@ function ProjectedSeedingTeaser() {
         </thead>
         <tbody>
           {top.map((s) => (
-            <ProjectedSeedingRow key={s.seed} s={s} autoQualify={autoQualify} />
+            <ProjectedSeedingRow key={s.seed} s={s} round32Cutoff={round32Cutoff} />
           ))}
         </tbody>
       </table>

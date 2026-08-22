@@ -186,7 +186,7 @@ to `facup_bracket` until you've reviewed the computed seeding and
 bracket:
 
 ```bash
-python facup_freeze.py compute --season 2026-27 --kickoff-gw 22 --auto-qualify 16 \
+python facup_freeze.py compute --season 2026-27 --kickoff-gw 22 --auto-qualify 4 \
     --facup-winner "Marvin Ling" --prem-winner "Michael Giles" \
     --champ-winner "Aaron Frank" --out facup_report.json
 
@@ -195,14 +195,14 @@ python facup_freeze.py compute --season 2026-27 --kickoff-gw 22 --auto-qualify 1
 python facup_freeze.py apply --report facup_report.json
 ```
 
-The top `auto-qualify` seeds (16 by default) skip straight to the Round
-of 32; everyone else plays a single Qualification Round, paired
-best-remaining vs worst-remaining. Since 16 auto-qualifiers + 12
-Qualification Round winners (for the default 40-seed/16-auto-qualify
-case) isn't a power of 2, the strongest few advancing seeds get an
-additional walkover straight past Round of 32 too -- `apply` handles
-this automatically by pre-filling their Round-of-16 slot directly
-rather than writing an unplayable Round-of-32 row.
+Round of 32's size is always the largest power of 2 <= the number of
+managers (32 for 40 managers), independent of `--auto-qualify` -- so
+the bottom 16 seeds always play the Qualification Round (8 matches),
+and the top 24 always advance straight to Round of 32 with no game.
+`--auto-qualify` (4 by default) only controls how many of those 24 get
+their qualification reason spotlighted (trophy winners + highest
+scorer) vs shown as a plain direct entrant -- it doesn't change the
+bracket shape itself, so there's no padding or walkover to handle.
 
 `apply` clears any existing bracket rows for that season first (safe
 to re-run if you need to fix something before the tournament actually

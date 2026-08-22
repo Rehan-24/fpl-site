@@ -7,20 +7,21 @@ import Link from "next/link";
 import { useProjectedSeeding, ProjectedSeed } from "@/public/hooks/useProjectedSeeding";
 
 // Seeds 1-3 are locked to last season's trophy winners regardless of
-// current score; everyone else's qualification status is score-based
-// and can still shift as the season plays out.
-function qualificationStatus(seed: number, autoQualify: number): { label: string; locked: boolean } {
+// current score. Seeds up through round32Cutoff all advance straight
+// to the Round of 32 with no game -- score-based, can still shift.
+// Everyone else is still fighting for a spot via the Qualification Round.
+function qualificationStatus(seed: number, round32Cutoff: number): { label: string; locked: boolean } {
   const locked = seed <= 3;
-  if (seed <= autoQualify) {
+  if (seed <= round32Cutoff) {
     return { label: locked ? "Qualified for Round of 32" : "Currently Qualified for Round of 32", locked };
   }
-  return { label: "Currently Heading to Qualification KO Round", locked: false };
+  return { label: "Currently Heading to Qualification Round", locked: false };
 }
 
 export default function FACupProjectedSeeding() {
   const {
     lastSeason, facupWinner, premWinner, champWinner,
-    basis, autoQualify, seeds, qualificationRound, loading, error, lastUpdated, refresh,
+    basis, autoQualify, round32Cutoff, seeds, qualificationRound, loading, error, lastUpdated, refresh,
   } = useProjectedSeeding();
 
   if (loading && seeds.length === 0) {
@@ -53,10 +54,12 @@ export default function FACupProjectedSeeding() {
       <div className="text-xs text-gray-500 mb-3 space-y-1">
         <p>
           Recomputed live from current standings — not final until the bracket
-          freezes. Seeds 1–3 are locked in ({lastSeason} trophy winners). The top{" "}
-          {autoQualify} seeds auto-qualify for the Round of 32; everyone else plays
-          a Qualification Round first. Everything past seed 3 will keep shuffling
-          as the season plays out.
+          freezes. Seeds 1–3 are locked in ({lastSeason} trophy winners), seed 4 is
+          the highest current scorer. The top {round32Cutoff} seeds advance straight
+          to the Round of 32 (the rest of that cutoff is a mechanical consequence of
+          needing a clean bracket size, not a special reward); everyone else plays a
+          Qualification Round first. Everything past seed 3 will keep shuffling as
+          the season plays out.
         </p>
         {isAlphabetical && (
           <p className="inline-block bg-yellow-50 border-l-4 border-yellow-400 px-2 py-1 text-yellow-800">
@@ -89,7 +92,7 @@ export default function FACupProjectedSeeding() {
           </thead>
           <tbody>
             {seeds.map((p: ProjectedSeed, i: number) => {
-              const status = qualificationStatus(p.seed, autoQualify);
+              const status = qualificationStatus(p.seed, round32Cutoff);
               const bg = i % 2 === 0 ? "bg-white" : "bg-purple-50";
               return (
                 <tr key={p.seed} className={`${bg} hover:bg-purple-100 transition-colors`}>
@@ -117,15 +120,13 @@ export default function FACupProjectedSeeding() {
                     <span
                       className={`inline-block text-[9px] font-bold px-1.5 py-0.5 rounded tracking-wide ${
                         status.locked ? "bg-green-100 text-green-800" :
-                        p.seed <= autoQualify ? "bg-green-50 text-green-700" :
+                        p.seed <= round32Cutoff ? "bg-green-50 text-green-700" :
                         "bg-amber-50 text-amber-700"
                       }`}
                     >
                       {status.label}
                     </span>
-                    {status.locked && (
-                      <div className="text-gray-400 text-[10px] mt-0.5">{p.reason}</div>
-                    )}
+                    <div className="text-gray-400 text-[10px] mt-0.5">{p.reason}</div>
                   </td>
                   <td className="px-3 py-1.5 text-right font-bold font-mono text-[#37003c]">
                     {p.score}
@@ -142,7 +143,7 @@ export default function FACupProjectedSeeding() {
         <span className="flex-1 h-px bg-purple-200 block" />
       </h3>
       <p className="text-xs text-gray-500 mb-3">
-        Top {autoQualify} seeds auto-qualify for the Round of 32. The remaining{" "}
+        Top {round32Cutoff} seeds advance straight to the Round of 32. The remaining{" "}
         {qualificationRound.length * 2} seeds play a single Qualification Round,
         paired best-vs-worst, for the last spots. Everything past that depends on
         who actually wins these matches.

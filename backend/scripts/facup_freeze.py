@@ -28,7 +28,7 @@ report before applying; this is the one part of the whole pipeline
 that's a judgment call rather than a mechanical fact.
 
 Usage:
-    python facup_freeze.py compute --season 2026-27 --auto-qualify 16 \\
+    python facup_freeze.py compute --season 2026-27 --auto-qualify 4 \\
         --facup-winner "Marvin Ling" --prem-winner "Michael Giles" \\
         --champ-winner "Aaron Frank" --out facup_report.json
 
@@ -163,29 +163,15 @@ def cmd_apply(args):
             ))
             n += 1
 
-        # A non-power-of-2 field past qualification means some Round-of-32
-        # slots are "walkover" (nobody there) -- the strongest advancing
-        # seeds, per compute_full_bracket. Those matches never get played:
-        # the real occupant is pre-filled straight into their Round-of-16
-        # slot instead of writing an unplayable r32 row.
-        walkover_advances = []  # (r16_idx, slot, seed, entry_id)
         for i, m in enumerate(report["round2"]):
             def slot_fields(slot):
                 if slot["kind"] == "seed":
                     owner = slot["seed"]["owner"]
                     return slot["seed"]["seed"], eid_by_owner[owner], None
-                if slot["kind"] == "walkover":
-                    return None, None, None
                 return None, None, slot["match_idx"]  # KO Round winner slot -- resolved once qualification finishes
 
             seed1, entry1, feeds1 = slot_fields(m["slot1"])
             seed2, entry2, feeds2 = slot_fields(m["slot2"])
-
-            if m["slot1"]["kind"] == "walkover" or m["slot2"]["kind"] == "walkover":
-                real_seed, real_entry = (seed1, entry1) if m["slot1"]["kind"] != "walkover" else (seed2, entry2)
-                walkover_advances.append((i // 2, "1" if i % 2 == 0 else "2", real_seed, real_entry))
-                continue  # nothing to play -- no r32 row for this slot
-
             # only one side of a Round-2 matchup can be a TBD KO-round-winner slot
             feeds_r1 = feeds1 if feeds1 is not None else feeds2
             cur.execute(insert_sql, (season, "r32", i, gws["r32"], seed1, seed2, entry1, entry2, feeds_r1))
@@ -200,15 +186,6 @@ def cmd_apply(args):
         for i in range(n_r16):
             cur.execute(empty_sql, (season, "r16", i, gws["r16"]))
             n += 1
-
-        for r16_idx, slot, seed, entry in walkover_advances:
-            cur.execute(
-                f"update public.facup_bracket set seed{slot} = %s, entry_id{slot} = %s, "
-                f"updated_at = now() where season = %s and round = 'r16' and matchup_idx = %s",
-                (seed, entry, season, r16_idx),
-            )
-        if walkover_advances:
-            print(f"Pre-filled {len(walkover_advances)} Round-of-16 slot(s) with Round-of-32 walkovers")
         for i in range(n_qf):
             cur.execute(empty_sql, (season, "qf", i, gws["qf"]))
             n += 1
@@ -230,7 +207,7 @@ def main():
     c = sub.add_parser("compute", help="Compute the freeze, write a report (no DB writes)")
     c.add_argument("--season", required=True, help="e.g. 2026-27")
     c.add_argument("--kickoff-gw", type=int, required=True, help="e.g. 22")
-    c.add_argument("--auto-qualify", type=int, default=16, dest="auto_qualify")
+    c.add_argument("--auto-qualify", type=int, default=4, dest="auto_qualify")
     c.add_argument("--facup-winner", required=True)
     c.add_argument("--prem-winner", required=True)
     c.add_argument("--champ-winner", required=True)
