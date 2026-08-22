@@ -4,9 +4,19 @@ import { useEffect, useState, useMemo } from 'react'
 type SeasonRow = {
   season: string
   placement: number | null
-  points: number
+  points: number | null
   score: number
   overallRank: number | null
+}
+
+// Some historical rows come back with numeric fields as strings (mixed
+// storage from different backfill passes over the years) -- coerce
+// defensively so toLocaleString() reliably adds thousands separators
+// instead of silently no-op'ing on a string.
+function toNum(v: unknown): number | null {
+  if (v === null || v === undefined) return null
+  const n = typeof v === 'number' ? v : Number(String(v).replace(/,/g, '').trim())
+  return Number.isFinite(n) ? n : null
 }
 
 export default function SeasonStatsCard({ ownerName }: { ownerName: string }) {
@@ -38,10 +48,10 @@ export default function SeasonStatsCard({ ownerName }: { ownerName: string }) {
         // Normalize field names for UI
         const normalized: SeasonRow[] = raw.map((r) => ({
           season: r.season,
-          placement: r.placement ?? r.position ?? null,
-          points: r.points ?? r.league_points ?? 0,
-          score: r.score ?? r.total_score ?? 0,
-          overallRank: r.overallRank ?? r.overall_rank ?? null,
+          placement: toNum(r.placement ?? r.position ?? null),
+          points: toNum(r.points ?? r.league_points ?? null),
+          score: toNum(r.score ?? r.total_score ?? null) ?? 0,
+          overallRank: toNum(r.overallRank ?? r.overall_rank ?? null),
         }))
 
         setRows(normalized)

@@ -287,9 +287,9 @@ function FACupPreview() {
 function qualificationStatus(seed: number, round32Cutoff: number): { label: string; locked: boolean } {
   const locked = seed <= 3;
   if (seed <= round32Cutoff) {
-    return { label: locked ? "Qualified for Round of 32" : "Currently Qualified for Round of 32", locked };
+    return { label: "Round of 32 Seed", locked };
   }
-  return { label: "Currently Heading to Qualification Round", locked: false };
+  return { label: "Qualification KO Seed", locked: false };
 }
 
 function ProjectedSeedingRow({ s, round32Cutoff }: { s: any; round32Cutoff: number }) {
@@ -309,7 +309,7 @@ function ProjectedSeedingRow({ s, round32Cutoff }: { s: any; round32Cutoff: numb
       </td>
       <td className="px-2 py-1 text-right align-top">
         <span
-          className={`inline-block text-[9px] font-bold px-1.5 py-0.5 rounded whitespace-normal leading-tight ${
+          className={`inline-block text-center text-[9px] font-bold px-1.5 py-0.5 rounded whitespace-normal leading-tight ${
             status.locked ? "bg-green-100 text-green-800" :
             s.seed <= round32Cutoff ? "bg-green-50 text-green-700" :
             "bg-amber-50 text-amber-700"

@@ -152,6 +152,27 @@ def fixtures_owner_alias(owner: str, all: bool = Query(False), limit: int | None
 #def season_stats_canonical(owner: str):
 #    return season_stats(owner)  # reuse your function below
 
+def _int_or_none(v):
+    """
+    manager_season_stats and season_stats have both had numeric columns
+    populated as text at various points (different scripts, some manual
+    entry), so the DB driver hands back a mix of Python int and str for
+    the same column across rows -- e.g. overall_rank comes back as the
+    int 745158 for one season and the str "872404" for another. That's
+    invisible in the JSON payload's raw value but breaks
+    Number.toLocaleString()-style comma formatting on the frontend for
+    the string rows. Normalize everything to a real int (or None) here,
+    once, at the API boundary, instead of relying on every consumer to
+    know to re-parse it.
+    """
+    if v is None:
+        return None
+    try:
+        return int(str(v).replace(",", "").strip())
+    except (ValueError, TypeError):
+        return None
+
+
 @router.get("/managers/{owner}/seasons")
 def seasons_for_owner(owner: str):
     # Primary: manager_season_stats (has all historical data including league field)
@@ -162,10 +183,10 @@ def seasons_for_owner(owner: str):
         merged[season] = {
             "season": season,
             "league": r.get("league"),
-            "placement": r.get("placement"),
-            "points": r.get("league_points"),
-            "score": r.get("total_score"),
-            "overallRank": r.get("overall_rank"),
+            "placement": _int_or_none(r.get("placement")),
+            "points": _int_or_none(r.get("league_points")),
+            "score": _int_or_none(r.get("total_score")),
+            "overallRank": _int_or_none(r.get("overall_rank")),
         }
 
     # Overlay with season_stats (backfilled data — prefer non-null values over existing)
@@ -177,10 +198,10 @@ def seasons_for_owner(owner: str):
             merged[season] = {
                 "season": season,
                 "league": existing.get("league"),
-                "placement": r.get("placement") or existing.get("placement"),
-                "points": r.get("league_points") or existing.get("points"),
-                "score": r.get("total_score") or existing.get("score"),
-                "overallRank": r.get("overall_rank") or existing.get("overallRank"),
+                "placement": _int_or_none(r.get("placement")) or existing.get("placement"),
+                "points": _int_or_none(r.get("league_points")) or existing.get("points"),
+                "score": _int_or_none(r.get("total_score")) or existing.get("score"),
+                "overallRank": _int_or_none(r.get("overall_rank")) or existing.get("overallRank"),
             }
     except Exception:
         pass

@@ -13,9 +13,9 @@ import { useProjectedSeeding, ProjectedSeed } from "@/public/hooks/useProjectedS
 function qualificationStatus(seed: number, round32Cutoff: number): { label: string; locked: boolean } {
   const locked = seed <= 3;
   if (seed <= round32Cutoff) {
-    return { label: locked ? "Qualified for Round of 32" : "Currently Qualified for Round of 32", locked };
+    return { label: "Round of 32 Seed", locked };
   }
-  return { label: "Currently Heading to Qualification Round", locked: false };
+  return { label: "Qualification KO Seed", locked: false };
 }
 
 export default function FACupProjectedSeeding() {
@@ -118,7 +118,7 @@ export default function FACupProjectedSeeding() {
                   </td>
                   <td className="px-3 py-1.5">
                     <span
-                      className={`inline-block text-[9px] font-bold px-1.5 py-0.5 rounded tracking-wide ${
+                      className={`inline-block text-center text-[9px] font-bold px-1.5 py-0.5 rounded tracking-wide ${
                         status.locked ? "bg-green-100 text-green-800" :
                         p.seed <= round32Cutoff ? "bg-green-50 text-green-700" :
                         "bg-amber-50 text-amber-700"
