@@ -11,6 +11,7 @@
 import { useEffect, useRef, useId } from "react";
 import { useFACupBracket, BracketMatchup } from "@/public/hooks/useFACupBracket";
 import { useFACupSeeding, SeedEntry } from "@/public/hooks/useFACupSeeding";
+import FACupHypotheticalBracket from "./FACupHypotheticalBracket";
 
 const ROUND_ORDER = ["r1", "r32", "r16", "qf", "sf"] as const;
 const ROUND_TITLES: Record<string, string> = {
@@ -402,15 +403,7 @@ export default function FACupBracket({ season }: Props) {
   }
 
   if (!loading && bracket.length === 0) {
-    return (
-      <div className="px-5 py-10 text-center text-sm">
-        <p className="text-gray-500 font-medium mb-1">No bracket yet for this season.</p>
-        <p className="text-gray-400 text-xs">
-          The tournament hasn't been frozen yet — check the Seedings tab for the
-          live projection until then.
-        </p>
-      </div>
-    );
+    return <FACupHypotheticalBracket />;
   }
 
   return (
