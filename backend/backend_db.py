@@ -494,6 +494,50 @@ def list_manager_seasons(owner: str):
         return cur.fetchall()
 
 
+def upsert_manager_season_stats(rows: list[dict]) -> int:
+    """
+    Upsert into public.manager_season_stats -- the *primary* season-stats
+    table (as opposed to season_stats, the overlay table for backfilled/
+    supplementary data). A manager's League column on their profile only
+    ever comes from here (seasons_for_owner's overlay merge deliberately
+    never overwrites league from season_stats), so the current season's
+    row needs to live in this table, not the overlay one, to show a
+    League value at all.
+    """
+    if not rows:
+        return 0
+    sql = """
+    INSERT INTO public.manager_season_stats
+      (owner_name, season, league, placement, league_points, total_score, overall_rank, updated_at)
+    VALUES
+      (%(owner_name)s, %(season)s, %(league)s, %(placement)s, %(league_points)s, %(total_score)s, %(overall_rank)s, now())
+    ON CONFLICT (owner_name, season) DO UPDATE SET
+      league        = EXCLUDED.league,
+      placement     = EXCLUDED.placement,
+      league_points = EXCLUDED.league_points,
+      total_score   = EXCLUDED.total_score,
+      overall_rank  = EXCLUDED.overall_rank,
+      updated_at    = now();
+    """
+    with psycopg.connect(DB_URL, row_factory=dict_row) as conn:
+        try:
+            conn.prepare_threshold = None
+        except Exception:
+            pass
+        with conn.cursor() as cur:
+            try:
+                cur.prepare_threshold = None
+            except Exception:
+                pass
+            try:
+                cur.execute("DEALLOCATE ALL;")
+            except Exception:
+                pass
+            cur.executemany(sql, rows)
+        conn.commit()
+    return len(rows)
+
+
 # --- Season stats helpers ---
 def upsert_season_stats(rows: list[dict]) -> int:
     if not rows:

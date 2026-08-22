@@ -238,6 +238,80 @@ def rebuild_matchups_admin(_: bool = Depends(_require_api_key)):
     return {"status": "ok", "pairs": n}
 
 
+def _refresh_current_season_stats_worker():
+    """
+    Upsert manager_season_stats for the season currently in progress, so
+    the "current season" row on every manager's Season Stats table stays
+    live all season (placement/points from the mini-league standings,
+    score/overall_rank from each manager's live FPL entry) instead of
+    only appearing once the season's finished and someone runs the
+    season-end import by hand. Meant to run on a schedule -- see
+    .github/workflows/refresh-season-stats.yml -- but safe to re-run any
+    time, including mid-request via workflow_dispatch.
+    """
+    import requests as _requests
+    from fixtures_refresh import current_season_label
+    from backend_db import upsert_manager_season_stats
+
+    season = current_season_label()
+    print(f"[season-stats] refreshing manager_season_stats for {season}")
+
+    prem_snap = get_latest_table_snapshot("premier")
+    champ_snap = get_latest_table_snapshot("championship")
+    prem_rows = (prem_snap or {}).get("payload", {}).get("rows", [])
+    champ_rows = (champ_snap or {}).get("payload", {}).get("rows", [])
+    if not prem_rows and not champ_rows:
+        print("[season-stats] no current standings available yet, skipping")
+        return
+
+    entry_by_owner: dict[str, int] = {}
+    for m in fetch_all_managers():
+        owner = (m.get("owner_name") or "").strip()
+        eid = _parse_fpl_entry_id(m.get("fpl_team_url"))
+        if owner and eid:
+            entry_by_owner[owner.lower()] = eid
+
+    def _fetch_live_totals(entry_id: int):
+        try:
+            r = _requests.get(
+                f"https://fantasy.premierleague.com/api/entry/{entry_id}/",
+                headers={"User-Agent": "tfpl-site"}, timeout=15,
+            )
+            r.raise_for_status()
+            d = r.json()
+            return d.get("summary_overall_points"), d.get("summary_overall_rank")
+        except Exception as e:
+            print(f"[season-stats] entry {entry_id} fetch failed: {e}")
+            return None, None
+
+    rows_to_write = []
+    for league_key, rows in [("premier", prem_rows), ("championship", champ_rows)]:
+        for r in rows:
+            owner = (r.get("Owner") or "").strip()
+            if not owner:
+                continue
+            eid = entry_by_owner.get(owner.lower())
+            score, overall_rank = _fetch_live_totals(eid) if eid else (None, None)
+            rows_to_write.append({
+                "owner_name": owner,
+                "season": season,
+                "league": league_key,
+                "placement": r.get("Position"),
+                "league_points": r.get("Points"),
+                "total_score": score if score is not None else r.get("Score"),
+                "overall_rank": overall_rank,
+            })
+
+    n = upsert_manager_season_stats(rows_to_write)
+    print(f"[season-stats] wrote {n} rows for {season}")
+
+
+@router_admin.post("/refresh-current-season-stats")
+def refresh_current_season_stats(background: BackgroundTasks, _: bool = Depends(_require_api_key)):
+    background.add_task(_refresh_current_season_stats_worker)
+    return {"status": "started"}
+
+
 app.include_router(router_admin)
 
 # --- Auth helper ---

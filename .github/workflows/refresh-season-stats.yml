@@ -1,0 +1,16 @@
+name: Refresh Current Season Stats Weekly
+on:
+  schedule:
+    - cron: '0 17 * * 1'   # Mondays, 10:00 during PST
+  workflow_dispatch: {}
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hit admin refresh
+        run: |
+          curl -sS -X POST "$BACKEND_URL/api/admin/refresh-current-season-stats" -H "X-Api-Key: $API_KEY"
+        env:
+          BACKEND_URL: https://tfpl.onrender.com
+          API_KEY: wefbthneh9wf6cv23irj2f892e23fq23fn2309t24423t2fvawervweg234t
