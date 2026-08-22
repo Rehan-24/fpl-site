@@ -206,6 +206,25 @@ def seasons_for_owner(owner: str):
     except Exception:
         pass
 
+    # Fill gap seasons -- a manager who played 2011-12 then didn't play
+    # again until 2013-14 should still show 2012-13 as a row, with
+    # everything blank, rather than the table silently skipping from
+    # one to the other. Only fills *between* known seasons, never
+    # before the earliest or after the latest one on file.
+    covered_years: set[int] = set()
+    for s in merged.keys():
+        m = re.match(r"^(\d{4})-\d{2}", s or "")
+        if m:
+            covered_years.add(int(m.group(1)))
+    if covered_years:
+        for y in range(min(covered_years), max(covered_years) + 1):
+            if y not in covered_years:
+                label = f"{y}-{(y + 1) % 100:02d}"
+                merged[label] = {
+                    "season": label, "league": None, "placement": None,
+                    "points": None, "score": None, "overallRank": None,
+                }
+
     out = sorted(merged.values(), key=lambda x: x["season"] or "")
     return {"owner": owner, "seasons": out}
 
